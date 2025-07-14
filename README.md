@@ -6,7 +6,7 @@ Join us on this exciting journey as we build not just a platform, but a living, 
 
 ## Write in ZeFer, integrate it freely to other platforms with our APIs
 
-We do not limit your blog posts only in our platform, you can freely integrate it to other platforms. We have built an npm package for this. You can check the documentation how to set it up here: <https://docs.zefer.blog/>
+We do not limit your blog posts only in our platform, you can freely integrate it to other platforms. We have built an npm package for this. You can check the documentation how to set it up here: <[https://docs.zefer.blog/](https://zeferapi-documentation.vercel.app/)>
 
 ## Contributing
 
