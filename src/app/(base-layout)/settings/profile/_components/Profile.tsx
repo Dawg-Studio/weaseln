@@ -43,6 +43,7 @@ export default function ProfileSettingsComponent({
     const [isVerificationCodeSent, setIsVerificationCodeSent] =
         useState<boolean>(false);
     const [isSending, setIsSending] = useState<boolean>(false);
+    const [isUpdatingProfile, setIsUpdatingProfile] = useState<boolean>(false);
 
     const [countdown, setCountdown] = useState<number>(60);
     useEffect(() => {
@@ -218,6 +219,7 @@ export default function ProfileSettingsComponent({
     };
 
     const updateDetails = form.handleSubmit(async (data) => {
+        setIsUpdatingProfile(true);
         let socials: FormSocials[] = [];
         socialForms.forEach((social) =>
             socials.push({
@@ -255,6 +257,7 @@ export default function ProfileSettingsComponent({
                 form.setFocus(fieldError);
             });
         }
+        setIsUpdatingProfile(false);
     });
 
     return (
@@ -319,7 +322,8 @@ export default function ProfileSettingsComponent({
                             ))}
                     </div>
                 </FormProvider>
-                <button className="btn btn-info w-full" onClick={updateDetails}>
+                <button className="btn btn-info w-full" onClick={updateDetails} disabled={isUpdatingProfile}>
+                    {isUpdatingProfile && <span className="loading loading-spinner"></span>}
                     Update Profile Information
                 </button>
             </div>
