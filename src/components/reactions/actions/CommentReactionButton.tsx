@@ -33,6 +33,7 @@ export default function CommentReactionButton({
     const [commentReactionCount, setCommentReactionCount] =
         useState<number>(initialReactionCount);
     const [commentReaction, setCommentReaction] = useState<string>();
+    const [isLoading, setIsLoading] = useState<boolean>(false);
 
     useEffect(() => {
         if (isLoggedIn) {
@@ -47,6 +48,7 @@ export default function CommentReactionButton({
     }, [id, isLoggedIn]);
 
     async function updateCommentReaction() {
+        setIsLoading(true);
         if (typeof commentReaction !== "undefined") {
             const removeCommentReaction = await deleteCommentReaction(id);
             if (removeCommentReaction) {
@@ -73,6 +75,7 @@ export default function CommentReactionButton({
                 socket.emit("submitNotification", reactionNotification);
             }
         }
+        setIsLoading(false);
     }
     return (
         <>
@@ -83,8 +86,8 @@ export default function CommentReactionButton({
                             commentReaction !== undefined ? faHeart : FaRegHeart
                         }
                         title="Reactions"
-                        className="cursor-pointer"
-                        onClick={updateCommentReaction}
+                        className={`cursor-pointer ${isLoading ? 'opacity-50 cursor-wait' : ''}`}
+                        onClick={isLoading ? undefined : updateCommentReaction}
                     />
                     <div>{commentReactionCount}</div>
                 </>

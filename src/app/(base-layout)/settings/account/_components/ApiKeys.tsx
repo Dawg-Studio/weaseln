@@ -26,6 +26,8 @@ export default function ApiKeys({
     const [newApiKeyCreated, setNewApiKeyCreated] = useState<string>("");
 
     const [toDelApiKeyId, setToDelApiKeyId] = useState<string>();
+    const [isCreatingApiKey, setIsCreatingApiKey] = useState<boolean>(false);
+    const [isDeletingApiKey, setIsDeletingApiKey] = useState<boolean>(false);
 
     const form = useForm();
 
@@ -46,6 +48,7 @@ export default function ApiKeys({
     }
 
     const addApiKey = form.handleSubmit(async (data) => {
+        setIsCreatingApiKey(true);
         const duplicateName = apiKeys.find(
             (apiKey) => apiKey.name === data.Name,
         );
@@ -66,9 +69,11 @@ export default function ApiKeys({
                 message: `${data.Name} already exists.`,
             });
         }
+        setIsCreatingApiKey(false);
     });
 
     const deleteApiKey = async () => {
+        setIsDeletingApiKey(true);
         if (toDelApiKeyId) {
             const deleteApiKey = await revokeApiKey(toDelApiKeyId);
             if (deleteApiKey) {
@@ -79,6 +84,7 @@ export default function ApiKeys({
             }
         }
         deleteApiKeyModalRef.current?.close();
+        setIsDeletingApiKey(false);
     };
 
     return (
@@ -99,7 +105,8 @@ export default function ApiKeys({
                     <Input {...apiKey_validation} />
                 </FormProvider>
                 <div className="modal-action">
-                    <button className="btn btn-neutral" onClick={addApiKey}>
+                    <button className="btn btn-neutral" onClick={addApiKey} disabled={isCreatingApiKey}>
+                        {isCreatingApiKey && <span className="loading loading-spinner"></span>}
                         Confirm
                     </button>
                     <form method="dialog">
@@ -153,7 +160,8 @@ export default function ApiKeys({
                     Are you sure you want to delete{" "}
                 </h2>
                 <div className="modal-action">
-                    <button className="btn btn-neutral" onClick={deleteApiKey}>
+                    <button className="btn btn-neutral" onClick={deleteApiKey} disabled={isDeletingApiKey}>
+                        {isDeletingApiKey && <span className="loading loading-spinner"></span>}
                         Confirm
                     </button>
                     <form method="dialog">
