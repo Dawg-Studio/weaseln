@@ -2,14 +2,19 @@
 
 import { getProviders, signIn } from "next-auth/react";
 import { useSearchParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import Image from "next/image";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faEnvelope } from "@fortawesome/free-solid-svg-icons";
 import { faGithub, faGoogle } from "@fortawesome/free-brands-svg-icons";
+import type { ClientSafeProvider, LiteralUnion } from "next-auth/react";
+import type { BuiltInProviderType } from "next-auth/providers/index";
 
-export default function SignIn() {
-    const [providers, setProviders] = useState<any>(null);
+function SignInContent() {
+    const [providers, setProviders] = useState<Record<
+        LiteralUnion<BuiltInProviderType>,
+        ClientSafeProvider
+    > | null>(null);
     const [email, setEmail] = useState("");
     const searchParams = useSearchParams();
     const callbackUrl = searchParams.get("callbackUrl") || "/";
@@ -149,5 +154,19 @@ export default function SignIn() {
                 </div>
             </div>
         </div>
+    );
+}
+
+export default function SignIn() {
+    return (
+        <Suspense
+            fallback={
+                <div className="min-h-screen flex items-center justify-center bg-base-200">
+                    <div className="loading loading-spinner loading-lg"></div>
+                </div>
+            }
+        >
+            <SignInContent />
+        </Suspense>
     );
 }
