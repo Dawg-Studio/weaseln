@@ -27,6 +27,8 @@ export default function AccountSettingsComponent({
 
     const router = useRouter();
     const [inputDelete, setInputDelete] = useState<string>("");
+    const [isUnlinking, setIsUnlinking] = useState<boolean>(false);
+    const [isDeletingAccount, setIsDeletingAccount] = useState<boolean>(false);
 
     const findProvidersCanConnect = useCallback(() => {
         let providersAvailable: string[] = [];
@@ -68,6 +70,7 @@ export default function AccountSettingsComponent({
     }, [availableProviders, providers]);
 
     async function unlinkProviderAccount(providerLinked: string) {
+        setIsUnlinking(true);
         const providerDetails = providers.find(
             (provider) => provider.provider === providerLinked,
         );
@@ -78,6 +81,7 @@ export default function AccountSettingsComponent({
             );
             if (unlink) router.refresh();
         }
+        setIsUnlinking(false);
     }
 
     function pickProviderLogo(provider: string): IconDefinition {
@@ -87,8 +91,10 @@ export default function AccountSettingsComponent({
     }
 
     async function deleteAccount() {
+        setIsDeletingAccount(true);
         const deleteUserAccount = await deleteUser();
         if (deleteUserAccount) signOut();
+        setIsDeletingAccount(false);
     }
 
     function ProviderList({
@@ -127,7 +133,9 @@ export default function AccountSettingsComponent({
                                             modalOauthRemoveRef.current?.close();
                                             unlinkProviderAccount(provider);
                                         }}
+                                        disabled={isUnlinking}
                                     >
+                                        {isUnlinking && <span className="loading loading-spinner"></span>}
                                         Remove
                                     </button>
                                     <button className="btn">Close</button>
@@ -208,9 +216,10 @@ export default function AccountSettingsComponent({
                 <button
                     className="btn btn-error text-white"
                     value={inputDelete}
-                    disabled={inputDelete !== "DELETE"}
+                    disabled={inputDelete !== "DELETE" || isDeletingAccount}
                     onClick={deleteAccount}
                 >
+                    {isDeletingAccount && <span className="loading loading-spinner"></span>}
                     Delete Account
                 </button>
             </div>
