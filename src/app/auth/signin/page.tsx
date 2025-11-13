@@ -18,7 +18,11 @@ function SignInContent() {
     > | null>(null);
     const [email, setEmail] = useState("");
     const searchParams = useSearchParams();
-    const callbackUrl = searchParams.get("callbackUrl") || "/";
+    const rawCallbackUrl = searchParams.get("callbackUrl") || "/";
+    // Prevent redirect loops by ensuring callbackUrl is not the signin page
+    const callbackUrl = rawCallbackUrl.includes("/auth/signin")
+        ? "/"
+        : rawCallbackUrl;
 
     useEffect(() => {
         const fetchProviders = async () => {
