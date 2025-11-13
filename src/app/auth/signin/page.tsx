@@ -4,6 +4,7 @@ import { getProviders, signIn } from "next-auth/react";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useState, Suspense } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faEnvelope } from "@fortawesome/free-solid-svg-icons";
 import { faGithub, faGoogle } from "@fortawesome/free-brands-svg-icons";
@@ -142,13 +143,13 @@ function SignInContent() {
                     <div className="text-center mt-6">
                         <p className="text-sm text-base-content/60">
                             By signing in, you agree to our{" "}
-                            <a href="/terms" className="link link-primary">
+                            <Link href="/terms" className="link link-primary">
                                 Terms
-                            </a>{" "}
+                            </Link>{" "}
                             and{" "}
-                            <a href="/privacy" className="link link-primary">
+                            <Link href="/privacy" className="link link-primary">
                                 Privacy Policy
-                            </a>
+                            </Link>
                         </p>
                     </div>
                 </div>
