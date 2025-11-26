@@ -69,7 +69,6 @@ export const authConfig: AuthOptions = {
         logo: "/zefer.svg",
     },
     pages: {
-        signIn: "/auth/signin",
         newUser: "/settings/profile",
     },
 };
