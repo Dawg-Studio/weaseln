@@ -64,22 +64,6 @@ export const authConfig: AuthOptions = {
                 id: token.sub,
             },
         }),
-        redirect: ({ url, baseUrl }) => {
-            // Prevent redirect loops by ensuring we never redirect to signin page
-            if (url.includes("/auth/signin")) {
-                return baseUrl;
-            }
-            // If url is relative, make it absolute
-            if (url.startsWith("/")) {
-                return `${baseUrl}${url}`;
-            }
-            // If url is on same origin, allow it
-            if (new URL(url).origin === baseUrl) {
-                return url;
-            }
-            // Default to baseUrl for external URLs
-            return baseUrl;
-        },
     },
     theme: {
         logo: "/zefer.svg",
