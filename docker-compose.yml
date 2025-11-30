@@ -1,0 +1,23 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: zefer-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: zefer
+      POSTGRES_PASSWORD: zefer_dev_password
+      POSTGRES_DB: zefer
+    ports:
+      - "5555:5432"
+    volumes:
+      - zefer_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U zefer"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  zefer_postgres_data:
