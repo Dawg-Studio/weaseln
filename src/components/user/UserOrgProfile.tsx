@@ -13,8 +13,7 @@ import Link from "next/link";
 import PostList from "@/components/post/PostList";
 import Image from "next/image";
 import QueryWrapper from "@/components/provider/QueryWrapper";
-import { getServerSession } from "next-auth";
-import { authConfig } from "@/utils/authConfig";
+import { auth } from "@/auth";
 import UserFollowButton from "@/components/user/actions/UserFollowButton";
 import { Organization, User } from "@prisma/client";
 
@@ -37,7 +36,7 @@ const UserOrgProfile = async ({
     orgId?: string;
     members?: number;
 }) => {
-    const session = await getServerSession(authConfig);
+    const session = await auth();
     return (
         <>
             <div className="mx-auto mb-12 mt-12 mr-4 ml-4 lg:mr-28 lg:ml-28">
