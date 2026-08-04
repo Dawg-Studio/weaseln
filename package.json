@@ -6,7 +6,7 @@
     "node": ">=20.9"
   },
   "scripts": {
-    "dev": "next lint && next dev",
+    "dev": "next dev",
     "build": "prisma generate && prisma db push && next build",
     "postbuild": "next-sitemap",
     "start": "next start",
@@ -70,7 +70,6 @@
     "typescript": "5.8.3"
   },
   "devDependencies": {
-    "@eslint/eslintrc": "^3.3.6",
     "@playwright/test": "^1.56.1",
     "@tailwindcss/typography": "^0.5.15",
     "@types/nodemailer": "^6.4.17",
