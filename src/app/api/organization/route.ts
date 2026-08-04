@@ -1,16 +1,16 @@
 import prisma from "@/db";
 import { getCloudinaryImage, uploadCloudinary } from "@/lib/cloudinary";
-import { authConfig } from "@/utils/authConfig";
+
 import generateRandom4DigitNumber from "@/utils/randomNumberGen4Digit";
 import { init } from "@paralleldrive/cuid2";
-import { getServerSession } from "next-auth";
+import { auth } from "@/auth";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(req: NextRequest) {
     const body = await req.formData();
     const img = body.get("imgFile");
     const json = JSON.parse(body.get("json") as string);
-    const session = await getServerSession(authConfig);
+    const session = await auth();
     const { name, username, summary, socials } = json;
     try {
         if (!img) throw new Error("No image file found");
@@ -69,7 +69,7 @@ export async function PATCH(req: NextRequest) {
     const body = await req.formData();
     const img = body.get("imgFile");
     const json = JSON.parse(body.get("json") as string);
-    const session = await getServerSession(authConfig);
+    const session = await auth();
     const { id, name, username, summary, socials } = json;
     try {
         let imageAddr: string = "";

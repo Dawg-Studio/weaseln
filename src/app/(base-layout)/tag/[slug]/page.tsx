@@ -1,4 +1,4 @@
-import { authConfig } from "@/utils/authConfig";
+
 import PostList from "@/components/post/PostList";
 import QueryWrapper from "@/components/provider/QueryWrapper";
 import PeopleContainer from "@/components/people/PeopleContainer";
@@ -6,7 +6,7 @@ import TagFollowButton from "@/components/tag/actions/TagFollowButton";
 import prisma from "@/db";
 import { TagRank } from "@/types/tag";
 import { User } from "@prisma/client";
-import { getServerSession } from "next-auth";
+import { auth } from "@/auth";
 import { notFound } from "next/navigation";
 import { Fragment, Suspense } from "react";
 
@@ -16,7 +16,7 @@ export default async function TagPosts({
     params: Promise<{ slug: string }>;
 }) {
     const { slug } = await params;
-    const session = await getServerSession(authConfig);
+    const session = await auth();
     const getTags = await prisma.tagsRanking.findFirst({
         take: 1,
         orderBy: {

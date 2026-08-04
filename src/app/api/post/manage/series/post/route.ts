@@ -1,6 +1,6 @@
 import prisma from "@/db";
-import { authConfig } from "@/utils/authConfig";
-import { getServerSession } from "next-auth";
+
+import { auth } from "@/auth";
 import { NextRequest, NextResponse } from "next/server";
 type PrismaWhereQuery = {
     where: {
@@ -13,7 +13,7 @@ type PrismaWhereQuery = {
 }
 
 export async function GET(req: NextRequest): Promise<any> {
-    const session = await getServerSession(authConfig)
+    const session = await auth()
     const url = new URL(req.url)
     const action = url.searchParams.get('action') as 'add' | 'remove'
     const seriesId = url.searchParams.get('seriesId') as string
@@ -59,7 +59,7 @@ export async function GET(req: NextRequest): Promise<any> {
 }
 
 export async function POST(req: NextRequest): Promise<any> {
-    const session = await getServerSession(authConfig)
+    const session = await auth()
     const url = new URL(req.url)
     const seriesId = url.searchParams.get('seriesId') as string
     const postId = url.searchParams.get('postId') as string
@@ -85,7 +85,7 @@ export async function POST(req: NextRequest): Promise<any> {
 }
 
 export async function DELETE(req: NextRequest): Promise<any> {
-    const session = await getServerSession(authConfig)
+    const session = await auth()
     const url = new URL(req.url)
     const seriesId = url.searchParams.get('seriesId') as string
     const postId = url.searchParams.get('postId') as string

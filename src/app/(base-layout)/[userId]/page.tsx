@@ -3,8 +3,8 @@ import prisma from "@/db";
 import type { FormSocials } from "@/types/user";
 import { Fragment } from "react";
 import { Metadata } from "next";
-import { getServerSession } from "next-auth";
-import { authConfig } from "@/utils/authConfig";
+import { auth } from "@/auth";
+
 import UserOrgProfile from "@/components/user/UserOrgProfile";
 
 export async function generateMetadata({
@@ -44,7 +44,7 @@ export default async function ProfilePage({
     params: Promise<{ userId: string }>;
 }) {
     const { userId } = await params;
-    const session = await getServerSession(authConfig);
+    const session = await auth();
     const user = await prisma.user.findFirst({
         where: {
             OR: [

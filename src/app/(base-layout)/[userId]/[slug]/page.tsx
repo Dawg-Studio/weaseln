@@ -7,8 +7,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Metadata } from "next";
 import { Fragment } from "react";
-import { getServerSession } from "next-auth";
-import { authConfig } from "@/utils/authConfig";
+import { auth } from "@/auth";
+
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
     faComment,
@@ -94,7 +94,7 @@ export default async function PostPage({
     });
     if (!post) return notFound();
 
-    const session = await getServerSession(authConfig);
+    const session = await auth();
     const isPublisher = (await session?.user.id) === post.userId;
 
     const user = await prisma.user.findUnique({

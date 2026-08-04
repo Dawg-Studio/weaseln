@@ -1,10 +1,10 @@
 import prisma from "@/db";
-import { getServerSession } from "next-auth";
-import { authConfig } from "@/utils/authConfig";
+import { auth } from "@/auth";
+
 import OrganizationManageContainer from "./_components/OrganizationManageContainer";
 
 export default async function ManageOrganizations() {
-    const session = await getServerSession(authConfig);
+    const session = await auth();
     const organizations = await prisma.organization.findMany({
         where: {
             OR: [
