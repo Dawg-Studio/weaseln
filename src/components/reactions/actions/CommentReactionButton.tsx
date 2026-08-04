@@ -47,6 +47,8 @@ export default function CommentReactionButton({
     }, [id, isLoggedIn]);
 
     async function updateCommentReaction() {
+        if (!session) return;
+
         if (typeof commentReaction !== "undefined") {
             const removeCommentReaction = await deleteCommentReaction(id);
             if (removeCommentReaction) {
@@ -64,9 +66,9 @@ export default function CommentReactionButton({
                 const reactionNotification: UserNotificationInputValidation = {
                     userId: userId,
                     postId: id,
-                    fromUserId: session?.user.id,
-                    from: session?.user.name,
-                    fromImage: session?.user.image,
+                    fromUserId: session.user.id,
+                    from: session.user.name,
+                    fromImage: session.user.image,
                     message: `has reacted with ❤️ to your comment on your post`,
                     actionUrl: pathname,
                 };

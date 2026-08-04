@@ -69,8 +69,10 @@ export default function CommentContainer({
             refetch();
         });
         const getOwnerComment = async () => {
+            if (!session) return;
+
             const { commentOwner, postOwner } = await isCommentOwner(
-                session?.user.id,
+                session.user.id,
                 titleId,
             );
             setOwnComment(commentOwner);

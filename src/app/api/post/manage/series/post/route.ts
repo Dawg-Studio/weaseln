@@ -14,6 +14,7 @@ type PrismaWhereQuery = {
 
 export async function GET(req: NextRequest): Promise<any> {
     const session = await auth()
+    if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     const url = new URL(req.url)
     const action = url.searchParams.get('action') as 'add' | 'remove'
     const seriesId = url.searchParams.get('seriesId') as string
@@ -21,7 +22,7 @@ export async function GET(req: NextRequest): Promise<any> {
 
     let prismaWhereQuery: PrismaWhereQuery = {
         where: {
-            userId: session?.user.id,
+            userId: session.user.id,
             NOT: {
                 series: {
                     some: {
@@ -35,7 +36,7 @@ export async function GET(req: NextRequest): Promise<any> {
 
     if (action === 'remove') {
         prismaWhereQuery.where = {
-            userId: session?.user.id,
+            userId: session.user.id,
             series: {
                 some: {
                     id: seriesId,
@@ -60,6 +61,7 @@ export async function GET(req: NextRequest): Promise<any> {
 
 export async function POST(req: NextRequest): Promise<any> {
     const session = await auth()
+    if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     const url = new URL(req.url)
     const seriesId = url.searchParams.get('seriesId') as string
     const postId = url.searchParams.get('postId') as string
@@ -68,7 +70,7 @@ export async function POST(req: NextRequest): Promise<any> {
         const addPostToSeries = await prisma.postSeries.update({
             where: {
                 id: seriesId,
-                authorId: session?.user.id
+                authorId: session.user.id
             },
             data: {
                 posts: {
@@ -86,6 +88,7 @@ export async function POST(req: NextRequest): Promise<any> {
 
 export async function DELETE(req: NextRequest): Promise<any> {
     const session = await auth()
+    if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     const url = new URL(req.url)
     const seriesId = url.searchParams.get('seriesId') as string
     const postId = url.searchParams.get('postId') as string
@@ -93,7 +96,7 @@ export async function DELETE(req: NextRequest): Promise<any> {
     try {
         const disconnectPostToSeries = await prisma.postSeries.update({
             where: {
-                authorId: session?.user.id,
+                authorId: session.user.id,
                 id: seriesId
             },
             data: {
