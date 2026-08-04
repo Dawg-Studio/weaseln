@@ -2,6 +2,9 @@
   "name": "zefer",
   "version": "0.1.0",
   "private": true,
+  "engines": {
+    "node": ">=20.9"
+  },
   "scripts": {
     "dev": "next lint && next dev --turbopack",
     "build": "prisma generate && prisma db push && next build --turbopack",
