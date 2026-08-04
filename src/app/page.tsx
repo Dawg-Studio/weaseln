@@ -1,8 +1,8 @@
 import PostList from "@/components/post/PostList";
 import QueryWrapper from "@/components/provider/QueryWrapper";
 import prisma from "@/db";
-import { getServerSession } from "next-auth";
-import { authConfig } from "@/utils/authConfig";
+import { auth } from "@/auth";
+
 import { User } from "@prisma/client";
 import SideMenu from "@/components/menu/SideMenu";
 import TagRankingMenu from "@/components/menu/TagRankingMenu";
@@ -10,7 +10,7 @@ import ZeFerBgHomepage from "@/components/ZeFerBgHompage";
 import { Suspense } from "react";
 
 export default async function Home() {
-    const session = await getServerSession(authConfig);
+    const session = await auth();
 
     const user = (await prisma.user.findUnique({
         where: { id: session?.user.id ?? "" },

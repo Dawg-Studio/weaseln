@@ -1,8 +1,7 @@
 "use server";
 
-import { authConfig } from "@/utils/authConfig";
+import { auth } from "@/auth";
 import prisma from "@/db";
-import { getServerSession } from "next-auth";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
 export async function getTagRankings() {
@@ -16,7 +15,7 @@ export async function getTagRankings() {
 }
 
 export async function updateInterest(tag: string) {
-    const session = await getServerSession(authConfig);
+    const session = await auth();
     try {
         const getUser = await prisma.user.findUnique({
             where: {
@@ -62,7 +61,7 @@ export async function updateInterest(tag: string) {
 }
 
 export async function ifTagFollowing(tag: string) {
-    const session = await getServerSession(authConfig);
+    const session = await auth();
     const tagFollowed = await prisma.user.findUnique({
         where: {
             id: session?.user.id,

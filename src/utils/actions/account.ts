@@ -1,13 +1,12 @@
 "use server";
 
-import { getServerSession } from "next-auth";
-import { authConfig } from "../authConfig";
+import { auth } from "@/auth";
 import prisma from "@/db";
 import { init } from "@paralleldrive/cuid2";
 import maskString from "../maskString";
 
 export async function unlinkAccount(accountId: string, providerId: string) {
-    const session = await getServerSession(authConfig);
+    const session = await auth();
 
     try {
         const linkedProviders = await prisma.account.count({
@@ -32,7 +31,7 @@ export async function unlinkAccount(accountId: string, providerId: string) {
 }
 
 export async function deleteUser() {
-    const session = await getServerSession(authConfig);
+    const session = await auth();
     try {
         const deleteUserAccount = await prisma.user.delete({
             where: { id: session?.user.id },
@@ -48,7 +47,7 @@ export async function generateApiKey(apiName: string) {
         length: 48,
     });
     const apiKey = `sk-${createdId()}`;
-    const session = await getServerSession(authConfig);
+    const session = await auth();
     const addApiKey = await prisma.apiKey.create({
         data: {
             name: apiName,
@@ -73,7 +72,7 @@ export async function generateApiKey(apiName: string) {
 }
 
 export async function revokeApiKey(apiKeyId: string) {
-    const session = await getServerSession(authConfig);
+    const session = await auth();
     const revokeApiKey = await prisma.apiKey.update({
         where: {
             id: apiKeyId,

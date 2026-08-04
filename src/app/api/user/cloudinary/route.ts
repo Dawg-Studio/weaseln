@@ -1,13 +1,13 @@
 import { NextResponse } from "next/server";
-import { authConfig } from "@/utils/authConfig";
+
 import prisma from "@/db";
-import { getServerSession } from "next-auth";
+import { auth } from "@/auth";
 import { getCloudinaryImage, uploadCloudinary } from "@/lib/cloudinary";
 //Promise<any> is a temporary fix
 export async function POST(req: Request): Promise<any> {
     const body = await req.formData();
     const img = body.get("imgFile");
-    const session = await getServerSession(authConfig);
+    const session = await auth();
 
     try {
         if (!img) throw new Error("No image file found");

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import { getServerSession } from "next-auth";
-import { authConfig } from "@/utils/authConfig";
+import { auth } from "@/auth";
+
 import prisma from "@/db";
 import { JSONContent } from "@tiptap/react";
 import { Post } from "@prisma/client";
@@ -121,7 +121,7 @@ export async function GET(req: NextRequest): Promise<any> {
         }
 
         if (orderBy === "relevance") {
-            const session = await getServerSession(authConfig);
+            const session = await auth();
             const tags: string[] = [];
             const postTitleDesc: string[] = [];
             const authors: string[] = [];
@@ -372,7 +372,7 @@ export async function POST(req: NextRequest): Promise<any> {
         return code;
     }
     try {
-        const session = await getServerSession(authConfig);
+        const session = await auth();
         const pastDraft = await prisma.user.findUnique({
             where: { id: session?.user.id },
             select: {

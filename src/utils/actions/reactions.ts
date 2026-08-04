@@ -1,12 +1,11 @@
 "use server"
 
-import { getServerSession } from "next-auth"
-import { authConfig } from "../authConfig"
+import { auth } from "@/auth"
 import prisma from "@/db"
 import { TCommentReaction, TPostReaction } from "@/types/reaction"
 
 export async function getUserInitialPostReaction(postId: string) {
-    const session = await getServerSession(authConfig)
+    const session = await auth()
 
     const checkPostReaction = await prisma.postReaction.findUnique({
         where: {
@@ -21,7 +20,7 @@ export async function getUserInitialPostReaction(postId: string) {
 }
 
 export async function updateCreatePostReaction(postId: string, type: TPostReaction) {
-    const session = await getServerSession(authConfig)
+    const session = await auth()
 
     try {
         const addPostReaction = await prisma.postReaction.upsert({
@@ -55,7 +54,7 @@ export async function updateCreatePostReaction(postId: string, type: TPostReacti
 }
 
 export async function deletePostReaction(postId: string) {
-    const session = await getServerSession(authConfig)
+    const session = await auth()
 
     try {
         const deletePostReaction = await prisma.postReaction.delete({
@@ -73,7 +72,7 @@ export async function deletePostReaction(postId: string) {
 }
 
 export async function getInitialCommentReaction(commentId: string) {
-    const session = await getServerSession(authConfig)
+    const session = await auth()
 
     const checkCommentReaction = await prisma.commentReaction.findUnique({
         where: {
@@ -89,7 +88,7 @@ export async function getInitialCommentReaction(commentId: string) {
 }
 
 export async function updateCreateCommentReaction(commentId: string, type: TCommentReaction) {
-    const session = await getServerSession(authConfig)
+    const session = await auth()
 
     try {
         const addCommentReaction = await prisma.commentReaction.upsert({
@@ -123,7 +122,7 @@ export async function updateCreateCommentReaction(commentId: string, type: TComm
 }
 
 export async function deleteCommentReaction(commentId: string) {
-    const session = await getServerSession(authConfig)
+    const session = await auth()
 
     try {
         const deleteCommentReaction = await prisma.commentReaction.delete({

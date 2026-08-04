@@ -16,7 +16,7 @@
     "moduleResolution": "bundler",
     "resolveJsonModule": true,
     "isolatedModules": true,
-    "jsx": "preserve",
+    "jsx": "react-jsx",
     "incremental": true,
     "plugins": [
       {
@@ -34,10 +34,10 @@
     "**/*.ts",
     "**/*.tsx",
     ".next/types/**/*.ts",
-    "src/app/api/auth/[...nextauth].js",
-    "src/middleware.js",
-    "src/utils/socketURL.js",
-    "src/constants.js"
+    "src/app/api/auth/[...nextauth]/route.ts",
+    "src/utils/socketURL.mjs",
+    "src/constants.js",
+    ".next/dev/types/**/*.ts"
   ],
   "exclude": [
     "node_modules"

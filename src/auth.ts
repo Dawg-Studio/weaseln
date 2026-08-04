@@ -1,32 +1,29 @@
-import prisma from "@/db";
-import GoogleProvider from "next-auth/providers/google";
-import GithubProvider from "next-auth/providers/github";
+import NextAuth from "next-auth";
+import Google from "next-auth/providers/google";
+import GitHub from "next-auth/providers/github";
+import Nodemailer from "next-auth/providers/nodemailer";
 import { PrismaAdapter } from "@auth/prisma-adapter";
-import { AuthOptions } from "next-auth";
-import { Adapter } from "next-auth/adapters";
-import generateRandom4DigitNumber from "./randomNumberGen4Digit";
-import EmailProvider from "next-auth/providers/email";
+import prisma from "@/db";
+import generateRandom4DigitNumber from "@/utils/randomNumberGen4Digit";
 
-export const authConfig: AuthOptions = {
-    adapter: PrismaAdapter(prisma) as Adapter,
-    session: {
-        strategy: "jwt",
-    },
+export const { handlers, auth, signIn, signOut } = NextAuth({
+    adapter: PrismaAdapter(prisma),
+    session: { strategy: "jwt" },
     providers: [
-        EmailProvider({
+        Nodemailer({
             server: {
-                host: process.env.EMAIL_SERVER_HOST,
-                port: process.env.EMAIL_SERVER_PORT as unknown as number,
+                host: process.env.EMAIL_SERVER_HOST!,
+                port: Number(process.env.EMAIL_SERVER_PORT) || 587,
                 auth: {
-                    user: process.env.EMAIL_SERVER_USER,
-                    pass: process.env.RESEND_API_KEY,
+                    user: process.env.EMAIL_SERVER_USER!,
+                    pass: process.env.RESEND_API_KEY!,
                 },
             },
             from: "no-reply@zefer.blog",
         }),
-        GoogleProvider({
-            clientId: process.env.GOOGLE_CLIENT_ID as string,
-            clientSecret: process.env.GOOGLE_CLIENT_SECRET as string,
+        Google({
+            clientId: process.env.GOOGLE_CLIENT_ID!,
+            clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
             profile(profile) {
                 return {
                     id: profile.sub,
@@ -39,9 +36,9 @@ export const authConfig: AuthOptions = {
                 };
             },
         }),
-        GithubProvider({
-            clientId: process.env.GITHUB_CLIENT_ID as string,
-            clientSecret: process.env.GITHUB_CLIENT_SECRET as string,
+        GitHub({
+            clientId: process.env.GITHUB_CLIENT_ID!,
+            clientSecret: process.env.GITHUB_CLIENT_SECRET!,
             profile(profile) {
                 return {
                     id: profile.id.toString(),
@@ -55,13 +52,12 @@ export const authConfig: AuthOptions = {
             },
         }),
     ],
-    secret: process.env.NEXTAUTH_SECRET as string,
     callbacks: {
         session: ({ session, token }) => ({
             ...session,
             user: {
                 ...session.user,
-                id: token.sub,
+                id: token.sub!,
             },
         }),
     },
@@ -71,4 +67,4 @@ export const authConfig: AuthOptions = {
     pages: {
         newUser: "/settings/profile",
     },
-};
+});

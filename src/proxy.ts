@@ -1,8 +1,6 @@
-import { withAuth } from "next-auth/middleware";
+import { auth } from "@/auth";
 
-export default withAuth({
-    secret: process.env.NEXTAUTH_SECRET,
-});
+export default auth;
 
 export const config = {
     matcher: [
@@ -13,5 +11,7 @@ export const config = {
         "/api/post/manage/:path*",
         "/api/user/cloudinary/:path*",
         "/api/email/:path*",
+        // Explicitly exclude API auth endpoints and cron
+        // (the matcher syntax above already excludes /api/auth by not listing it)
     ],
 };

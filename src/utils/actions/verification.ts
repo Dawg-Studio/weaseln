@@ -1,15 +1,14 @@
 "use server";
 
 import prisma from "@/db";
-import { getServerSession } from "next-auth";
-import { authConfig } from "../authConfig";
+import { auth } from "@/auth";
 import { init } from "@paralleldrive/cuid2";
 
 export const generateVerificationCode = async () => {
     const createKey = init({
         length: 48,
     });
-    const session = await getServerSession(authConfig);
+    const session = await auth();
     const existingVerificationCode =
         await prisma.emailVerificationCode.findUnique({
             where: {
@@ -66,7 +65,7 @@ export const verifyEmail = async (code: string, userId: string) => {
 };
 
 export const getCurrentEmailVerificationCodeDate = async () => {
-    const session = await getServerSession(authConfig);
+    const session = await auth();
     const code = await prisma.emailVerificationCode.findUnique({
         where: {
             userId: session?.user.id,

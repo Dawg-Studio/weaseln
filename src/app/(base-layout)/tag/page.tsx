@@ -2,11 +2,11 @@ import TagCard from "@/components/tag/TagCard";
 import prisma from "@/db";
 import { TagRank } from "@/types/tag";
 import { Fragment } from "react";
-import { getServerSession } from "next-auth";
-import { authConfig } from "@/utils/authConfig";
+import { auth } from "@/auth";
+
 
 export default async function Tags() {
-    const session = await getServerSession(authConfig);
+    const session = await auth();
     const getTags = await prisma.tagsRanking.findFirst({
         orderBy: {
             createdAt: "desc",

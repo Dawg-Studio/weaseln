@@ -1,3 +1,56 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
+
+@plugin "daisyui" {
+    themes:
+        light --default,
+        dark --prefersdark;
+}
+
+@plugin "daisyui/theme" {
+    name: "mytheme";
+    default: false;
+    prefersdark: false;
+    color-scheme: light;
+
+    --color-base-100: oklch(91% 0.02 290);
+    --color-base-200: oklch(86% 0.025 290);
+    --color-base-300: oklch(81% 0.03 290);
+    --color-base-content: oklch(20% 0.02 280);
+
+    --color-primary: oklch(63% 0.30 340);
+    --color-primary-content: oklch(98% 0.01 340);
+
+    --color-secondary: oklch(70% 0.22 15);
+    --color-secondary-content: oklch(98% 0.01 15);
+
+    --color-accent: oklch(72% 0.13 50);
+    --color-accent-content: oklch(20% 0.02 50);
+
+    --color-neutral: oklch(18% 0.03 280);
+    --color-neutral-content: oklch(95% 0.01 280);
+
+    --color-info: oklch(75% 0.13 230);
+    --color-info-content: oklch(15% 0.02 230);
+
+    --color-success: oklch(80% 0.18 170);
+    --color-success-content: oklch(15% 0.02 170);
+
+    --color-warning: oklch(75% 0.16 75);
+    --color-warning-content: oklch(20% 0.02 75);
+
+    --color-error: oklch(65% 0.22 30);
+    --color-error-content: oklch(98% 0.01 30);
+
+    --radius-selector: 0.5rem;
+    --radius-field: 0.5rem;
+    --radius-box: 0.75rem;
+
+    --size-selector: 0.25rem;
+    --size-field: 0.25rem;
+
+    --border: 1px;
+    --depth: 1;
+    --noise: 0;
+}
+
+@plugin "@tailwindcss/typography";

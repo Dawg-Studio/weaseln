@@ -1,9 +1,9 @@
 import prisma from "@/db";
 import cloudinarySignature from "@/utils/cloudinarySignature";
 import { JSONContent } from "@tiptap/react";
-import { getServerSession } from "next-auth";
+import { auth } from "@/auth";
 import { NextRequest, NextResponse } from "next/server";
-import { authConfig } from "@/utils/authConfig";
+
 import { getCloudinaryImage, uploadCloudinary } from "@/lib/cloudinary";
 
 export async function POST(req: NextRequest): Promise<any> {
@@ -24,7 +24,7 @@ export async function POST(req: NextRequest): Promise<any> {
         return imageFiles;
     };
     try {
-        const session = await getServerSession(authConfig);
+        const session = await auth();
         const pastDraft = await prisma.user.findUnique({
             where: { id: session?.user.id },
             select: {

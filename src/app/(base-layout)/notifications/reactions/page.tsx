@@ -1,11 +1,11 @@
 import QueryWrapper from "@/components/provider/QueryWrapper";
 import NotificationList from "../_components/NotificationList";
-import { getServerSession } from "next-auth";
-import { authConfig } from "@/utils/authConfig";
+import { auth } from "@/auth";
+
 import prisma from "@/db";
 
 export default async function NotificationsComments() {
-    const session = await getServerSession(authConfig);
+    const session = await auth();
     await prisma.userNotifications.updateMany({
         where: {
             userId: session?.user.id,

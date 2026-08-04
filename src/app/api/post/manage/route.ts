@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import { getServerSession } from "next-auth";
-import { authConfig } from "@/utils/authConfig";
+import { auth } from "@/auth";
+
 import prisma from "@/db";
 
 export async function GET(req: NextRequest): Promise<any> {
@@ -14,7 +14,7 @@ export async function GET(req: NextRequest): Promise<any> {
         | "most-reactions"
         | "most-comments";
 
-    const session = await getServerSession(authConfig);
+    const session = await auth();
     interface PrismaQuery {
         where: {
             userId: string;
