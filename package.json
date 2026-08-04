@@ -6,7 +6,10 @@
     "node": ">=20.9"
   },
   "scripts": {
+    "predev": "prisma generate && prisma db push",
     "dev": "next dev",
+    "db:setup": "prisma generate && prisma db push",
+    "db:studio": "prisma studio",
     "build": "prisma generate && prisma db push && next build",
     "start": "next start",
     "lint": "eslint . && npx tsc --noemit"
