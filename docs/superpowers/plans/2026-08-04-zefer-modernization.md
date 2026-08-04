@@ -767,64 +767,71 @@ git diff --cached --quiet || git commit -m "chore(next): apply async request API
 
 ---
 
-### Task 2.4: Manually fix async params in dynamic routes
+### Task 2.4: Verify async params in dynamic routes (no-op transformation)
 
-**Files (each needs `params: Promise<{ ... }>` + `await params`):**
+**Background:** Pre-flight scan confirmed that the 8 dynamic route files in `src/app/` **already** have `params: Promise<{...}>` typed and `await params` patterns. The Next 15→16 codemod was previously run. This task verifies the existing state and cleans up one stale comment.
+
+**Files to verify (must have `params: Promise<{...}>` and `await params`):**
 - `src/app/(base-layout)/[userId]/page.tsx`
 - `src/app/(base-layout)/[userId]/[slug]/page.tsx`
 - `src/app/(base-layout)/[userId]/[slug]/edit/page.tsx`
 - `src/app/(base-layout)/[userId]/series/page.tsx`
+- `src/app/(base-layout)/[userId]/series/[slug]/page.tsx` ⚠️ **not previously listed in plan; verify**
 - `src/app/(base-layout)/tag/[slug]/page.tsx`
-- `src/app/(base-layout)/tag/page.tsx`
 - `src/app/(base-layout)/organization/[orgId]/page.tsx`
-- `src/app/new/page.tsx` (if it uses params — likely not)
+- `src/app/(base-layout)/verify/email/[code]/[userId]/page.tsx` ⚠️ **not previously listed in plan; verify**
+
+**Files to verify (must have `searchParams: Promise<{...}>`):**
+- `src/app/(base-layout)/search/people/page.tsx`
+- `src/app/(base-layout)/search/posts/page.tsx`
+- `src/app/(base-layout)/search/tags/page.tsx`
 
 **Interfaces:**
-- Consumes: current sync `params` shape.
-- Produces: async `params: Promise<{ [key]: string }>` + `const { slug } = await params;` inside the component.
+- Consumes: existing files with async params/searchParams already applied.
+- Produces: confirmed async typing; one stale comment removed.
 
-- [ ] **Step 1: For each dynamic route file, identify the params usage**
+- [ ] **Step 1: Verify every file in the lists above has `Promise<{...}>` typed params/searchParams AND uses `await params`/`await searchParams`**
 
-For each file in the list above, find:
-- The component signature: `export default async function Page({ params }: { params: { slug: string } })`
-- Any `generateMetadata` that uses params
-
-- [ ] **Step 2: Apply the transformation**
-
-For each file, change:
-```ts
-export default async function Page({
-    params,
-}: {
-    params: { slug: string };
-}) {
-    // ... uses params.slug
-}
-```
-to:
-```ts
-export default async function Page({
-    params,
-}: {
-    params: Promise<{ slug: string }>;
-}) {
-    const { slug } = await params;
-    // ... uses slug
-}
+For each file, run:
+```bash
+grep -n "params: Promise<\|searchParams: Promise<\|await params\|await searchParams" <file>
 ```
 
-Same for `generateMetadata` if present.
+Expected: every file in the lists above shows both the `Promise<...>` typing and the `await ...` usage inside the component. If any file lacks one or the other, fix it (this would be a missed edge case from a prior partial migration).
 
-- [ ] **Step 3: Verify `npx tsc --noemit` is green**
+- [ ] **Step 2: Verify NO file in `src/app/` has a sync `params: { ... }` or `searchParams: { ... }` typing**
+
+Run:
+```bash
+grep -rn "params: { [a-z]\|searchParams: { [a-z]" src/app/ 2>&1
+```
+Expected: empty output (or only results inside `//` comments / strings).
+
+- [ ] **Step 3: Remove the stale sync-params comment in `[userId]/[slug]/edit/page.tsx`**
+
+The file has a comment at line 12 that shows the OLD sync version:
+```ts
+//     params: { userId: string; slug: string };
+```
+Delete that comment line. The current async version at line 40 is the active code.
+
+- [ ] **Step 4: Verify `npx tsc --noemit` is green**
 
 Run: `npx tsc --noemit 2>&1 | tee .params-types.txt`
-Expected: exit 0. If errors mention `params`, fix the missed files.
+Expected: exit 0. If errors mention `params` or `searchParams`, fix the missed files.
 
-- [ ] **Step 4: Commit**
+- [ ] **Step 5: Commit (if the comment was removed)**
 
 ```bash
-git add src/app/
-git commit -m "refactor(next): await async params in dynamic routes (Next 16)"
+git diff --cached --quiet || git add src/app && git commit -m "chore(next): remove stale sync-params comment in [userId]/[slug]/edit/page.tsx"
+```
+
+If the comment was already gone or none of the files needed changes, this step is a no-op (still run the command — `git diff --cached --quiet` exits 1 only if there are staged changes, and the `||` short-circuits the commit).
+
+- [ ] **Step 6: Clean up**
+
+```bash
+rm -f .params-types.txt
 ```
 
 ---
