@@ -6,8 +6,8 @@
     "node": ">=20.9"
   },
   "scripts": {
-    "dev": "next lint && next dev --turbopack",
-    "build": "prisma generate && prisma db push && next build --turbopack",
+    "dev": "next lint && next dev",
+    "build": "prisma generate && prisma db push && next build",
     "postbuild": "next-sitemap",
     "start": "next start",
     "lint": "next lint && npx tsc --noemit"
@@ -24,7 +24,7 @@
     "@paralleldrive/cuid2": "^2.2.2",
     "@prisma/client": "^6.8.2",
     "@react-email/components": "0.0.36",
-    "@sentry/nextjs": "^10.43.0",
+    "@sentry/nextjs": "^10.69.0",
     "@tanstack/react-query": "^5.79.0",
     "@tiptap/extension-character-count": "^2.12.0",
     "@tiptap/extension-document": "^2.12.0",
@@ -46,13 +46,13 @@
     "@vercel/speed-insights": "^1.2.0",
     "autoprefixer": "10.4.21",
     "clsx": "^2.1.1",
-    "eslint": "^9.28.0",
-    "eslint-config-next": "15.3.3",
+    "eslint": "^10.8.0",
+    "eslint-config-next": "^16.3.0",
     "html-react-parser": "^5.2.5",
-    "next": "15.5.15",
+    "next": "^16.3.0",
     "next-auth": "5.0.0-beta.32",
     "next-sitemap": "^4.2.3",
-    "nextjs-toploader": "^3.8.16",
+    "nextjs-toploader": "^3.9.17",
     "nodemailer": "^8.0.5",
     "postcss": "8.5.10",
     "react": "19.1.0",
@@ -70,6 +70,7 @@
     "typescript": "5.8.3"
   },
   "devDependencies": {
+    "@eslint/eslintrc": "^3.3.6",
     "@playwright/test": "^1.56.1",
     "@tailwindcss/typography": "^0.5.15",
     "@types/nodemailer": "^6.4.17",
