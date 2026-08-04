@@ -84,11 +84,13 @@ export default function CommentBox({
     }, [editor?.commands, socket, titleId]);
 
     function submitComment() {
+        if (!session) return;
+
         if (editor?.getText() && !editor.isEmpty) {
             const content = editor.getJSON();
             const comment = {
                 titleId: titleId,
-                userId: session?.user.id,
+                userId: session.user.id,
                 content: JSON.stringify(content),
                 commentReplyPostId: commentReplyPostId,
             };
@@ -96,9 +98,9 @@ export default function CommentBox({
                 const commentReplyNotification: UserNotificationInputValidation =
                     {
                         userId: commentReplyUserId,
-                        fromUserId: session?.user.id,
-                        from: session?.user.name,
-                        fromImage: session?.user.image,
+                        fromUserId: session.user.id,
+                        from: session.user.name,
+                        fromImage: session.user.image,
                         message: `has replied to your comment on ${commentReplyPostTitle}`,
                         actionUrl: pathname,
                     };
@@ -107,9 +109,9 @@ export default function CommentBox({
             if (authorId && title) {
                 const commentNotification: UserNotificationInputValidation = {
                     userId: authorId,
-                    fromUserId: session?.user.id,
-                    from: session?.user.name,
-                    fromImage: session?.user.image,
+                    fromUserId: session.user.id,
+                    from: session.user.name,
+                    fromImage: session.user.image,
                     message: `has commented on your post`,
                     postId,
                     actionUrl: pathname,
@@ -128,13 +130,20 @@ export default function CommentBox({
                     <div className="flex gap-2 items-start">
                         <div className="avatar">
                             <div className="rounded-full prose-img:w-full !overflow-visible">
-                                <Image
-                                    src={session.user.image}
-                                    alt={session.user.name}
-                                    className="rounded-full"
-                                    width={40}
-                                    height={40}
-                                />
+                                {session.user.image ? (
+                                    <Image
+                                        src={session.user.image}
+                                        alt={session.user.name ?? "Profile image"}
+                                        className="rounded-full"
+                                        width={40}
+                                        height={40}
+                                    />
+                                ) : (
+                                    <div
+                                        className="w-10 h-10 rounded-full bg-base-300"
+                                        aria-hidden
+                                    />
+                                )}
                             </div>
                         </div>
                         <div className="container">

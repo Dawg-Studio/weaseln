@@ -1,27 +1,30 @@
 import prisma from "@/db";
 import { auth } from "@/auth";
+import { redirect } from "next/navigation";
 
 import OrganizationManageContainer from "./_components/OrganizationManageContainer";
 
 export default async function ManageOrganizations() {
     const session = await auth();
+    if (!session) redirect("/api/auth/signin");
+
     const organizations = await prisma.organization.findMany({
         where: {
             OR: [
                 {
-                    ownerId: session?.user.id,
+                    ownerId: session.user.id,
                 },
                 {
                     admins: {
                         some: {
-                            id: session?.user.id,
+                            id: session.user.id,
                         },
                     },
                 },
                 {
                     members: {
                         some: {
-                            id: session?.user.id,
+                            id: session.user.id,
                         },
                     },
                 },
@@ -41,7 +44,7 @@ export default async function ManageOrganizations() {
             <div className="mx-auto lg:w-9/12 justify-center space-y-6">
                 <OrganizationManageContainer
                     organizations={organizations}
-                    sessionUserId={session?.user.id}
+                    sessionUserId={session.user.id}
                 />
             </div>
         </div>

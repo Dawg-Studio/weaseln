@@ -45,6 +45,8 @@ export default function PostReactionButton({
     }, [id, session]);
 
     async function updatePostReaction() {
+        if (!session) return;
+
         if (typeof postReaction !== "undefined") {
             const removePostReaction = await deletePostReaction(id);
             if (removePostReaction) {
@@ -61,9 +63,9 @@ export default function PostReactionButton({
                 setPostReactionCount((prev) => prev + 1);
                 const reactionNotification: UserNotificationInputValidation = {
                     userId: authorId,
-                    fromUserId: session?.user.id,
-                    from: session?.user.name,
-                    fromImage: session?.user.image,
+                    fromUserId: session.user.id,
+                    from: session.user.name,
+                    fromImage: session.user.image,
                     message: `has reacted with ❤️ to your post`,
                     postId: id,
                     actionUrl: pathname,

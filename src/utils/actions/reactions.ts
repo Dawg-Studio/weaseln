@@ -6,12 +6,13 @@ import { TCommentReaction, TPostReaction } from "@/types/reaction"
 
 export async function getUserInitialPostReaction(postId: string) {
     const session = await auth()
+    if (!session) throw new Error("Unauthorized")
 
     const checkPostReaction = await prisma.postReaction.findUnique({
         where: {
             postId_userId: {
                 postId: postId,
-                userId: session?.user.id
+                userId: session.user.id
             }
         }
     })
@@ -21,12 +22,13 @@ export async function getUserInitialPostReaction(postId: string) {
 
 export async function updateCreatePostReaction(postId: string, type: TPostReaction) {
     const session = await auth()
+    if (!session) throw new Error("Unauthorized")
 
     try {
         const addPostReaction = await prisma.postReaction.upsert({
             where: {
                 postId_userId: {
-                    userId: session?.user.id,
+                    userId: session.user.id,
                     postId: postId
                 }
             },
@@ -42,7 +44,7 @@ export async function updateCreatePostReaction(postId: string, type: TPostReacti
                 },
                 user: {
                     connect: {
-                        id: session?.user.id
+                        id: session.user.id
                     }
                 }
             }
@@ -55,13 +57,14 @@ export async function updateCreatePostReaction(postId: string, type: TPostReacti
 
 export async function deletePostReaction(postId: string) {
     const session = await auth()
+    if (!session) throw new Error("Unauthorized")
 
     try {
         const deletePostReaction = await prisma.postReaction.delete({
             where: {
                 postId_userId: {
                     postId: postId,
-                    userId: session?.user.id
+                    userId: session.user.id
                 }
             }
         })
@@ -73,12 +76,13 @@ export async function deletePostReaction(postId: string) {
 
 export async function getInitialCommentReaction(commentId: string) {
     const session = await auth()
+    if (!session) throw new Error("Unauthorized")
 
     const checkCommentReaction = await prisma.commentReaction.findUnique({
         where: {
             commentId_userId: {
                 commentId: commentId,
-                userId: session?.user.id
+                userId: session.user.id
             }
         }
     })
@@ -89,13 +93,14 @@ export async function getInitialCommentReaction(commentId: string) {
 
 export async function updateCreateCommentReaction(commentId: string, type: TCommentReaction) {
     const session = await auth()
+    if (!session) throw new Error("Unauthorized")
 
     try {
         const addCommentReaction = await prisma.commentReaction.upsert({
             where: {
                 commentId_userId: {
                     commentId: commentId,
-                    userId: session?.user.id
+                    userId: session.user.id
                 },
             },
             update: {
@@ -110,7 +115,7 @@ export async function updateCreateCommentReaction(commentId: string, type: TComm
                 },
                 user: {
                     connect: {
-                        id: session?.user.id
+                        id: session.user.id
                     }
                 }
             }
@@ -123,13 +128,14 @@ export async function updateCreateCommentReaction(commentId: string, type: TComm
 
 export async function deleteCommentReaction(commentId: string) {
     const session = await auth()
+    if (!session) throw new Error("Unauthorized")
 
     try {
         const deleteCommentReaction = await prisma.commentReaction.delete({
             where: {
                 commentId_userId: {
                     commentId: commentId,
-                    userId: session?.user.id
+                    userId: session.user.id
                 }
             }
         })
