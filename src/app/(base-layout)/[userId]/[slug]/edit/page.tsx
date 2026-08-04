@@ -8,8 +8,6 @@ import { JSONContent } from "@tiptap/react";
 
 // export async function generateMetadata({
 //     params,
-// }: {
-//     params: { userId: string; slug: string };
 // }): Promise<Metadata> {
 //     const { userId, slug } = params;
 //     const post = await prisma.post.findFirst({
