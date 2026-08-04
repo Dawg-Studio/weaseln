@@ -1,9 +1,7 @@
 import NextAuth from "next-auth";
 import Google from "next-auth/providers/google";
 import GitHub from "next-auth/providers/github";
-// Use the path verified in Task 1.1 step 3:
 import Nodemailer from "next-auth/providers/nodemailer";
-// If Task 1.1 step 3 fallback: `import Nodemailer from "@auth/core/providers/nodemailer";`
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import prisma from "@/db";
 import generateRandom4DigitNumber from "@/utils/randomNumberGen4Digit";
@@ -15,7 +13,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         Nodemailer({
             server: {
                 host: process.env.EMAIL_SERVER_HOST!,
-                port: Number(process.env.EMAIL_SERVER_PORT),
+                port: Number(process.env.EMAIL_SERVER_PORT) || 587,
                 auth: {
                     user: process.env.EMAIL_SERVER_USER!,
                     pass: process.env.RESEND_API_KEY!,
