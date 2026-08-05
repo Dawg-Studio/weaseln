@@ -83,6 +83,8 @@ export default function PostList({
         },
     );
 
+    // ponytail: searchParams is intentionally NOT in the dep list. replace() mutates
+    // the URL's searchParams, which would re-fire this effect and loop forever.
     useEffect(() => {
         replace(
             `${pathName}?${keyword ? `q=${keyword}&` : ""}feed=${
@@ -90,7 +92,8 @@ export default function PostList({
             }`,
             { scroll: false },
         );
-    }, [feed, keyword, pathName, replace, searchParams]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [feed, keyword, pathName]);
 
     return (
         <>

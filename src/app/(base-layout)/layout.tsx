@@ -25,13 +25,11 @@ export default async function RootLayout({
     })) as User;
 
     return (
-        <>
-            <QueryWrapper>
-                <NextAuthProvider>
-                    <Navigation {...user} />
-                </NextAuthProvider>
-            </QueryWrapper>
-            {children}
-        </>
+        <QueryWrapper>
+            <NextAuthProvider>
+                <Navigation {...user} />
+                {children}
+            </NextAuthProvider>
+        </QueryWrapper>
     );
 }

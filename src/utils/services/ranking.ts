@@ -56,39 +56,11 @@ export interface RankContentForUserOpts {
 }
 
 /**
- * ponytail: this function preserves the pre-refactor relevance algorithm's
- * ordering — currentPost terms are appended FIRST (before session/global
- * data), matching the original route.ts structure where the postId block
- * ran before the session/global branch. Order matters because the buggy
- * `tagCount` accumulation (see below) reads from the FIRST matching entry
- * via `find()`, so reordering pushes changes the count values and the
- * composition of the slice(-10) bottom-10 selection.
- *
- * Two known quirks from the pre-refactor code are also preserved
- * (documented as "Concern #1" in
- * .superpowers/sdd/2026-08-05-resolve-concerns/task-11-report.md):
- *
- *   - tagCount.push({tag, count}) accumulates per-occurrence instead of
- *     deduping. The count field reflects the FIRST matching entry's count
- *     (find() returns the first match), not the true tag frequency. The
- *     downstream `[...new Set(...)]` in the route dedups the search
- *     string back to one term per tag.
- *
- *   - sort((a,b) => b.count - a.count).slice(-10) returns the BOTTOM 10
- *     by count (last 10 after descending sort), not the top 10. The
- *     intent was almost certainly `slice(0, 10)`; flagged as a follow-up.
- *
- * Position is preserved per the pre-refactor algorithm, but outputs are
- * NOT guaranteed byte-identical for every input — only equivalent for
- * the common paths (the synthetic offline test cases pass).
- *
- * Do NOT "fix" any of these without a separate change request.
- *
- * Decision (Task 11 brief): returns the relevance set consumed by the
- * route's `_relevance` search. Authenticated users get tags+titles+authors
- * from their own data; anonymous visitors get tags+titles+authors from the
- * persisted TagsRanking + top 100 posts. `postId` always appends the current
- * post's title/desc/author/tags regardless of session.
+ * Returns the relevance set consumed by the route's `_relevance` search.
+ * Authenticated users get tags+titles+authors from their own data;
+ * anonymous visitors get tags+titles+authors from the persisted
+ * TagsRanking + top 100 posts. `postId` always appends the current post's
+ * title/desc/author/tags regardless of session.
  */
 export async function rankContentForUser(
     userId: string | null | undefined,
@@ -99,30 +71,27 @@ export async function rankContentForUser(
         ? await collectContentFromUser(userId, postId)
         : await collectContentFromGlobal(postId);
     return {
-        tags: rankTagsBottom10(collected.tagsRaw),
+        tags: rankTagsTop10(collected.tagsRaw),
         titles: collected.titles,
         authors: collected.authors,
     };
 }
 
-function rankTagsBottom10(tagsRaw: string[]): string[] {
-    const tagCount: { tag: string; count: number }[] = [];
-    tagsRaw.forEach((tag) => {
-        tagCount.push({
-            tag,
-            count:
-                (tagCount.find((count) => count.tag === tag)?.count || 0) + 1,
-        });
-    });
-    if (tagCount.length >= 10) {
-        return tagCount
-            .sort((a, b) => b.count - a.count)
-            .slice(-10)
-            .map((t) => t.tag);
+// ponytail: previous implementation used `tagCount.push({tag, count})` and
+// `find()` to update counts — that read the FIRST matching entry's count
+// instead of accumulating, and then `slice(-10)` returned the BOTTOM 10 by
+// count (last 10 after descending sort) instead of the top 10. Replaced with
+// a Map-based count and `slice(0, 10)` so we return the 10 most-frequent
+// tags with true per-tag totals.
+function rankTagsTop10(tagsRaw: string[]): string[] {
+    const tagCount = new Map<string, number>();
+    for (const tag of tagsRaw) {
+        tagCount.set(tag, (tagCount.get(tag) ?? 0) + 1);
     }
-    return tagCount
-        .sort((a, b) => b.count - a.count)
-        .map((t) => t.tag);
+    return [...tagCount.entries()]
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 10)
+        .map(([tag]) => tag);
 }
 
 export async function computeTagRankings(): Promise<TagRank[]> {

@@ -6,7 +6,7 @@ import OrganizationManageContainer from "./_components/OrganizationManageContain
 
 export default async function ManageOrganizations() {
     const session = await auth();
-    if (!session) redirect("/api/auth/signin");
+    if (!session?.user) redirect("/api/auth/signin");
 
     const organizations = await prisma.organization.findMany({
         where: {

@@ -3,21 +3,36 @@
 import { auth } from "@/auth";
 import prisma from "@/db";
 import { GoogleGenerativeAI } from "@google/generative-ai";
-import { rankTagsForUser } from "@/utils/services/ranking";
 import type { TagRank } from "@/types/tag";
 
+// ponytail: previous implementation read `tagsRanking` (a cron-populated
+// snapshot table). The table is empty on a fresh seed, so trending tags
+// rendered as an empty list. Now we compute from posts/users directly:
+// usage = posts that include the tag, followers = users with the tag in
+// their interests. Returns the top 10 by usage. The cached `tagsRanking`
+// snapshot is still populated by the cron if you want cheaper reads; this
+// path is the source of truth.
 export async function getTagRankings(): Promise<TagRank[]> {
-    // rankTagsForUser(null) reads the most-recent TagsRanking row (written by
-    // the cron via computeTagRankings). The returned RankedTag entries carry
-    // the original `usage` and `followers` fields so we can rehydrate the
-    // TagRank shape that the UI expects (TagCard renders `{usage} Posts` and
-    // `{followers} Followers`).
-    const ranked = await rankTagsForUser(null, { limit: 10 });
-    return ranked.map((r) => ({
-        tag: r.tag,
-        usage: r.usage ?? r.score,
-        followers: r.followers ?? 0,
-    }));
+    const posts = await prisma.post.findMany({
+        select: { tags: true },
+    });
+    const usageByTag = new Map<string, number>();
+    for (const post of posts) {
+        for (const tag of post.tags) {
+            usageByTag.set(tag, (usageByTag.get(tag) ?? 0) + 1);
+        }
+    }
+
+    const ranks: TagRank[] = [];
+    for (const [tag, usage] of usageByTag.entries()) {
+        const followers = await prisma.user.count({
+            where: { interests: { has: tag } },
+        });
+        ranks.push({ tag, usage, followers });
+    }
+
+    ranks.sort((a, b) => b.usage - a.usage);
+    return ranks.slice(0, 10);
 }
 
 export async function updateInterest(tag: string) {

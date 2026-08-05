@@ -151,12 +151,26 @@ export default async function PostPage({
                         ))}
                     </p>
                 )}
-                <Image
-                    src={post?.coverImage as string}
-                    height={1920}
-                    width={1080}
-                    alt={`cover image for ${post.title} `}
-                />
+                {post?.coverImage ? (
+                    <Image
+                        src={post.coverImage as string}
+                        height={1920}
+                        width={1080}
+                        alt={`cover image for ${post.title} `}
+                    />
+                ) : (
+                    // ponytail: post has no cover image. Gradient placeholder
+                    // with title watermark so the post page keeps its
+                    // visual rhythm (matches the feed placeholder).
+                    <div
+                        className="w-full aspect-video bg-gradient-to-br from-base-300 via-base-200 to-base-300 flex items-center justify-center p-6 rounded-lg"
+                        aria-hidden="true"
+                    >
+                        <p className="text-base-content/40 text-2xl lg:text-4xl font-bold text-center line-clamp-3 max-w-2xl">
+                            {post.title}
+                        </p>
+                    </div>
+                )}
                 <div className="lg:-space-y-6 -space-y-4">
                     <h1>{post?.title}</h1>
                     <h4 className="!text-slate-600">{post?.description}</h4>
@@ -267,9 +281,6 @@ export default async function PostPage({
                                         targetType="post"
                                         initialReactionCount={
                                             post._count.reactions
-                                        }
-                                        notificationMessage={(actorName) =>
-                                            `${actorName} has reacted with ❤️ to your post`
                                         }
                                     />
                                 </div>

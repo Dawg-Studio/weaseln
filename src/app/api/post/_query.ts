@@ -14,18 +14,22 @@ export interface ListPostsParams {
 
 /**
  * Builds the `where` clause for `prisma.post.findMany` from the request
- * query-string params. Behavior preserved from api/post/route.ts:42-107:
- * `NOT: { coverImage: null }` always applied; `id: { not: postId }` excludes
- * the post currently being viewed; `published` strict-checks for "true"/"false"
- * with anything else defaulting to true; `keyword` adds full-text search across
+ * query-string params. `id: { not: postId }` excludes the post currently being
+ * viewed; `published` strict-checks for "true"/"false" with anything else
+ * defaulting to true; `keyword` adds full-text search across
  * title/description/author; `tag` adds `tags: { has: tag }`; `userId` adds an
  * `OR` over userId + authorUsername; `orgId` filters by organizationId.
+ *
+ * Decision: removed the `NOT: { coverImage: null }` filter that the pre-
+ * refactor route applied. Posts in the QA seed (and any post created
+ * without uploading a cover image) have `coverImage: null` — the old filter
+ * excluded every one of them, so `/api/post` returned zero rows on a fresh
+ * seed. The intent was probably to hide "draft-only" rows, but the
+ * `published` filter already handles drafts. If a cover-image-required
+ * filter is needed later, gate it on an explicit query param.
  */
 export function buildWhere(params: ListPostsParams): Prisma.PostWhereInput {
     const where: Prisma.PostWhereInput = {
-        NOT: {
-            coverImage: null,
-        },
         ...(params.postId && {
             id: {
                 not: params.postId,

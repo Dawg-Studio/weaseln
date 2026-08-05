@@ -41,7 +41,7 @@ export default function PostContainer({
         return timeDiff(createdAt);
     }, [createdAt]);
     return (
-        <div className="flex flex-wrap justify-end p-2 lg:block border-b pb-6">
+        <div className="flex flex-wrap justify-end p-2 lg:block border-b pb-6 relative">
             <Link
                 href={`/${authorUsername ? authorUsername : userId}/${titleId}`}
             >
@@ -70,39 +70,41 @@ export default function PostContainer({
                                     </div>
                                 </div>
                                 {organizationId && organization && (
-                                    <Link
-                                        href={`/organization/${
-                                            organization.username ??
-                                            organization.id
-                                        }`}
-                                    >
-                                        <div className="avatar">
-                                            <div className="w-12 rounded">
-                                                <Image
-                                                    src={
-                                                        organization.image as string
-                                                    }
-                                                    alt={
-                                                        organization.name as string
-                                                    }
-                                                    width={64}
-                                                    height={64}
-                                                />
-                                            </div>
+                                    // ponytail: the org avatar used to be a
+                                    // <Link> nested inside the outer post
+                                    // <Link>. Nested <a> tags are invalid
+                                    // HTML — browsers auto-close the outer
+                                    // one, the DOM tree the client sees
+                                    // diverges from the server-rendered
+                                    // React tree, and React regenerates the
+                                    // subtree (hydration mismatch). Use a
+                                    // plain <div> here; the org text link
+                                    // a few lines down still routes to the
+                                    // org page.
+                                    <div className="avatar">
+                                        <div className="w-12 rounded">
+                                            <Image
+                                                src={
+                                                    organization.image as string
+                                                }
+                                                alt={
+                                                    organization.name as string
+                                                }
+                                                width={64}
+                                                height={64}
+                                            />
                                         </div>
-                                    </Link>
+                                    </div>
                                 )}
                             </div>
                             <div className="container">
                                 {organizationId && organization ? (
-                                    <Link
-                                        href={`/organization/${
-                                            organization.username ??
-                                            organization.id
-                                        }`}
-                                    >
-                                        {`${author} for ${organization.name}`}
-                                    </Link>
+                                    // ponytail: was a <Link> nested inside the
+                                    // outer post <Link>; nested <a> tags are
+                                    // invalid HTML and break React hydration.
+                                    // Visit the org page from the org avatar
+                                    // badge or its dedicated page instead.
+                                    <p>{`${author} for ${organization.name}`}</p>
                                 ) : (
                                     <p>{author}</p>
                                 )}
@@ -133,17 +135,48 @@ export default function PostContainer({
                             </p>
                         </div>
                     </div>
-                    <figure className="lg:w-9/12 ml-auto">
-                        <Image
-                            src={coverImage as string}
-                            alt="cover_image"
-                            width={1920}
-                            height={1080}
-                            className="float-right rounded-lg"
-                        />
+                    <figure className="lg:w-9/12 ml-auto float-right rounded-lg overflow-hidden">
+                        {coverImage ? (
+                            <Image
+                                src={coverImage as string}
+                                alt="cover_image"
+                                width={1920}
+                                height={1080}
+                                className="rounded-lg"
+                            />
+                        ) : (
+                            // ponytail: post has no cover image. Render a
+                            // gradient + title watermark so the feed keeps
+                            // its visual rhythm instead of a blank column.
+                            <div
+                                className="w-full aspect-video bg-gradient-to-br from-base-300 via-base-200 to-base-300 flex items-center justify-center p-6"
+                                aria-hidden="true"
+                            >
+                                <p className="text-base-content/40 text-xl lg:text-3xl font-bold text-center line-clamp-3 max-w-md">
+                                    {title}
+                                </p>
+                            </div>
+                        )}
                     </figure>
                 </div>
             </Link>
+            {/* ponytail: org-link overlay — sibling of the post <Link>, not
+                nested. Positioned absolutely over the org avatar area with
+                z-20 so it captures clicks there while the post <Link>
+                covers everything else. Keeps the org badge clickable
+                without breaking React hydration (no nested <a> tags). */}
+            {organizationId && organization && (
+                <Link
+                    href={`/organization/${
+                        organization.username ?? organization.id
+                    }`}
+                    className="absolute z-20"
+                    style={{ top: 8, left: 8, width: 48, height: 48 }}
+                    aria-label={`Visit ${organization.name}`}
+                >
+                    <span className="sr-only">{`Visit ${organization.name}`}</span>
+                </Link>
+            )}
             <div className="flex items-center mt-2 container">
                 <div className="flex-1">
                     <div className="flex items-center gap-2">

@@ -152,9 +152,6 @@ export default function CommentContainer({
                                     initialReactionCount={
                                         reactions?.length ?? 0
                                     }
-                                    notificationMessage={(actorName) =>
-                                        `${actorName} has reacted with ❤️ to your comment on your post`
-                                    }
                                 />
                             </div>
 

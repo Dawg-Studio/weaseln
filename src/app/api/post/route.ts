@@ -47,18 +47,22 @@ export async function GET(req: NextRequest): Promise<any> {
                 .toString()
                 .split(",")
                 .join("&");
-            orderBy = [
-                {
-                    _relevance: {
-                        fields: ["tags", "title", "description", "author"],
-                        search: interests,
-                        sort: "desc",
-                    },
-                },
-                {
-                    updatedAt: "desc",
-                },
-            ];
+            // ponytail: a brand-new user with no reading history produces an
+            // empty interests string. Prisma's _relevance with empty search
+            // returns zero rows, so the UI shows nothing. Fall back to the
+            // default orderBy so the user actually sees posts.
+            orderBy = interests
+                ? [
+                      {
+                          _relevance: {
+                              fields: ["tags", "title", "description", "author"],
+                              search: interests,
+                              sort: "desc",
+                          },
+                      },
+                      { updatedAt: "desc" },
+                  ]
+                : buildOrderBy(params);
         } else {
             orderBy = buildOrderBy(params);
         }
