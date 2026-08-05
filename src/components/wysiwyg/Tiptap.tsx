@@ -230,22 +230,24 @@ export default function Tiptap({
 
     const coverImageInitRef = useRef(true);
     useEffect(() => {
-        if (!editor || !coverImage) return;
         if (coverImageInitRef.current) {
             coverImageInitRef.current = false;
+            if (!editor || !coverImage) return;
             return;
         }
+        if (!editor || !coverImage) return;
         save(JSON.stringify(editor.getJSON()));
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [coverImage]);
 
     const inputTagsInitRef = useRef(true);
     useEffect(() => {
-        if (!editor || !inputTags) return;
         if (inputTagsInitRef.current) {
             inputTagsInitRef.current = false;
+            if (!editor || !inputTags) return;
             return;
         }
+        if (!editor || !inputTags) return;
         save(JSON.stringify(editor.getJSON()));
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [inputTags]);
