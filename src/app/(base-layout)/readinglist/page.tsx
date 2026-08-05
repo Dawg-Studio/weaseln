@@ -11,7 +11,7 @@ export default async function ReadingList() {
         where: { id: session?.user.id },
         select: {
             bookMarks: {
-                include: postContainerInclude(),
+                include: postContainerInclude,
             },
         },
     });

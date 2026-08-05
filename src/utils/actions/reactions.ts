@@ -2,7 +2,7 @@
 
 import { auth } from "@/auth"
 import prisma from "@/db"
-import { TCommentReaction, TPostReaction } from "@/types/reaction"
+import { ReactionType } from "@/types/reaction"
 
 export async function getUserInitialPostReaction(postId: string) {
     const session = await auth()
@@ -20,7 +20,7 @@ export async function getUserInitialPostReaction(postId: string) {
     return false
 }
 
-export async function updateCreatePostReaction(postId: string, type: TPostReaction) {
+export async function updateCreatePostReaction(postId: string, type: ReactionType) {
     const session = await auth()
     if (!session) throw new Error("Unauthorized")
 
@@ -91,7 +91,7 @@ export async function getInitialCommentReaction(commentId: string) {
     return false
 }
 
-export async function updateCreateCommentReaction(commentId: string, type: TCommentReaction) {
+export async function updateCreateCommentReaction(commentId: string, type: ReactionType) {
     const session = await auth()
     if (!session) throw new Error("Unauthorized")
 

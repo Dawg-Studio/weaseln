@@ -11,7 +11,7 @@ export async function addPostView(postId: string) {
             }
         }
     })
-    if (postView) return true
+    return !!postView
 }
 
 export async function addOrUpdateUserPostReadingHistory(postId: string, readingLengthMs: number) {

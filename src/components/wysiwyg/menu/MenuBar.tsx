@@ -1,4 +1,4 @@
-import type { MenuItemProps } from "@/types/menu";
+import type { IconDefinition } from "@fortawesome/fontawesome-svg-core";
 import type { EditorContentProps } from "@tiptap/react";
 import {
     faBold,
@@ -17,12 +17,18 @@ import {
     faImage,
     faEllipsis,
 } from "@fortawesome/free-solid-svg-icons";
-import MenuItems from "./MenuItems";
 import { Fragment, useState, useRef } from "react";
 import { cn } from "@/utils/cn";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 
 type MenuBarProps = React.ButtonHTMLAttributes<HTMLDivElement>;
+
+type MenuItem = {
+    icon: IconDefinition;
+    title: string;
+    action: () => boolean | undefined | void;
+    isActive?: () => boolean | undefined;
+};
 
 export default function MenuBar({
     asComment,
@@ -78,13 +84,12 @@ export default function MenuBar({
         link_modal.current?.close();
     }
 
-    const items: MenuItemProps[] = [
+    const displayItems: MenuItem[] = [
         {
             icon: faBold,
             title: "Bold",
             action: () => editor?.chain().focus().toggleBold().run(),
             isActive: () => editor?.isActive("bold"),
-            type: "onDisplay",
         },
         {
             icon: faHeading,
@@ -92,88 +97,78 @@ export default function MenuBar({
             action: () =>
                 editor?.chain().focus().toggleHeading({ level: 2 }).run(),
             isActive: () => editor?.isActive("heading", { level: 2 }),
-            type: "onDisplay",
         },
         {
             icon: faItalic,
             title: "Italic",
             action: () => editor?.chain().focus().toggleItalic().run(),
             isActive: () => editor?.isActive("italic"),
-            type: "onDisplay",
         },
         {
             icon: faStrikethrough,
             title: "Strike",
             action: () => editor?.chain().focus().toggleStrike().run(),
             isActive: () => editor?.isActive("strike"),
-            type: "onDisplay",
         },
         {
             icon: faLink,
             title: "Link",
             action: () => promptLinkModal(),
-            type: "onDisplay",
         },
         {
             icon: faMarker,
             title: "Highlight",
             action: () => editor?.chain().focus().toggleHighlight().run(),
             isActive: () => editor?.isActive("highlight"),
-            type: "onDisplay",
         },
         {
             icon: faListUl,
             title: "Bullet List",
             action: () => editor?.chain().focus().toggleBulletList().run(),
             isActive: () => editor?.isActive("bulletList"),
-            type: "onDisplay",
         },
         {
             icon: faListOl,
             title: "Ordered List",
             action: () => editor?.chain().focus().toggleOrderedList().run(),
             isActive: () => editor?.isActive("orderedList"),
-            type: "onDisplay",
         },
         {
             icon: faListCheck,
             title: "Task List",
             action: () => editor?.chain().focus().toggleTaskList().run(),
             isActive: () => editor?.isActive("taskList"),
-            type: "onDisplay",
         },
+    ];
+
+    const dropdownItems: MenuItem[] = [
         {
             icon: faCode,
             title: "Code",
             action: () => editor?.chain().focus().toggleCode().run(),
             isActive: () => editor?.isActive("code"),
-            type: "onDropdown",
         },
         {
             icon: faFileCode,
             title: "Code Block",
             action: () => editor?.chain().focus().toggleCodeBlock().run(),
             isActive: () => editor?.isActive("codeBlock"),
-            type: "onDropdown",
         },
         {
             icon: faQuoteLeft,
             title: "Blockquote",
             action: () => editor?.chain().focus().toggleBlockquote().run(),
             isActive: () => editor?.isActive("blockquote"),
-            type: "onDropdown",
         },
         {
             icon: faRulerHorizontal,
             title: "Horizontal Rule",
             action: () => editor?.chain().focus().setHorizontalRule().run(),
-            type: "onDropdown",
         },
         {
             icon: faImage,
             title: "Insert Image",
             action: () => document.getElementById("insertImage")?.click(),
-            type: "onDropdown",
         },
     ];
 
@@ -214,11 +209,17 @@ export default function MenuBar({
             />
             <div className="flex lg:justify-center">
                 <div className="flex-1 items-center">
-                    {items.map((item, index) => (
-                        <Fragment key={index}>
-                            {item.type === "onDisplay" && (
-                                <MenuItems {...item} />
-                            )}
+                    {displayItems.map((item) => (
+                        <Fragment key={item.title}>
+                            <button
+                                className={`btn btn-ghost ${
+                                    item.isActive?.() ? "btn-active" : ""
+                                }`}
+                                onClick={item.action}
+                                title={item.title}
+                            >
+                                <FontAwesomeIcon icon={item.icon} />
+                            </button>
                         </Fragment>
                     ))}
                 </div>
@@ -231,15 +232,25 @@ export default function MenuBar({
                             tabIndex={0}
                             className="flex dropdown-content z-[1] shadow bg-base-100 rounded-sm"
                         >
-                            {items.map((item, index) => (
-                                <Fragment key={index}>
-                                    {item.type === "onDropdown" && (
-                                        <>
-                                            {!(
-                                                asComment &&
-                                                item.icon === faImage
-                                            ) && <MenuItems {...item} />}
-                                        </>
+                            {dropdownItems.map((item) => (
+                                <Fragment key={item.title}>
+                                    {!(
+                                        asComment &&
+                                        item.icon === faImage
+                                    ) && (
+                                        <button
+                                            className={`btn btn-ghost ${
+                                                item.isActive?.()
+                                                    ? "btn-active"
+                                                    : ""
+                                            }`}
+                                            onClick={item.action}
+                                            title={item.title}
+                                        >
+                                            <FontAwesomeIcon
+                                                icon={item.icon}
+                                            />
+                                        </button>
                                     )}
                                 </Fragment>
                             ))}
