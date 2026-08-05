@@ -39,7 +39,11 @@ export default function PostList({
     const pathName = usePathname();
     const searchParams = useSearchParams();
     const [feed, setFeed] = useState<"relevance" | "latest" | "most-popular">(
-        searchParams.get("feed") as "relevance" | "latest" | "most-popular",
+        () =>
+            (searchParams.get("feed") as
+                | "relevance"
+                | "latest"
+                | "most-popular") ?? "relevance",
     );
     const { replace } = useRouter();
 
@@ -80,13 +84,6 @@ export default function PostList({
     );
 
     useEffect(() => {
-        if (!feed)
-            setFeed(
-                searchParams.get("feed") as
-                    | "relevance"
-                    | "latest"
-                    | "most-popular",
-            );
         replace(
             `${pathName}?${keyword ? `q=${keyword}&` : ""}feed=${
                 feed ?? "relevance"

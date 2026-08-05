@@ -6,7 +6,14 @@ export default defineConfig([
     globalIgnores(["public/**", ".next/**", "node_modules/**"]),
     {
         rules: {
-            "no-unused-vars": "error",
+            "no-unused-vars": [
+                "error",
+                {
+                    argsIgnorePattern: "^_",
+                    varsIgnorePattern: "^_",
+                    caughtErrorsIgnorePattern: "^_",
+                },
+            ],
         },
     },
 ]);

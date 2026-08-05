@@ -96,13 +96,16 @@ export default function ProfileSettingsComponent({
     }
 
     useEffect(() => {
-        if (isVerificationCodeSent) {
-            if (countdown > 0) {
-                setTimeout(() => setCountdown(countdown - 1), 1000);
-            } else {
+        if (!isVerificationCodeSent || countdown <= 0) return;
+        const timer = setTimeout(() => {
+            const next = countdown - 1;
+            if (next <= 0) {
                 setIsVerificationCodeSent(false);
+            } else {
+                setCountdown(next);
             }
-        }
+        }, 1000);
+        return () => clearTimeout(timer);
     }, [countdown, isVerificationCodeSent]);
 
     const socialForms: FormContext[] = [

@@ -1,7 +1,7 @@
 "use client";
 
 import type { Organization, User } from "@prisma/client";
-import { Fragment, useCallback, useEffect, useState } from "react";
+import { Fragment, useCallback, useMemo, useState } from "react";
 import OrganizationManageCreateContainer from "./OrganizationManageCreateContainer";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faClipboard, faEllipsis } from "@fortawesome/free-solid-svg-icons";
@@ -33,43 +33,37 @@ export default function OrganizationManageContainer({
           })
         | undefined
     >(organizations[0]);
-    const [userRole, setUserRole] = useState<"Owner" | "Admin" | "Member">();
 
     const checkIfAdmin = useCallback(() => {
         const isAdmin = selectedOrganization?.admins?.find(
             (admin) => admin.id === sessionUserId,
         );
-        if (isAdmin) return true;
-        return false;
+        return !!isAdmin;
     }, [selectedOrganization, sessionUserId]);
 
     const checkIfOwner = useCallback(() => {
-        const isOwner = selectedOrganization?.ownerId === sessionUserId;
-        if (isOwner) return true;
-        return false;
+        return selectedOrganization?.ownerId === sessionUserId;
     }, [selectedOrganization, sessionUserId]);
 
     const checkIfMember = useCallback(() => {
         const isMember = selectedOrganization?.members?.find(
             (member) => member.id === sessionUserId,
         );
-        if (isMember) return true;
-        return false;
+        return !!isMember;
     }, [selectedOrganization, sessionUserId]);
 
-    useEffect(() => {
-        if (!sessionUserId || !selectedOrganization) return;
-        const isOwner = checkIfOwner();
-        const isAdmin = checkIfAdmin();
-        const isMember = checkIfMember();
-        if (isOwner) setUserRole("Owner");
-        if (isAdmin) setUserRole("Admin");
-        if (isMember) setUserRole("Member");
+    const userRole = useMemo<
+        "Owner" | "Admin" | "Member" | undefined
+    >(() => {
+        if (!sessionUserId || !selectedOrganization) return undefined;
+        if (checkIfOwner()) return "Owner";
+        if (checkIfAdmin()) return "Admin";
+        if (checkIfMember()) return "Member";
+        return undefined;
     }, [
         checkIfAdmin,
         checkIfMember,
         checkIfOwner,
-        organizations,
         selectedOrganization,
         sessionUserId,
     ]);
