@@ -25,6 +25,7 @@ import ReactionButton from "@/components/reactions/actions/ReactionButton";
 import { PostShareButton } from "@/components/post/PostShareButton";
 import { cn } from "@/utils/cn";
 import tiptapExtensions from "@/utils/tiptapExt";
+import { formatPostDate } from "@/utils/formatPostDate";
 import PostList from "@/components/post/PostList";
 
 export async function generateMetadata({
@@ -245,36 +246,12 @@ export default async function PostPage({
                             new Date(post.createdAt).toDateString() ? (
                                 <p className=" text-xs">
                                     Posted on{" "}
-                                    {new Date(
-                                        post.createdAt,
-                                    ).toLocaleDateString(undefined, {
-                                        month: "short",
-                                        year:
-                                            new Date().getFullYear() ===
-                                            new Date(
-                                                post.createdAt,
-                                            ).getFullYear()
-                                                ? undefined
-                                                : "numeric",
-                                        day: "numeric",
-                                    })}
+                                    {formatPostDate(new Date(post.createdAt))}
                                 </p>
                             ) : (
                                 <p className=" text-xs">
                                     Updated at{" "}
-                                    {new Date(
-                                        post.updatedAt,
-                                    ).toLocaleDateString(undefined, {
-                                        month: "short",
-                                        year:
-                                            new Date().getFullYear() ===
-                                            new Date(
-                                                post.createdAt,
-                                            ).getFullYear()
-                                                ? undefined
-                                                : "numeric",
-                                        day: "numeric",
-                                    })}
+                                    {formatPostDate(new Date(post.updatedAt))}
                                 </p>
                             )}
                         </div>
