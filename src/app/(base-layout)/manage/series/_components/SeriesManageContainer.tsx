@@ -4,11 +4,11 @@ import { FormContext } from "@/types/formContext";
 import { Post, PostSeries } from "@prisma/client";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { Fragment, useEffect, useRef, useState } from "react";
-import Input from "../../../../../components/ui/Input";
+import Input from "@/components/ui/Input";
 import { FormProvider, useForm } from "react-hook-form";
 import SeriesManagePostContainer from "./SeriesManagePostContainer";
-import QueryWrapper from "../../../../../components/provider/QueryWrapper";
-import Modal from "../../../../../components/ui/Modal";
+import QueryWrapper from "@/components/provider/QueryWrapper";
+import Modal from "@/components/ui/Modal";
 
 interface PostSeriesWithPosts extends PostSeries {
     posts: Array<Post>;

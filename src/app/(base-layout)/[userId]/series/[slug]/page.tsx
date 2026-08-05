@@ -64,7 +64,7 @@ export default async function SeriesUserPage({
                 where: {
                     published: true,
                 },
-                include: postContainerInclude(),
+                include: postContainerInclude,
             },
         },
     });

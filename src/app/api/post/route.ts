@@ -39,7 +39,7 @@ export async function GET(req: NextRequest): Promise<any> {
         }
 
         const prismaQuery: PrismaQuery = {
-            include: postContainerInclude(),
+            include: postContainerInclude,
             where: {
                 NOT: {
                     coverImage: null, //this is a safety mechanism as that all posts requires a coverImage

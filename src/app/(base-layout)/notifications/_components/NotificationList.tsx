@@ -10,10 +10,8 @@ import { usePathname } from "next/navigation";
 export default function NotificationList() {
     const socket = useSocket();
     const pathName = usePathname();
-    const slug =
-        pathName.split("/").length === 3
-            ? pathName.split("/").pop()
-            : undefined;
+    const segments = pathName.split("/");
+    const slug = segments.length === 3 ? segments.at(-1) : undefined;
     const getNotifications = async () => {
         const params = new URLSearchParams({
             ...(slug && {

@@ -8,7 +8,6 @@ const withPWA = withPWAInit({
 
 const nextConfig = {
     async headers() {
-        console.log("Listening notifications from:", socketURL);
         return [
             {
                 source: "/socket.io",

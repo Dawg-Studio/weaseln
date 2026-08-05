@@ -6,6 +6,9 @@ import { PrismaAdapter } from "@auth/prisma-adapter";
 import prisma from "@/db";
 import generateRandom4DigitNumber from "@/utils/randomNumberGen4Digit";
 
+const usernameFrom = (source: string) =>
+    source.replace(/\s/g, "").toLowerCase() + generateRandom4DigitNumber();
+
 export const { handlers, auth, signIn, signOut } = NextAuth({
     adapter: PrismaAdapter(prisma),
     session: { strategy: "jwt" },
@@ -30,9 +33,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
                     name: profile.name,
                     email: profile.email,
                     image: profile.picture,
-                    username:
-                        profile.given_name.replace(/\s/g, "").toLowerCase() +
-                        generateRandom4DigitNumber(),
+                    username: usernameFrom(profile.given_name),
                 };
             },
         }),
@@ -45,9 +46,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
                     name: profile.name ?? profile.login,
                     email: profile.email,
                     image: profile.avatar_url,
-                    username:
-                        profile.login.replace(/\s/g, "").toLowerCase() +
-                        generateRandom4DigitNumber(),
+                    username: usernameFrom(profile.login),
                 };
             },
         }),
