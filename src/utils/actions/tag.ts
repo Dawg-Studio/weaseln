@@ -76,7 +76,7 @@ export async function ifTagFollowing(tag: string) {
 
 export async function validateTag(tag: string) {
     const genAI = new GoogleGenerativeAI(process.env.GOOGLE_AI_KEY as string);
-    const model = genAI.getGenerativeModel({ model: "gemini-pro" });
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash-latest" });
     const prompt = `You are a helpful assistant and I want you to validate the following keyword for tag creation. Follow the rules: 1. A tag must not contain any malicious word in any languages. 2. You will only output true or false. Now validate the tag: ${tag}`;
     const result = await model.generateContent(prompt);
     const response = result.response;
