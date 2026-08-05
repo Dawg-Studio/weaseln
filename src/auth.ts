@@ -52,13 +52,16 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         }),
     ],
     callbacks: {
-        session: ({ session, token }) => ({
-            ...session,
-            user: {
-                ...session.user,
-                id: token.sub!,
-            },
-        }),
+        session: ({ session, token }) => {
+            if (!token.sub) throw new Error("Missing token.sub in session callback");
+            return {
+                ...session,
+                user: {
+                    ...session.user,
+                    id: token.sub,
+                },
+            };
+        },
     },
     theme: {
         logo: "/zefer.svg",
