@@ -7,6 +7,7 @@ import PostBookmark from "./actions/PostBookmark";
 import { Fragment, useMemo } from "react";
 import timeDiff from "@/utils/timeDiffCalc";
 import { cn } from "@/utils/cn";
+import { formatPostDate } from "@/utils/formatPostDate";
 
 export default function PostContainer({
     coverImage,
@@ -106,20 +107,7 @@ export default function PostContainer({
                                     <p>{author}</p>
                                 )}
                                 <p className="text-xs ml-1">
-                                    {new Date(createdAt).toLocaleDateString(
-                                        undefined,
-                                        {
-                                            month: "short",
-                                            year:
-                                                new Date().getFullYear() ===
-                                                new Date(
-                                                    createdAt,
-                                                ).getFullYear()
-                                                    ? undefined
-                                                    : "numeric",
-                                            day: "numeric",
-                                        },
-                                    )}{" "}
+                                    {formatPostDate(new Date(createdAt))}{" "}
                                     ({timeDiffCalc})
                                 </p>
                             </div>

@@ -3,11 +3,11 @@ import Google from "next-auth/providers/google";
 import GitHub from "next-auth/providers/github";
 import Nodemailer from "next-auth/providers/nodemailer";
 import { PrismaAdapter } from "@auth/prisma-adapter";
+import { randomInt } from "crypto";
 import prisma from "@/db";
-import generateRandom4DigitNumber from "@/utils/randomNumberGen4Digit";
 
 const usernameFrom = (source: string) =>
-    source.replace(/\s/g, "").toLowerCase() + generateRandom4DigitNumber();
+    source.replace(/\s/g, "").toLowerCase() + randomInt(1000, 10000);
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
     adapter: PrismaAdapter(prisma),
@@ -52,13 +52,16 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         }),
     ],
     callbacks: {
-        session: ({ session, token }) => ({
-            ...session,
-            user: {
-                ...session.user,
-                id: token.sub!,
-            },
-        }),
+        session: ({ session, token }) => {
+            if (!token.sub) throw new Error("Missing token.sub in session callback");
+            return {
+                ...session,
+                user: {
+                    ...session.user,
+                    id: token.sub,
+                },
+            };
+        },
     },
     theme: {
         logo: "/zefer.svg",

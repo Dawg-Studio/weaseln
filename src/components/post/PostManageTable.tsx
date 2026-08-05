@@ -22,12 +22,13 @@ export default function PostManageTable() {
         | "most-reactions"
         | "most-comments"
     >(
-        searchParams.get("sort") as
-            | "recent"
-            | "unpublished"
-            | "most-views"
-            | "most-reactions"
-            | "most-comments",
+        () =>
+            (searchParams.get("sort") as
+                | "recent"
+                | "unpublished"
+                | "most-views"
+                | "most-reactions"
+                | "most-comments") ?? "recent",
     );
     const { replace } = useRouter();
 
@@ -97,15 +98,6 @@ export default function PostManageTable() {
     });
 
     useEffect(() => {
-        if (!orderBy)
-            setOrderBy(
-                searchParams.get("sort") as
-                    | "recent"
-                    | "unpublished"
-                    | "most-views"
-                    | "most-reactions"
-                    | "most-comments",
-            );
         replace(`${pathName}?sort=${orderBy ?? "recent"}`, { scroll: false });
         if (mutationDeletePost.isSuccess) refetch();
         if (mutationPublishOrUnpublishPost.isSuccess) refetch();

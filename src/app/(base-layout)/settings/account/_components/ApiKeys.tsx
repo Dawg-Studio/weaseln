@@ -45,28 +45,29 @@ export default function ApiKeys({
         deleteApiKeyModalRef.current?.show();
     }
 
-    const addApiKey = form.handleSubmit(async (data) => {
-        const duplicateName = apiKeys.find(
-            (apiKey) => apiKey.name === data.Name,
-        );
-        if (!duplicateName) {
-            const generatedApiKey = await generateApiKey(data.Name);
-            if (generatedApiKey) {
-                setApiKeys([...apiKeys, generatedApiKey.maskedApiKey]);
-                toast.success("API key successfully created", {
-                    id: "apiKey",
+    const addApiKey = () =>
+        form.handleSubmit(async (data) => {
+            const duplicateName = apiKeys.find(
+                (apiKey) => apiKey.name === data.Name,
+            );
+            if (!duplicateName) {
+                const generatedApiKey = await generateApiKey(data.Name);
+                if (generatedApiKey) {
+                    setApiKeys([...apiKeys, generatedApiKey.maskedApiKey]);
+                    toast.success("API key successfully created", {
+                        id: "apiKey",
+                    });
+                    createApiKeyModalRef.current?.close();
+                    setNewApiKeyCreated(generatedApiKey.rawKey);
+                    successApiKeyCreationModalRef.current?.show();
+                }
+            } else {
+                form.setError("Name", {
+                    type: "uniqueConstraint",
+                    message: `${data.Name} already exists.`,
                 });
-                createApiKeyModalRef.current?.close();
-                setNewApiKeyCreated(generatedApiKey.rawKey);
-                successApiKeyCreationModalRef.current?.show();
             }
-        } else {
-            form.setError("Name", {
-                type: "uniqueConstraint",
-                message: `${data.Name} already exists.`,
-            });
-        }
-    });
+        })();
 
     const deleteApiKey = async () => {
         if (toDelApiKeyId) {

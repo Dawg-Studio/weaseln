@@ -1,5 +1,6 @@
 import prisma from "@/db"
 import { NextRequest, NextResponse } from "next/server"
+import { computeTagRankings } from "@/utils/services/ranking"
 
 export async function GET(req: NextRequest) {
 
@@ -8,44 +9,13 @@ export async function GET(req: NextRequest) {
     }
 
     try {
-        //get all posts
-        const posts = await prisma.post.findMany()
-        //push all tags from a post
-        const tags: string[] = []
-        posts.forEach(post => post.tags.forEach(tag => tags.push(tag)))
-
-        //remove duplication
-        const setTags = [...new Set(tags)]
-
-        type TagRank = {
-            tag: string;
-            usage: number
-            followers: number
-        }
-
-        const tagRanks = async () => {
-            const tagRanking: TagRank[] = [];
-            for (const setTag of setTags) {
-                const tagFollowers = await prisma.user.count({
-                    where: {
-                        interests: {
-                            has: setTag
-                        }
-                    }
-                });
-
-                tagRanking.push({
-                    tag: setTag,
-                    usage: tags.filter(tag => tag === setTag).length,
-                    followers: tagFollowers
-                });
-            }
-            return tagRanking;
-        };
-
+        // computeTagRankings (in src/utils/services/ranking.ts) holds the
+        // pre-refactor `tagRanks()` body verbatim: iterate every unique tag in
+        // posts.tags, count usages and followers, return TagRank[]. The cron
+        // route just persists the result to the TagsRanking table.
         const createTagRank = await prisma.tagsRanking.create({
             data: {
-                data: await tagRanks()
+                data: await computeTagRankings(),
             }
         })
         if (createTagRank) return NextResponse.json({ status: 200 })

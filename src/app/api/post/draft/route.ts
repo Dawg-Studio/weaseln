@@ -1,5 +1,4 @@
 import prisma from "@/db";
-import cloudinarySignature from "@/utils/cloudinarySignature";
 import { JSONContent } from "@tiptap/react";
 import { auth } from "@/auth";
 import { NextRequest, NextResponse } from "next/server";
@@ -117,45 +116,19 @@ export async function POST(req: NextRequest): Promise<any> {
             }
         }
         if (draft && body.get("coverImage")) {
-            //upload coverImage
-            const formData = new FormData();
-            const folder = "zefer/post/draft";
-            const timestamp = new Date().getTime();
-            formData.append("file", body.get("coverImage") as File);
-            formData.append(
-                "api_key",
-                process.env.NEXT_CLOUDINARY_API as string,
-            );
-            formData.append("folder", folder);
-            formData.append("public_id", `${draft.id}_cover`);
-            formData.append("format", "jpg");
-            formData.append("timestamp", timestamp.toString());
-            formData.append(
-                "signature",
-                cloudinarySignature(
-                    `${draft.id}_cover`,
-                    process.env.NEXT_CLOUDINARY_SECRET as string,
-                    folder,
-                    timestamp,
-                ),
-            );
-            const cloudinary = await fetch(
-                `http://api.cloudinary.com/v1_1/${
-                    process.env.NEXT_CLOUDINARY_NAME as string
-                }/image/upload/`,
-                {
-                    method: "POST",
-                    body: formData,
-                },
-            );
-            if (cloudinary.ok) {
-                const coverImage = await prisma.postDraft.update({
+            const cloudinary = await uploadCloudinary({
+                file: body.get("coverImage") as File,
+                folder: "zefer/post/draft",
+                public_id: `${draft.id}_cover`,
+            });
+            if (cloudinary.upload.ok) {
+                await prisma.postDraft.update({
                     where: { userId: session?.user.id },
                     data: {
-                        coverImage: `https://res.cloudinary.com/leindfraust/image/upload/w_1920,h_1080,c_scale/v${timestamp}/${folder}/${draft.id}_cover.jpg`, //always output coverImage of 1920 1080
+                        coverImage: `https://res.cloudinary.com/leindfraust/image/upload/w_1920,h_1080,c_scale/v${cloudinary.metadata.timestamp}/${cloudinary.metadata.folder}/${draft.id}_cover.jpg`, //always output coverImage of 1920 1080
                     },
                 });
-                if (coverImage) return NextResponse.json({ status: 200 }); //return a response here since coverImage is REQUIRED.
+                return NextResponse.json({ status: 200 }); //return a response here since coverImage is REQUIRED.
             }
         }
         if (draft) return NextResponse.json({ status: 200 });

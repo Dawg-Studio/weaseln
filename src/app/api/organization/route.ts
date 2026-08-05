@@ -1,7 +1,7 @@
+import { randomInt } from "crypto";
 import prisma from "@/db";
 import { getCloudinaryImage, uploadCloudinary } from "@/lib/cloudinary";
 
-import generateRandom4DigitNumber from "@/utils/randomNumberGen4Digit";
 import { init } from "@paralleldrive/cuid2";
 import { auth } from "@/auth";
 import { NextRequest, NextResponse } from "next/server";
@@ -24,9 +24,9 @@ export async function POST(req: NextRequest) {
             file: img,
             folder: "organization",
             public_id: `${session?.user.id}_${
-                username ??
-                name.replace(/\s/g, "").toLowerCase() +
-                    generateRandom4DigitNumber()
+                    username ??
+                    name.replace(/\s/g, "").toLowerCase() +
+                    randomInt(1000, 10000)
             }`,
         });
         if (cloudinary.upload.ok) {
@@ -80,7 +80,7 @@ export async function PATCH(req: NextRequest) {
                 public_id: `${session?.user.id}_${
                     username ??
                     name.replace(/\s/g, "").toLowerCase() +
-                        generateRandom4DigitNumber()
+                        randomInt(1000, 10000)
                 }`,
             });
             if (cloudinary.upload.ok) {

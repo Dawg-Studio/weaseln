@@ -3,15 +3,21 @@
 import { auth } from "@/auth";
 import prisma from "@/db";
 import { GoogleGenerativeAI } from "@google/generative-ai";
+import { rankTagsForUser } from "@/utils/services/ranking";
+import type { TagRank } from "@/types/tag";
 
-export async function getTagRankings() {
-    const tagsRanking = await prisma.tagsRanking.findFirst({
-        orderBy: {
-            createdAt: "desc",
-        },
-        take: 1,
-    });
-    return tagsRanking?.data.slice(0, 10);
+export async function getTagRankings(): Promise<TagRank[]> {
+    // rankTagsForUser(null) reads the most-recent TagsRanking row (written by
+    // the cron via computeTagRankings). The returned RankedTag entries carry
+    // the original `usage` and `followers` fields so we can rehydrate the
+    // TagRank shape that the UI expects (TagCard renders `{usage} Posts` and
+    // `{followers} Followers`).
+    const ranked = await rankTagsForUser(null, { limit: 10 });
+    return ranked.map((r) => ({
+        tag: r.tag,
+        usage: r.usage ?? r.score,
+        followers: r.followers ?? 0,
+    }));
 }
 
 export async function updateInterest(tag: string) {
@@ -76,7 +82,7 @@ export async function ifTagFollowing(tag: string) {
 
 export async function validateTag(tag: string) {
     const genAI = new GoogleGenerativeAI(process.env.GOOGLE_AI_KEY as string);
-    const model = genAI.getGenerativeModel({ model: "gemini-pro" });
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash-latest" });
     const prompt = `You are a helpful assistant and I want you to validate the following keyword for tag creation. Follow the rules: 1. A tag must not contain any malicious word in any languages. 2. You will only output true or false. Now validate the tag: ${tag}`;
     const result = await model.generateContent(prompt);
     const response = result.response;

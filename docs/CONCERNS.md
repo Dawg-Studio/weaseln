@@ -431,6 +431,26 @@ Review the diff before deciding whether to:
 
 Each commit is independently revertable. The net diff is **-107 lines** across 19 files.
 
+### E5. Future AGENTS.md must require BOTH `eslint` AND `tsc` — no tsc shortcut
+
+**File (future):** `AGENTS.md` (does not exist yet; see E1)
+
+**Verified:** `npm run lint` currently combines `eslint . && npx tsc --noemit`
+into one script. Agents and contributors often run only `npx tsc --noEmit`
+and skip eslint — which is exactly how the 22 pre-existing lint errors in
+Tiptap.tsx (Group D) accumulated: every PR passed `tsc` and merged.
+
+**Requirement:** any future `AGENTS.md` (or `CLAUDE.md`) must codify that
+**both** gates are part of the pre-completion checklist:
+- `npx eslint .` — exit 0
+- `npx tsc --noEmit` — exit 0
+
+Running only one is not sufficient. This is the rule that would have
+prevented the Group D lint debt from accumulating in the first place.
+
+**Status:** doc-only entry. AGENTS.md does not yet exist (E1); this records
+the intent so the future author of AGENTS.md picks it up.
+
 ---
 
 ## Quick reference — what this audit already landed (uncommitted)

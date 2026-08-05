@@ -21,10 +21,11 @@ import CommentBox from "@/app/(base-layout)/[userId]/[slug]/_components/CommentB
 import QueryWrapper from "@/components/provider/QueryWrapper";
 import CommentList from "@/app/(base-layout)/[userId]/[slug]/_components/CommentList";
 import NextAuthProvider from "@/components/provider/NextAuthProvider";
-import PostReactionButton from "@/components/reactions/actions/PostReactionButton";
+import ReactionButton from "@/components/reactions/actions/ReactionButton";
 import { PostShareButton } from "@/components/post/PostShareButton";
 import { cn } from "@/utils/cn";
 import tiptapExtensions from "@/utils/tiptapExt";
+import { formatPostDate } from "@/utils/formatPostDate";
 import PostList from "@/components/post/PostList";
 
 export async function generateMetadata({
@@ -245,36 +246,12 @@ export default async function PostPage({
                             new Date(post.createdAt).toDateString() ? (
                                 <p className=" text-xs">
                                     Posted on{" "}
-                                    {new Date(
-                                        post.createdAt,
-                                    ).toLocaleDateString(undefined, {
-                                        month: "short",
-                                        year:
-                                            new Date().getFullYear() ===
-                                            new Date(
-                                                post.createdAt,
-                                            ).getFullYear()
-                                                ? undefined
-                                                : "numeric",
-                                        day: "numeric",
-                                    })}
+                                    {formatPostDate(new Date(post.createdAt))}
                                 </p>
                             ) : (
                                 <p className=" text-xs">
                                     Updated at{" "}
-                                    {new Date(
-                                        post.updatedAt,
-                                    ).toLocaleDateString(undefined, {
-                                        month: "short",
-                                        year:
-                                            new Date().getFullYear() ===
-                                            new Date(
-                                                post.createdAt,
-                                            ).getFullYear()
-                                                ? undefined
-                                                : "numeric",
-                                        day: "numeric",
-                                    })}
+                                    {formatPostDate(new Date(post.updatedAt))}
                                 </p>
                             )}
                         </div>
@@ -285,12 +262,14 @@ export default async function PostPage({
                         <div className="flex-1">
                             <div className="flex items-center gap-2">
                                 <div className="flex items-center gap-2">
-                                    <PostReactionButton
-                                        authorId={post.userId}
-                                        session={session}
-                                        id={post.id}
+                                    <ReactionButton
+                                        target={{ id: post.id, authorId: post.userId }}
+                                        targetType="post"
                                         initialReactionCount={
                                             post._count.reactions
+                                        }
+                                        notificationMessage={(actorName) =>
+                                            `${actorName} has reacted with ❤️ to your post`
                                         }
                                     />
                                 </div>

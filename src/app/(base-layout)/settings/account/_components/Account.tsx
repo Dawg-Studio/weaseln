@@ -21,7 +21,7 @@ function ProviderList({
 }: {
     linkAction: "Connect" | "Remove";
     displayProviders: string[];
-    onUnlink: (providerLinked: string) => Promise<void>;
+    onUnlink: (_provider: string) => Promise<void>;
 }) {
     const modalOauthRemoveRef = useRef<HTMLDialogElement>(null);
     const [provider, setProvider] = useState<string>("");

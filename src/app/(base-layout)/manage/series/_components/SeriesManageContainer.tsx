@@ -59,7 +59,7 @@ export default function SeriesManageContainer() {
         },
     };
 
-    const createSeries = form.handleSubmit(async (data) => {
+    const createSeries = async (data: { Title: string; Description: string }) => {
         const formData = new FormData();
         formData.append("title", data.Title);
         formData.append("description", data.Description);
@@ -69,9 +69,9 @@ export default function SeriesManageContainer() {
         });
         modalSeries.current?.close();
         return post;
-    });
+    };
 
-    const editSeries = form.handleSubmit(async (data) => {
+    const editSeries = async (data: { Title: string; Description: string }) => {
         const params = new URLSearchParams({
             seriesId: actionSeriesId,
         });
@@ -84,7 +84,7 @@ export default function SeriesManageContainer() {
         });
         modalSeries.current?.close();
         return post;
-    });
+    };
 
     const deleteSeries = async () => {
         const params = new URLSearchParams({
@@ -120,11 +120,13 @@ export default function SeriesManageContainer() {
     }, [modalActionAddPostSeries, modalActionRemoveSeries]);
 
     const mutationCreateSeries = useMutation({
-        mutationFn: () => createSeries(),
+        mutationFn: () =>
+            form.handleSubmit(createSeries as Parameters<typeof form.handleSubmit>[0])(),
     });
 
     const mutationEditSeries = useMutation({
-        mutationFn: () => editSeries(),
+        mutationFn: () =>
+            form.handleSubmit(editSeries as Parameters<typeof form.handleSubmit>[0])(),
     });
 
     const mutationDeleteSeries = useMutation({

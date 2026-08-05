@@ -1,282 +1,53 @@
+import { randomBytes } from "crypto";
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { auth } from "@/auth";
 
 import prisma from "@/db";
 import { JSONContent } from "@tiptap/react";
-import { Post } from "@prisma/client";
+import { Prisma } from "@prisma/client";
 import { getCloudinaryImage, uploadCloudinary } from "@/lib/cloudinary";
 import { revalidatePath } from "next/cache";
 import { postContainerInclude } from "@/utils/prismaQuery";
-import { TagRank } from "@/types/tag";
+import { rankContentForUser } from "@/utils/services/ranking";
+import { buildWhere, buildOrderBy, paginate, ListPostsParams } from "./_query";
 //Promise<any> is a temporary fix
 
 export async function GET(req: NextRequest): Promise<any> {
     try {
         const url = new URL(req.url);
-        const lastCursor = url.searchParams.get("cursor");
-        const keyword = url.searchParams.get("q")?.split(" ").join("&");
-        const tag = url.searchParams.get("tag");
-        const postId = url.searchParams.get("postId");
-        const userId = url.searchParams.get("userId");
-        const orgId = url.searchParams.get("orgId");
-        const published = url.searchParams.get("published");
-        const orderBy = url.searchParams.get("orderBy"); //either latest or most-popular
-        interface PrismaQuery {
-            include: {};
-            where: {
-                NOT: {};
-                id?: {};
-                published: boolean;
-                title?: {};
-                description?: {};
-                author?: {};
-                tags?: {};
-                OR?: [{}, {}];
-                organizationId?: {};
-            };
-            orderBy?: {} | [];
-        }
-
-        const prismaQuery: PrismaQuery = {
-            include: postContainerInclude,
-            where: {
-                NOT: {
-                    coverImage: null, //this is a safety mechanism as that all posts requires a coverImage
-                },
-                ...(postId && {
-                    id: {
-                        not: postId,
-                    },
-                }),
-                published:
-                    published === "true"
-                        ? true
-                        : published === "false"
-                          ? false
-                          : true, //strict checking of false so when published params is anything but true or false, it always returns true
-            },
-            //when orderBy is not defined as latest or most-popular, default to latest
-            orderBy: {
-                createdAt: "desc",
-            },
+        const params: ListPostsParams = {
+            keyword: url.searchParams.get("q")?.split(" ").join("&"),
+            tag: url.searchParams.get("tag"),
+            postId: url.searchParams.get("postId"),
+            userId: url.searchParams.get("userId"),
+            orgId: url.searchParams.get("orgId"),
+            published: url.searchParams.get("published"),
+            orderBy: url.searchParams.get("orderBy"),
+            cursor: url.searchParams.get("cursor"),
         };
 
-        if (keyword) {
-            prismaQuery.where = {
-                ...prismaQuery.where,
-                title: {
-                    search: keyword,
-                },
-                description: {
-                    search: keyword,
-                },
-                author: {
-                    search: keyword,
-                },
-            };
-        }
+        const where = buildWhere(params);
 
-        if (tag) {
-            prismaQuery.where = {
-                ...prismaQuery.where,
-                tags: {
-                    has: tag,
-                },
-            };
-        }
+        let orderBy:
+            | Prisma.PostOrderByWithRelationInput
+            | Prisma.PostOrderByWithRelationInput[];
 
-        if (userId) {
-            prismaQuery.where = {
-                ...prismaQuery.where,
-                OR: [
-                    {
-                        userId: userId,
-                    },
-                    {
-                        authorUsername: userId,
-                    },
-                ],
-            };
-        }
-        if (orgId) {
-            prismaQuery.where = {
-                ...prismaQuery.where,
-                organizationId: orgId,
-            };
-        }
-
-        if (orderBy === "latest") {
-            prismaQuery.orderBy = {
-                createdAt: "desc",
-            };
-        }
-
-        if (orderBy === "most-popular") {
-            prismaQuery.orderBy = {
-                views: {
-                    _count: "desc",
-                },
-            };
-        }
-
-        if (orderBy === "relevance") {
+        if (params.orderBy === "relevance") {
             const session = await auth();
-            const tags: string[] = [];
-            const postTitleDesc: string[] = [];
-            const authors: string[] = [];
-            if (postId) {
-                const currentPost = await prisma.post.findUnique({
-                    where: {
-                        id: postId,
-                    },
-                });
-                if (currentPost) {
-                    if (currentPost.title)
-                        postTitleDesc.push(currentPost.title.toLowerCase());
-                    if (currentPost?.description)
-                        postTitleDesc.push(
-                            currentPost.description.toLowerCase(),
-                        );
-                    if (currentPost?.author) authors.push(currentPost.author);
-                    if (currentPost?.tags && currentPost.tags.length > 0)
-                        for (const currentPostTag of currentPost?.tags) {
-                            tags.push(currentPostTag);
-                        }
-                }
-            }
-            if (session && session.user) {
-                const user = await prisma.user.findUnique({
-                    where: { id: session?.user.id },
-                    include: {
-                        readingHistory: {
-                            take: 100,
-                            include: {
-                                post: true,
-                            },
-                            orderBy: [
-                                {
-                                    readingLength: {
-                                        readingLength: "desc",
-                                    },
-                                },
-                                {
-                                    updatedAt: "desc",
-                                },
-                            ],
-                        },
-                        postReactions: {
-                            take: 100,
-                            include: {
-                                post: true,
-                            },
-                            orderBy: {
-                                updatedAt: "desc",
-                            },
-                        },
-                    },
-                });
-                if (user?.interests) tags.push(...user?.interests);
-                user?.readingHistory.forEach(async (history) => {
-                    tags.push(...history.post.tags);
-                    postTitleDesc.push(history.post.title.toLowerCase());
-                    postTitleDesc.push(history.post.description.toLowerCase());
-                    authors.push(history.post.author);
-                });
-                user?.postReactions.forEach((postReact) => {
-                    tags.push(...postReact.post.tags);
-                    postTitleDesc.push(postReact.post.title.toLowerCase());
-                    postTitleDesc.push(
-                        postReact.post.description.toLowerCase(),
-                    );
-                    authors.push(postReact.post.author);
-                });
-            } else {
-                const tagRankings = await prisma.tagsRanking.findFirst({
-                    orderBy: {
-                        createdAt: "desc",
-                    },
-                });
-                const tagRanks = ((tagRankings?.data as TagRank[]) || []).map(
-                    (tagRank) => tagRank.tag,
-                );
-                const topPosts = await prisma.post.findMany({
-                    take: 100,
-                    orderBy: [
-                        {
-                            views: {
-                                _count: "desc",
-                            },
-                        },
-                        {
-                            postReadingHistories: {
-                                _count: "desc",
-                            },
-                        },
-                        {
-                            postReadingLength: {
-                                _count: "desc",
-                            },
-                        },
-                        {
-                            reactions: {
-                                _count: "desc",
-                            },
-                        },
-                        {
-                            activities: {
-                                _count: "desc",
-                            },
-                        },
-                        {
-                            updatedAt: "desc",
-                        },
-                    ],
-                });
-                topPosts.forEach(async (post) => {
-                    tags.push(...post.tags, ...tagRanks);
-                    postTitleDesc.push(post.title.toLowerCase());
-                    postTitleDesc.push(post.description.toLowerCase());
-                    authors.push(post.author);
-                });
-            }
-            const tagCount: { tag: string; count: number }[] = [];
-            tags.forEach((tag) => {
-                tagCount.push({
-                    tag,
-                    count:
-                        (tagCount.find((count) => count.tag === tag)?.count ||
-                            0) + 1,
-                });
+            const ranked = await rankContentForUser(session?.user?.id, {
+                postId: params.postId,
             });
-            function sortTagsRanking() {
-                const tagList: string[] = [];
-                if (tagCount.length >= 10) {
-                    tagCount
-                        .sort((a, b) => b.count - a.count)
-                        .slice(-10)
-                        .forEach((tag) => tagList.push(tag.tag));
-                } else {
-                    tagCount
-                        .sort((a, b) => b.count - a.count)
-                        .forEach((tag) => tagList.push(tag.tag));
-                }
-                return tagList;
-            }
-            const rankedTags = sortTagsRanking();
-            const compiledInterests = [
-                ...rankedTags,
-                ...postTitleDesc,
-                ...authors,
-            ];
-            const interests = [...new Set(compiledInterests)]
+            const interests = [
+                ...new Set([...ranked.tags, ...ranked.titles, ...ranked.authors]),
+            ]
                 .map((interest) =>
                     interest.replace(/[\s\W]/g, "").toLowerCase(),
                 )
                 .toString()
                 .split(",")
                 .join("&");
-            prismaQuery.orderBy = [
+            orderBy = [
                 {
                     _relevance: {
                         fields: ["tags", "title", "description", "author"],
@@ -288,53 +59,19 @@ export async function GET(req: NextRequest): Promise<any> {
                     updatedAt: "desc",
                 },
             ];
+        } else {
+            orderBy = buildOrderBy(params);
         }
 
-        const posts = await prisma.post.findMany({
-            ...prismaQuery,
-            ...(lastCursor && {
-                skip: 1,
-                cursor: {
-                    id: lastCursor,
-                },
-            }),
-            take: 10,
-        });
+        const result = await paginate(
+            where,
+            orderBy,
+            postContainerInclude,
+            params.cursor,
+            10,
+        );
 
-        if (posts.length === 0) {
-            return NextResponse.json(
-                {
-                    data: [],
-                    metaData: {
-                        lastCursor: null,
-                        hasNextPost: false,
-                    },
-                },
-                { status: 200 },
-            );
-        }
-
-        const lastPost: Post = posts[posts.length - 1];
-        const cursor: string = lastPost.id;
-
-        const nextPost = await prisma.post.findMany({
-            ...prismaQuery,
-            take: 10,
-            skip: 1,
-            cursor: {
-                id: cursor,
-            },
-        });
-
-        const data = {
-            data: posts,
-            metaData: {
-                lastCursor: cursor !== undefined ? cursor : null,
-                hasNextPost: nextPost.length > 0,
-            },
-        };
-
-        return NextResponse.json({ data }, { status: 200 });
+        return NextResponse.json({ data: result }, { status: 200 });
     } catch (err) {
         console.log(err);
         return NextResponse.json({ err }, { status: 500 });
@@ -359,17 +96,8 @@ export async function POST(req: NextRequest): Promise<any> {
         return imageFiles;
     };
     //create titleId for the Url
-    function generateRandomCode() {
-        let characters =
-            "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-        let code = "";
-
-        for (let i = 0; i < 4; i++) {
-            let randomIndex = Math.floor(Math.random() * characters.length);
-            code += characters.charAt(randomIndex);
-        }
-
-        return code;
+    function generateRandomCode(): string {
+        return randomBytes(2).toString("base64url").slice(0, 4);
     }
     try {
         const session = await auth();

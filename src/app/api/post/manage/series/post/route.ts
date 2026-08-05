@@ -2,15 +2,7 @@ import prisma from "@/db";
 
 import { auth } from "@/auth";
 import { NextRequest, NextResponse } from "next/server";
-type PrismaWhereQuery = {
-    where: {
-        userId: string
-        series?: {}
-        NOT?: {
-            series: {}
-        }
-    }
-}
+import { Prisma } from "@prisma/client";
 
 export async function GET(req: NextRequest): Promise<any> {
     const session = await auth()
@@ -20,23 +12,9 @@ export async function GET(req: NextRequest): Promise<any> {
     const seriesId = url.searchParams.get('seriesId') as string
     const seriesTitle = url.searchParams.get('seriesTitle') as string
 
-    let prismaWhereQuery: PrismaWhereQuery = {
-        where: {
-            userId: session.user.id,
-            NOT: {
-                series: {
-                    some: {
-                        id: seriesId,
-                        title: seriesTitle
-                    }
-                }
-            }
-        }
-    }
-
-    if (action === 'remove') {
-        prismaWhereQuery.where = {
-            userId: session.user.id,
+    const where: Prisma.PostWhereInput = {
+        userId: session.user.id,
+        NOT: {
             series: {
                 some: {
                     id: seriesId,
@@ -46,13 +24,23 @@ export async function GET(req: NextRequest): Promise<any> {
         }
     }
 
+    if (action === 'remove') {
+        where.series = {
+            some: {
+                id: seriesId,
+                title: seriesTitle
+            }
+        }
+    }
+
     try {
-        const getPosts = await prisma.post.findMany({
-            ...prismaWhereQuery,
+        const findArgs: Prisma.PostFindManyArgs = {
+            where,
             orderBy: {
                 createdAt: 'desc'
             }
-        })
+        }
+        const getPosts = await prisma.post.findMany(findArgs)
         if (getPosts) return NextResponse.json({ data: getPosts }, { status: 200 })
     } catch (err) {
         return NextResponse.json({ err }, { status: 500 })
