@@ -1,3 +1,4 @@
+import { randomBytes } from "crypto";
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { auth } from "@/auth";
@@ -95,17 +96,8 @@ export async function POST(req: NextRequest): Promise<any> {
         return imageFiles;
     };
     //create titleId for the Url
-    function generateRandomCode() {
-        let characters =
-            "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-        let code = "";
-
-        for (let i = 0; i < 4; i++) {
-            let randomIndex = Math.floor(Math.random() * characters.length);
-            code += characters.charAt(randomIndex);
-        }
-
-        return code;
+    function generateRandomCode(): string {
+        return randomBytes(2).toString("base64url").slice(0, 4);
     }
     try {
         const session = await auth();

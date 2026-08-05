@@ -3,11 +3,11 @@ import Google from "next-auth/providers/google";
 import GitHub from "next-auth/providers/github";
 import Nodemailer from "next-auth/providers/nodemailer";
 import { PrismaAdapter } from "@auth/prisma-adapter";
+import { randomInt } from "crypto";
 import prisma from "@/db";
-import generateRandom4DigitNumber from "@/utils/randomNumberGen4Digit";
 
 const usernameFrom = (source: string) =>
-    source.replace(/\s/g, "").toLowerCase() + generateRandom4DigitNumber();
+    source.replace(/\s/g, "").toLowerCase() + randomInt(1000, 10000);
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
     adapter: PrismaAdapter(prisma),
