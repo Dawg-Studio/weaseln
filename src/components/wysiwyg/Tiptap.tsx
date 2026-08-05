@@ -228,11 +228,27 @@ export default function Tiptap({
         };
     }, [editor, editorTitle, editorDescription, save]);
 
+    const coverImageInitRef = useRef(true);
     useEffect(() => {
-        if (!editor) return;
+        if (!editor || !coverImage) return;
+        if (coverImageInitRef.current) {
+            coverImageInitRef.current = false;
+            return;
+        }
         save(JSON.stringify(editor.getJSON()));
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [coverImage]);
+
+    const inputTagsInitRef = useRef(true);
+    useEffect(() => {
+        if (!editor || !inputTags) return;
+        if (inputTagsInitRef.current) {
+            inputTagsInitRef.current = false;
+            return;
+        }
+        save(JSON.stringify(editor.getJSON()));
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [inputTags]);
 
     function togglePreview() {
         setPreview((prev) => !prev);
