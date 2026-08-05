@@ -15,21 +15,15 @@ import { UserNotificationInputValidation } from "@/types/notification";
 import useSocket from "@/socket";
 
 type Target = { id: string; authorId: string };
-// eslint-disable-next-line no-unused-vars
-type NotificationMessage = (actorName: string) => string;
 
-// ponytail: spec lists 3 props; initialReactionCount is kept as a 4th prop to preserve
-// the existing display behavior (the original buttons received it from their parents).
 export default function ReactionButton({
     target,
     targetType,
     initialReactionCount,
-    notificationMessage,
 }: {
     target: Target;
     targetType: "post" | "comment";
     initialReactionCount: number;
-    notificationMessage: NotificationMessage;
 }) {
     const { data: session } = useSession();
     const socket = useSocket();
@@ -69,7 +63,10 @@ export default function ReactionButton({
                     fromUserId: session.user.id,
                     from: session.user.name,
                     fromImage: session.user.image,
-                    message: notificationMessage(session.user.name ?? "Someone"),
+                    message:
+                        targetType === "post"
+                            ? `${session.user.name ?? "Someone"} has reacted with ❤️ to your post`
+                            : `${session.user.name ?? "Someone"} has reacted with ❤️ to your comment`,
                     postId: target.id,
                     actionUrl: pathname,
                 };

@@ -5,10 +5,14 @@
   "engines": {
     "node": ">=20.9"
   },
+  "prisma": {
+    "seed": "tsx prisma/seed.ts"
+  },
   "scripts": {
     "predev": "prisma generate && prisma db push",
     "dev": "next dev",
     "db:setup": "prisma generate && prisma db push",
+    "db:seed": "prisma db seed",
     "db:studio": "prisma studio",
     "build": "prisma generate && prisma db push && next build",
     "start": "next start",
@@ -83,6 +87,7 @@
     "daisyui": "^5.7.15",
     "jsdom": "^29.1.1",
     "prisma": "^6.8.2",
+    "tsx": "^4.19.2",
     "vitest": "^4.1.10",
     "webpack": "^5.105.0"
   }

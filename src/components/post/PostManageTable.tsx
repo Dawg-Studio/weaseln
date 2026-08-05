@@ -93,24 +93,33 @@ export default function PostManageTable() {
     });
 
     const { data, refetch, isSuccess, isLoading, isRefetching } = useQuery({
-        queryKey: ["posts"],
+        // ponytail: include orderBy in the key so react-query auto-refetches
+        // when the sort changes — no manual refetch() needed in that effect.
+        queryKey: ["manage-posts", orderBy],
         queryFn: getPosts,
     });
 
+    // ponytail: previous version of this effect had `searchParams` in the
+    // deps list. `replace()` mutates the URL → searchParams reference changes
+    // → effect re-fires → infinite /manage/posts?sort=recent loop, hammering
+    // the server with /api/post/manage requests. Mirror of the PostList fix.
     useEffect(() => {
         replace(`${pathName}?sort=${orderBy ?? "recent"}`, { scroll: false });
-        if (mutationDeletePost.isSuccess) refetch();
-        if (mutationPublishOrUnpublishPost.isSuccess) refetch();
-        refetch();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [orderBy, pathName]);
+
+    // Manual refetch when a mutation completes.
+    useEffect(() => {
+        if (
+            mutationDeletePost.isSuccess ||
+            mutationPublishOrUnpublishPost.isSuccess
+        ) {
+            refetch();
+        }
     }, [
         mutationDeletePost.isSuccess,
-        mutationPublishOrUnpublishPost.isPending,
         mutationPublishOrUnpublishPost.isSuccess,
-        orderBy,
-        pathName,
         refetch,
-        replace,
-        searchParams,
     ]);
 
     return (

@@ -28,6 +28,10 @@ const nextConfig = {
     },
 
     images: {
+        // ponytail: dicebear avatars are SVGs. Next.js refuses SVG by default
+        // (they can run scripts); CSP below blocks scripts + sandboxed iframe.
+        dangerouslyAllowSVG: true,
+        contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
         remotePatterns: [
             {
                 protocol: "https",
@@ -44,6 +48,10 @@ const nextConfig = {
                 hostname: "lh3.googleusercontent.com",
                 port: "",
                 pathname: "/a/**",
+            },
+            {
+                protocol: "https",
+                hostname: "api.dicebear.com",
             },
         ],
     },

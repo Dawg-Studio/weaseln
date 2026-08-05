@@ -4,14 +4,16 @@ import UserFollowButton from "@/components/user/actions/UserFollowButton";
 import prisma from "@/db";
 
 import { auth } from "@/auth";
+import { redirect } from "next/navigation";
 import Link from "next/link";
 import { Fragment } from "react";
 
 export default async function ManageFollowing() {
     const session = await auth();
+    if (!session?.user) redirect("/api/auth/signin");
 
     const user = await prisma.user.findUnique({
-        where: { id: session?.user.id },
+        where: { id: session.user.id },
         include: {
             following: true,
         },

@@ -3,12 +3,15 @@ import prisma from "@/db";
 
 import { postContainerInclude } from "@/utils/prismaQuery";
 import { auth } from "@/auth";
+import { redirect } from "next/navigation";
 import { Fragment } from "react";
 
 export default async function ReadingList() {
     const session = await auth();
+    if (!session?.user) redirect("/api/auth/signin");
+
     const readingList = await prisma.user.findUnique({
-        where: { id: session?.user.id },
+        where: { id: session.user.id },
         select: {
             bookMarks: {
                 include: postContainerInclude,
