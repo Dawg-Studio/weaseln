@@ -3,15 +3,21 @@
 import { auth } from "@/auth";
 import prisma from "@/db";
 import { GoogleGenerativeAI } from "@google/generative-ai";
+import { rankTagsForUser } from "@/utils/services/ranking";
+import type { TagRank } from "@/types/tag";
 
-export async function getTagRankings() {
-    const tagsRanking = await prisma.tagsRanking.findFirst({
-        orderBy: {
-            createdAt: "desc",
-        },
-        take: 1,
-    });
-    return tagsRanking?.data.slice(0, 10);
+export async function getTagRankings(): Promise<TagRank[]> {
+    // rankTagsForUser(null) reads the most-recent TagsRanking row (written by
+    // the cron via computeTagRankings). The returned RankedTag entries carry
+    // the original `usage` and `followers` fields so we can rehydrate the
+    // TagRank shape that the UI expects (TagCard renders `{usage} Posts` and
+    // `{followers} Followers`).
+    const ranked = await rankTagsForUser(null, { limit: 10 });
+    return ranked.map((r) => ({
+        tag: r.tag,
+        usage: r.usage ?? r.score,
+        followers: r.followers ?? 0,
+    }));
 }
 
 export async function updateInterest(tag: string) {
