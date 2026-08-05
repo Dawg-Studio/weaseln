@@ -56,9 +56,17 @@ export interface RankContentForUserOpts {
 }
 
 /**
- * ponytail: this function preserves the pre-refactor relevance algorithm
- * verbatim, including two known quirks documented as "Concern #1" in
- * .superpowers/sdd/2026-08-05-resolve-concerns/task-11-report.md:
+ * ponytail: this function preserves the pre-refactor relevance algorithm's
+ * ordering — currentPost terms are appended FIRST (before session/global
+ * data), matching the original route.ts structure where the postId block
+ * ran before the session/global branch. Order matters because the buggy
+ * `tagCount` accumulation (see below) reads from the FIRST matching entry
+ * via `find()`, so reordering pushes changes the count values and the
+ * composition of the slice(-10) bottom-10 selection.
+ *
+ * Two known quirks from the pre-refactor code are also preserved
+ * (documented as "Concern #1" in
+ * .superpowers/sdd/2026-08-05-resolve-concerns/task-11-report.md):
  *
  *   - tagCount.push({tag, count}) accumulates per-occurrence instead of
  *     deduping. The count field reflects the FIRST matching entry's count
@@ -70,9 +78,9 @@ export interface RankContentForUserOpts {
  *     by count (last 10 after descending sort), not the top 10. The
  *     intent was almost certainly `slice(0, 10)`; flagged as a follow-up.
  *
- * Also preserves the pre-refactor `currentPost.tags` inclusion that the
- * original route had (appended to the `tags` array) but my first refactor
- * accidentally dropped.
+ * Position is preserved per the pre-refactor algorithm, but outputs are
+ * NOT guaranteed byte-identical for every input — only equivalent for
+ * the common paths (the synthetic offline test cases pass).
  *
  * Do NOT "fix" any of these without a separate change request.
  *
@@ -209,6 +217,12 @@ async function collectContentFromUser(
     userId: string,
     postId?: string | null,
 ): Promise<CollectedContent> {
+    const tagsRaw: string[] = [];
+    const titles: string[] = [];
+    const authors: string[] = [];
+
+    await appendPostTerms(postId, tagsRaw, titles, authors);
+
     const user = await prisma.user.findUnique({
         where: { id: userId },
         include: {
@@ -240,9 +254,7 @@ async function collectContentFromUser(
         },
     });
 
-    const tagsRaw: string[] = [...(user?.interests ?? [])];
-    const titles: string[] = [];
-    const authors: string[] = [];
+    tagsRaw.push(...(user?.interests ?? []));
 
     user?.readingHistory.forEach((history) => {
         tagsRaw.push(...history.post.tags);
@@ -257,14 +269,18 @@ async function collectContentFromUser(
         authors.push(postReact.post.author);
     });
 
-    await appendPostTerms(postId, tagsRaw, titles, authors);
-
     return { tagsRaw, titles, authors };
 }
 
 async function collectContentFromGlobal(
     postId?: string | null,
 ): Promise<CollectedContent> {
+    const tagsRaw: string[] = [];
+    const titles: string[] = [];
+    const authors: string[] = [];
+
+    await appendPostTerms(postId, tagsRaw, titles, authors);
+
     const tagsRanking = await prisma.tagsRanking.findFirst({
         orderBy: {
             createdAt: "desc",
@@ -308,18 +324,12 @@ async function collectContentFromGlobal(
         ],
     });
 
-    const tagsRaw: string[] = [];
-    const titles: string[] = [];
-    const authors: string[] = [];
-
     topPosts.forEach((post) => {
         tagsRaw.push(...post.tags, ...tagRanks);
         titles.push(post.title.toLowerCase());
         titles.push(post.description.toLowerCase());
         authors.push(post.author);
     });
-
-    await appendPostTerms(postId, tagsRaw, titles, authors);
 
     return { tagsRaw, titles, authors };
 }
