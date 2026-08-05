@@ -137,7 +137,7 @@ export default function ProfileSettingsComponent({
             value: socialData.find(
                 (social) => social.name === "Personal Website",
             )?.url
-                ? socialData.find((social) => social.name === "Personal Webite")
+                ? socialData.find((social) => social.name === "Personal Website")
                       ?.url
                 : "",
             required: {
