@@ -1,4 +1,3 @@
-type TPostReaction = "heart"
-type TCommentReaction = "heart"
+type ReactionType = "heart";
 
-export type { TPostReaction, TCommentReaction }
+export type { ReactionType };

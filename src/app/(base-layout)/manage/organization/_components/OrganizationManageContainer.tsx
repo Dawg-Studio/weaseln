@@ -151,25 +151,6 @@ export default function OrganizationManageContainer({
         }
     }
 
-    // async function addOrgMmeber({ id, name }: User) {
-    //     if (!selectedOrganization || !sessionUserId || id) return;
-    //     const newMembers = await addMember(selectedOrganization?.id, id);
-    //     if (newMembers) {
-    //         setSelectedOrganization({
-    //             ...selectedOrganization,
-    //             members: newMembers.members,
-    //         });
-    //         toast.success(
-    //             <span>
-    //                 Successfully added <b>{name}</b> as a Member.
-    //             </span>,
-    //             {
-    //                 id: "org",
-    //             },
-    //         );
-    //     }
-    // }
-
     async function removeOrgAdmin({ id, name }: User) {
         if (!selectedOrganization || !sessionUserId || id) return;
         const newAdmins = await removeAdmin(selectedOrganization?.id, id);
