@@ -214,13 +214,25 @@ export default function Tiptap({
 
     useEffect(() => {
         const ed = editor;
+        const edTitle = editorTitle;
+        const edDesc = editorDescription;
         if (!ed) return;
         const trigger = () => save(JSON.stringify(ed.getJSON()));
         ed.on("update", trigger);
+        edTitle?.on("update", trigger);
+        edDesc?.on("update", trigger);
         return () => {
             ed.off("update", trigger);
+            edTitle?.off("update", trigger);
+            edDesc?.off("update", trigger);
         };
-    }, [editor, save]);
+    }, [editor, editorTitle, editorDescription, save]);
+
+    useEffect(() => {
+        if (!editor) return;
+        save(JSON.stringify(editor.getJSON()));
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [coverImage]);
 
     function togglePreview() {
         setPreview((prev) => !prev);
