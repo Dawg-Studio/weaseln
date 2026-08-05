@@ -123,15 +123,21 @@ export async function deleteReaction(target: ReactionTarget, key: ReactionKey) {
     }
 }
 
-export const getUserInitialPostReaction = (postId: string) =>
-    getReaction("post", { postId })
-export const getInitialCommentReaction = (commentId: string) =>
-    getReaction("comment", { commentId })
-export const updateCreatePostReaction = (postId: string, type: ReactionType) =>
-    toggleReaction("post", { postId }, type)
-export const updateCreateCommentReaction = (commentId: string, type: ReactionType) =>
-    toggleReaction("comment", { commentId }, type)
-export const deletePostReaction = (postId: string) =>
-    deleteReaction("post", { postId })
-export const deleteCommentReaction = (commentId: string) =>
-    deleteReaction("comment", { commentId })
+export async function getUserInitialPostReaction(postId: string) {
+    return getReaction("post", { postId })
+}
+export async function getInitialCommentReaction(commentId: string) {
+    return getReaction("comment", { commentId })
+}
+export async function updateCreatePostReaction(postId: string, type: ReactionType) {
+    return toggleReaction("post", { postId }, type)
+}
+export async function updateCreateCommentReaction(commentId: string, type: ReactionType) {
+    return toggleReaction("comment", { commentId }, type)
+}
+export async function deletePostReaction(postId: string) {
+    return deleteReaction("post", { postId })
+}
+export async function deleteCommentReaction(commentId: string) {
+    return deleteReaction("comment", { commentId })
+}
