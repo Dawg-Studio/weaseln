@@ -12,7 +12,7 @@ import MenuBar from "./menu/MenuBar";
 import parse from "html-react-parser";
 import { Fragment, useCallback, useEffect, useRef, useState } from "react";
 import { StatusResponse } from "@/types/status";
-import StautsNotif from "../StatusNotif";
+import StatusNotif from "../StatusNotif";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Organization, PostDraft } from "@prisma/client";
@@ -652,7 +652,7 @@ export default function Tiptap({
                     </Modal>
                 )}
             </div>
-            <StautsNotif {...(postError as StatusResponse)} />
+            <StatusNotif {...(postError as StatusResponse)} />
             {preview ? (
                 <>
                     <PreviewEditor />
