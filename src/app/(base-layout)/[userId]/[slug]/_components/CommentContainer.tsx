@@ -15,7 +15,7 @@ import CommentBox from "./CommentBox";
 import useSocket from "@/socket";
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
-import CommentReactionButton from "../../../../../components/reactions/actions/CommentReactionButton";
+import ReactionButton from "../../../../../components/reactions/actions/ReactionButton";
 import { useSession } from "next-auth/react";
 import { isCommentOwner } from "@/utils/actions/comments";
 import { deleteComments } from "@/utils/actions/comments";
@@ -38,7 +38,7 @@ export default function CommentContainer({
     title: string;
     reactions?: CommentReaction[];
 }) {
-    const { data: session, status } = useSession();
+    const { data: session } = useSession();
     const socket = useSocket();
     const [commentBoxDisplay, setCommentBoxDisplay] = useState<boolean>(false);
     const [isCommentDelete, setCommentDelete] = useState<boolean>(false);
@@ -146,17 +146,14 @@ export default function CommentContainer({
                     isRemoved ? null : (
                         <div className="flex justify-start gap-4 mt-4">
                             <div className="flex items-center gap-2">
-                                <CommentReactionButton
-                                    id={id}
-                                    userId={userId}
-                                    session={session}
+                                <ReactionButton
+                                    target={{ id, authorId: userId }}
+                                    targetType="comment"
                                     initialReactionCount={
                                         reactions?.length ?? 0
                                     }
-                                    isLoggedIn={
-                                        session && status === "authenticated"
-                                            ? true
-                                            : false
+                                    notificationMessage={(actorName) =>
+                                        `${actorName} has reacted with ❤️ to your comment on your post`
                                     }
                                 />
                             </div>
