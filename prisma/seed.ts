@@ -17,6 +17,24 @@ const SEEDED_TITLE_IDS = [
 ];
 const SEEDED_ORG_USERNAME = "zefer-test-org";
 
+// ponytail: explicit follow pairs — written to users._UserFollows directly via
+// $executeRaw. Using the implicit M2M `following.connect(...)` form silently
+// drops one of the six rows Prisma tries to insert, so this is the only way
+// to guarantee the seeded counts documented in docs/QA.md §1.
+//
+// The tuple order is (followee, follower): in Prisma's implicit M2M with
+// `followedBy User[]` declared first (column A) and `following User[]`
+// declared second (column B), the A column is the user being followed and
+// the B column is the user doing the following. Verified empirically with
+// qa-probe-follows.ts.
+const SEEDED_FOLLOWS: ReadonlyArray<readonly [string, string]> = [
+    ["bob", "alice"], // alice follows bob
+    ["carol", "alice"], // alice follows carol
+    ["alice", "bob"], // bob follows alice
+    ["alice", "carol"], // carol follows alice
+    ["bob", "carol"], // carol follows bob
+];
+
 const avatar = (seed: string) =>
     `https://api.dicebear.com/7.x/avataaars/svg?seed=${seed}`;
 
@@ -179,18 +197,23 @@ async function main() {
         ],
     });
 
-    await prisma.user.update({
-        where: { id: alice.id },
-        data: { following: { connect: [{ id: bob.id }, { id: carol.id }] } },
-    });
-    await prisma.user.update({
-        where: { id: bob.id },
-        data: { following: { connect: [{ id: alice.id }] } },
-    });
-    await prisma.user.update({
-        where: { id: carol.id },
-        data: { following: { connect: [{ id: alice.id }, { id: bob.id }] } },
-    });
+    // ponytail: insert follow rows directly. See SEEDED_FOLLOWS comment above
+    // for why we don't use `following.connect` here.
+    const userByUsername = new Map([
+        ["alice", alice],
+        ["bob", bob],
+        ["carol", carol],
+    ]);
+    for (const [followeeUsername, followerUsername] of SEEDED_FOLLOWS) {
+        const followee = userByUsername.get(followeeUsername);
+        const follower = userByUsername.get(followerUsername);
+        if (!follower || !followee) continue;
+        await prisma.$executeRaw`
+            INSERT INTO users."_UserFollows" ("A", "B")
+            VALUES (${followee.id}, ${follower.id})
+            ON CONFLICT ("A", "B") DO NOTHING
+        `;
+    }
 
     await prisma.post.update({
         where: { id: posts[0].id },
