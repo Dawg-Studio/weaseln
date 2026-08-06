@@ -77,6 +77,7 @@ export default function Navigation({
                             id="sidemenu-drawer"
                             type="checkbox"
                             className="drawer-toggle"
+                            aria-label="Open sidebar"
                         />
                         <div className="drawer-content">
                             <label

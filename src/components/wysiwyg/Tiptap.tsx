@@ -30,6 +30,17 @@ import {
 const prose =
     "prose prose-sm sm:prose lg:prose-lg xl:prose-xl mx-auto mt-8 mb-8 mr-4 ml-4 sm:mr-auto sm:ml-auto max-w-md focus:outline-none";
 
+// ponytail: when QA_NO_COVER is set, the editor auto-applies a placeholder
+// /covers/*.svg URL instead of requiring a real upload. The /api/post route
+// detects the placeholder and stores it directly without Cloudinary.
+const QA_NO_COVER = process.env.NEXT_PUBLIC_QA_NO_COVER === "1";
+const DEFAULT_QA_COVERS = [
+    "/covers/cover-1.svg",
+    "/covers/cover-2.svg",
+    "/covers/cover-3.svg",
+    "/covers/cover-4.svg",
+] as const;
+
 export default function Tiptap({
     userId,
     username,
@@ -47,9 +58,13 @@ export default function Tiptap({
 }) {
     const router = useRouter();
     const [postError, setPostError] = useState<StatusResponse | null>(null);
-    const [coverImage, setCoverImage] = useState<string>(
-        editOrDraft?.coverImage ?? "",
-    );
+    // ponytail: seed the cover image with a deterministic placeholder when
+    // QA_NO_COVER is set and no draft cover exists, so the publish gate
+    // passes without a manual upload.
+    const initialCover =
+        editOrDraft?.coverImage ??
+        (QA_NO_COVER ? DEFAULT_QA_COVERS[0] : "");
+    const [coverImage, setCoverImage] = useState<string>(initialCover);
     const [preview, setPreview] = useState<boolean>(false);
     const [publishState, setPublishState] = useState<boolean>(false);
     const [inputTags, setInputTags] = useState<string[]>(
@@ -88,7 +103,7 @@ export default function Tiptap({
         ],
         content: (editOrDraft?.content as JSONContent) ?? "",
         editorProps: {
-            attributes: { class: prose },
+            attributes: { class: prose, "aria-label": "Post body" },
             handleKeyDown(view, event) {
                 if (event.key === "Tab") {
                     if (!insertContentState) {
@@ -149,7 +164,7 @@ export default function Tiptap({
             StarterKit,
         ],
         content: `<h1>${editOrDraft?.title ?? ""}</h1>`,
-        editorProps: { attributes: { class: prose } },
+        editorProps: { attributes: { class: prose, "aria-label": "Post title" } },
     });
 
     const editorDescription = useEditor({
@@ -159,7 +174,9 @@ export default function Tiptap({
             StarterKit,
         ],
         content: `<h4>${editOrDraft?.description ?? ""}</h4>`,
-        editorProps: { attributes: { class: prose } },
+        editorProps: {
+            attributes: { class: prose, "aria-label": "Post description" },
+        },
     });
 
     useEffect(() => {
@@ -172,10 +189,22 @@ export default function Tiptap({
         async (content: string) => {
             if (publishState) return;
             const formData = new FormData();
-            const coverFile = coverImage
-                ? await urlToFile(coverImage, "img_cover")
-                : null;
-            if (coverFile) formData.append("coverImage", coverFile);
+            // ponytail: QA_NO_COVER sends the placeholder URL as a string so
+            // the server skips Cloudinary.
+            const isPlaceholderUrl =
+                typeof coverImage === "string" &&
+                coverImage.length > 0 &&
+                (coverImage.startsWith("/covers/") ||
+                    coverImage.startsWith("http"));
+            const coverFile =
+                coverImage && !isPlaceholderUrl
+                    ? await urlToFile(coverImage, "img_cover")
+                    : null;
+            if (isPlaceholderUrl) {
+                formData.append("coverImage", coverImage);
+            } else if (coverFile) {
+                formData.append("coverImage", coverFile);
+            }
 
             const images = await collectEditorImages(editorRef.current);
             if (images.length !== 0) {
@@ -262,10 +291,22 @@ export default function Tiptap({
         setPublishState(true);
         const json = editor?.getJSON();
         const formData = new FormData();
-        const coverFile = coverImage
-            ? await urlToFile(coverImage, "img_cover")
-            : null;
-        if (coverFile) formData.append("coverImage", coverFile);
+        // ponytail: QA_NO_COVER sends the placeholder URL as a string so the
+        // server skips Cloudinary and stores the local path directly.
+        const isPlaceholderUrl =
+            typeof coverImage === "string" &&
+            coverImage.length > 0 &&
+            (coverImage.startsWith("/covers/") ||
+                coverImage.startsWith("http"));
+        const coverFile =
+            coverImage && !isPlaceholderUrl
+                ? await urlToFile(coverImage, "img_cover")
+                : null;
+        if (isPlaceholderUrl) {
+            formData.append("coverImage", coverImage);
+        } else if (coverFile) {
+            formData.append("coverImage", coverFile);
+        }
 
         const images = await collectEditorImages(editorRef.current);
         if (images.length !== 0) {
