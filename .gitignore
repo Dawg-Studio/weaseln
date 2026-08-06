@@ -41,3 +41,7 @@ next-env.d.ts
 /playwright-report/
 /blob-report/
 /playwright/.cache/
+
+# QA evidence (screenshots collected during browser QA passes — kept locally for
+# inspection, never committed).
+/qa-evidence/
