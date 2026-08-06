@@ -13,6 +13,26 @@
 
 ---
 
+## Status as of 2026-08-06
+
+Several Group A and Group D items have been resolved since the original audit.
+Resolution notes are appended inline on each item. The Group B/C refactor
+notes are still accurate and remain deferred.
+
+| Item | Status | Resolved by |
+|---|---|---|
+| A1 — `PostSlugWatcher` global timer cleanup | **Resolved** | commit `9d207f3` |
+| A2 — `auth.ts` `token.sub!` non-null assertion | **Resolved** | inline `if (!token.sub) throw` |
+| A3 — `"Personal Webite"` typo | **Resolved** | fixed in Profile.tsx prior to this round |
+| A4 — `StautsNotif` typo | **Open** (load-bearing, left intentionally) | — |
+| A5 — `gemini-pro` deprecation | **Resolved** | tag.ts now uses `gemini-1.5-flash-latest` |
+| Group D — 26 pre-existing lint errors | **Resolved** | commit `177d91b` + `1b09f98` (PR #192) |
+| E1 — No `AGENTS.md` | **Resolved** | AGENTS.md added in round 3 |
+| E4 — Audit changes uncommitted | **Resolved** | commit split in round 4 |
+| E5 — Pre-completion gate enforcement | **Resolved** | codified in AGENTS.md |
+
+---
+
 ## Group A — Correctness bugs that came up while auditing
 
 These were noticed during DRY/YAGNI scanning but are **not** DRY/YAGNI. The audit
