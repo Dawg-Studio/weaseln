@@ -83,7 +83,7 @@ export default function CommentContainer({
         return () => {
             socket.off("refetchReplies");
         };
-    }, [id, refetch, socket, session?.user.id, titleId]);
+    }, [id, refetch, socket, session, session?.user.id, titleId]);
 
     const deleteCommentBtn = async (id: string) => {
         const data = await deleteComments(id);
