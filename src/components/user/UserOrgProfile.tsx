@@ -23,9 +23,11 @@ const UserOrgProfile = async ({
     checkIfUserAlreadyFollowed,
     posts,
     followers,
+    following,
     org,
     orgId,
     members,
+    orgMembers,
 }: {
     user?: User;
     org?: Organization;
@@ -33,8 +35,10 @@ const UserOrgProfile = async ({
     checkIfUserAlreadyFollowed?: boolean;
     posts?: number;
     followers?: number;
+    following?: number;
     orgId?: string;
     members?: number;
+    orgMembers?: { username: string; name: string | null; image: string; role: "owner" | "admin" | "member" }[];
 }) => {
     const session = await auth();
     return (
@@ -114,11 +118,23 @@ const UserOrgProfile = async ({
                                 size="lg"
                             />
                             <p className="text-lg ">
-                                {user 
+                                {user
                                     ? `${followers} followers`
                                     : `${members} members`}
                             </p>
                         </div>
+                        {user && (
+                            <div className="flex item-center space-x-4">
+                                <FontAwesomeIcon
+                                    width={24}
+                                    icon={faPeopleGroup}
+                                    size="lg"
+                                />
+                                <p className="text-lg ">
+                                    {following} following
+                                </p>
+                            </div>
+                        )}
                         {user && user.occupation && (
                             <div className="flex item-center space-x-4">
                                 <FontAwesomeIcon
@@ -171,6 +187,46 @@ const UserOrgProfile = async ({
                         {posts === 0 && (
                             <div className="flex items-center md:justify-normal justify-center font-bold text-gray-600 w-full h-full md:ml-[400px] md:text-xl text-md">
                                 <span>No post from user yet</span>
+                            </div>
+                        )}
+                        {org && orgMembers && orgMembers.length > 0 && (
+                            <div
+                                data-testid="org-members"
+                                className="mb-6 p-6 rounded shadow-md"
+                            >
+                                <p className="text-xl font-bold mb-4">
+                                    Members
+                                </p>
+                                <ul className="space-y-2">
+                                    {orgMembers.map((m) => (
+                                        <li
+                                            key={m.username}
+                                            className="flex items-center gap-3"
+                                        >
+                                            <Link
+                                                href={`/${m.username}`}
+                                                className="flex items-center gap-3"
+                                            >
+                                                <Image
+                                                    src={m.image}
+                                                    alt={m.name ?? m.username}
+                                                    width={32}
+                                                    height={32}
+                                                    className="rounded-full"
+                                                />
+                                                <span className="font-medium">
+                                                    {m.name ?? m.username}
+                                                </span>
+                                            </Link>
+                                            <span
+                                                className="text-xs px-2 py-0.5 rounded bg-base-300 uppercase"
+                                                data-testid={`org-role-${m.username}`}
+                                            >
+                                                {m.role}
+                                            </span>
+                                        </li>
+                                    ))}
+                                </ul>
                             </div>
                         )}
                         <QueryWrapper>

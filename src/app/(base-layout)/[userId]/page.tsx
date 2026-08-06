@@ -59,18 +59,16 @@ export default async function ProfilePage({
         include: {
             _count: {
                 select: {
-                    post: {
-                        where: {
-                            published: true,
-                        },
-                    },
+                    post: true,
                     followedBy: true,
+                    following: true,
                 },
             },
         },
     });
 
     const followers = user?._count.followedBy;
+    const following = user?._count.following;
     const posts = user?._count.post;
 
     if (!user) {
@@ -101,6 +99,7 @@ export default async function ProfilePage({
             <UserOrgProfile
                 user={user}
                 followers={followers as number}
+                following={following as number}
                 posts={posts as number}
                 userId={userId}
                 checkIfUserAlreadyFollowed={checkIfUserAlreadyFollowed}

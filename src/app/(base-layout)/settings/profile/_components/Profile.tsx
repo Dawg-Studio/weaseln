@@ -32,7 +32,9 @@ export default function ProfileSettingsComponent({
     image,
 }: User) {
     const router = useRouter();
-    const socialData = [...socials] as FormSocials[];
+    // ponytail: seed users persist `socials` as null jsonb[], not []. Default
+    // to [] so the spread below doesn't throw "socials is not iterable".
+    const socialData = [...(socials ?? [])] as FormSocials[];
     const uploadImgProps = {
         id,
         image,
