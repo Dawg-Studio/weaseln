@@ -24,7 +24,7 @@ export async function GET(req: NextRequest) {
         // posts.tags, count usages and followers, return TagRank[]. The cron
         // route just persists the result to the TagsRanking table.
         const result = await computeTagRankings();
-        const createTagRank = await prisma.tagsRanking.create({
+        await prisma.tagsRanking.create({
             data: {
                 data: result,
             }

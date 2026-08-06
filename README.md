@@ -101,6 +101,41 @@ and finally...
 -   **Stop database:** `docker compose down`
 -   **Reset database (deletes all data):** `docker compose down -v`
 
+## QA & Seeding
+
+For automated QA, populate the database with a deterministic fixture set and log users in without going through email.
+
+**Seed the database** (3 users, 1 org, 10 posts, comments, reactions, follows, bookmarks):
+
+```bash
+npm run db:seed
+```
+
+Seeded logins:
+
+| Email             | Display name      |
+| ----------------- | ----------------- |
+| `alice@test.com`  | Alice Anderson    |
+| `bob@test.com`    | Bob Brown         |
+| `carol@test.com`  | Carol Carter      |
+
+**Bypass the magic-link email** for an AI agent / automated browser:
+
+1. Start the dev server with the dev-login flag enabled:
+    ```bash
+    ENABLE_DEV_LOGIN=true npm run dev
+    ```
+2. POST the email to `/api/dev-login`. The response is the magic-link callback URL — navigate the browser to it and the user is logged in.
+    ```bash
+    curl -X POST http://localhost:3000/api/dev-login \
+         -H 'content-type: application/json' \
+         -d '{"email":"alice@test.com"}'
+    # → {"url":"http://localhost:3000/api/auth/callback/nodemailer?..."}
+    ```
+    Each hit logs a `[dev-login] issued token for <email>` warning on the server, so dev-login traffic is visible in logs.
+
+The endpoint is gated on `ENABLE_DEV_LOGIN=true`. It returns 404 in any environment where the flag isn't explicitly set — never enabled by default, never inherited from `NODE_ENV`.
+
 ## License
 
 Refer to [LICENSE](LICENSE)
