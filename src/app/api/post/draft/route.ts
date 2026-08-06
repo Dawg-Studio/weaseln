@@ -116,8 +116,22 @@ export async function POST(req: NextRequest): Promise<any> {
             }
         }
         if (draft && body.get("coverImage")) {
+            const coverField = body.get("coverImage");
+            // ponytail: QA_NO_COVER bypass — accept a placeholder local URL
+            // as a string and store it directly without a Cloudinary round trip.
+            const coverIsUrl =
+                typeof coverField === "string" &&
+                (coverField.startsWith("/covers/") ||
+                    coverField.startsWith("http"));
+            if (coverIsUrl) {
+                await prisma.postDraft.update({
+                    where: { userId: session?.user.id },
+                    data: { coverImage: coverField as string },
+                });
+                return NextResponse.json({ status: 200 });
+            }
             const cloudinary = await uploadCloudinary({
-                file: body.get("coverImage") as File,
+                file: coverField as File,
                 folder: "zefer/post/draft",
                 public_id: `${draft.id}_cover`,
             });
