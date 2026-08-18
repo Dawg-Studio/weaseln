@@ -4,6 +4,7 @@ import {
     faBirthdayCake,
     faBlog,
     faBriefcase,
+    faHashtag,
     faLocationPin,
     faPeopleGroup,
     faThumbtack,
@@ -237,12 +238,19 @@ const UserOrgProfile = async ({
                             data-testid="interests"
                         >
                             {user?.interests.map((interest) => (
-                                <span
+                                <Link
                                     key={interest}
-                                    className="text-xs px-2 py-0.5 rounded bg-base-300 uppercase"
+                                    href={`/tag/${interest}`}
+                                    className={`badge badge-soft badge-sm gap-1 ${RADIUS_CLASS[customization.cardRadius]} hover:badge-primary transition-colors`}
+                                    aria-label={`View posts tagged ${interest}`}
                                 >
+                                    <FontAwesomeIcon
+                                        icon={faHashtag}
+                                        className="w-3 h-3 opacity-70"
+                                        aria-hidden="true"
+                                    />
                                     {interest}
-                                </span>
+                                </Link>
                             ))}
                         </div>
                     )}
