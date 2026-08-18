@@ -99,7 +99,7 @@ export default function Navigation({
                         </div>
                     </div>
                 </div>
-                <div className="flex-1 gap-4">
+                <div className="flex-1 gap-4 flex items-center">
                     <Link href={"/"} className="normal-case text-xl">
                         <Image
                             src={"/zefer.svg"}
