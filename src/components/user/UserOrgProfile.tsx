@@ -391,44 +391,6 @@ const UserOrgProfile = async ({
                     <span>No post from user yet</span>
                 </div>
             )}
-            {org && orgMembers && orgMembers.length > 0 && (
-                <div
-                    data-testid="org-members"
-                    className={`mb-6 p-6 ${cardClasses}`}
-                >
-                    <p className="text-xl font-bold mb-4">Members</p>
-                    <ul className="space-y-2">
-                        {orgMembers.map((m) => (
-                            <li
-                                key={m.username}
-                                className="flex items-center gap-3"
-                            >
-                                <Link
-                                    href={`/${m.username}`}
-                                    className="flex items-center gap-3"
-                                >
-                                    <Image
-                                        src={m.image}
-                                        alt={m.name ?? m.username}
-                                        width={32}
-                                        height={32}
-                                        className="rounded-full"
-                                    />
-                                    <span className="font-medium">
-                                        {m.name ?? m.username}
-                                    </span>
-                                </Link>
-                                <span
-                                    className="text-xs px-2 py-0.5 rounded bg-base-300 uppercase"
-                                    data-testid={`org-role-${m.username}`}
-                                >
-                                    {m.role}
-                                </span>
-                            </li>
-                        ))}
-                    </ul>
-                </div>
-            )}
             <QueryWrapper>
                 <Suspense>
                     <PostList userId={userId} orgId={orgId} />
@@ -436,6 +398,51 @@ const UserOrgProfile = async ({
             </QueryWrapper>
         </div>
     );
+
+    const renderOrgMembers = () => {
+        // ponytail: org-members is rendered as a separate block (not a section
+        // in sectionOrder) so hiding the "posts" section on an org profile
+        // can't take the members list with it.
+        if (!org || !orgMembers || orgMembers.length === 0) return null;
+        return (
+            <div
+                data-testid="org-members"
+                className={`mb-6 p-6 ${cardClasses}`}
+            >
+                <p className="text-xl font-bold mb-4">Members</p>
+                <ul className="space-y-2">
+                    {orgMembers.map((m) => (
+                        <li
+                            key={m.username}
+                            className="flex items-center gap-3"
+                        >
+                            <Link
+                                href={`/${m.username}`}
+                                className="flex items-center gap-3"
+                            >
+                                <Image
+                                    src={m.image}
+                                    alt={m.name ?? m.username}
+                                    width={32}
+                                    height={32}
+                                    className="rounded-full"
+                                />
+                                <span className="font-medium">
+                                    {m.name ?? m.username}
+                                </span>
+                            </Link>
+                            <span
+                                className="text-xs px-2 py-0.5 rounded bg-base-300 uppercase"
+                                data-testid={`org-role-${m.username}`}
+                            >
+                                {m.role}
+                            </span>
+                        </li>
+                    ))}
+                </ul>
+            </div>
+        );
+    };
 
     const renderers: Record<string, () => React.ReactNode> = {
         hero: renderHero,
@@ -460,6 +467,12 @@ const UserOrgProfile = async ({
         );
         return (
             <div className={containerClass} style={containerStyle}>
+                {/* Sidebar mode intentionally pins hero above the sidebar+main
+                    flex wrapper. The two-column layout (sidebar | main) requires
+                    hero as a banner row above the columns; reordering hero into
+                    the main column would break the visual hierarchy. The
+                    "wide" and "standard" variants below render hero via the
+                    sectioned flow, so hero is user-reorderable there. */}
                 {visibleSections.includes("hero") && (
                     <Fragment key="hero">{renderHero()}</Fragment>
                 )}
@@ -475,6 +488,7 @@ const UserOrgProfile = async ({
                         {mainSections.map((s) => (
                             <Fragment key={s}>{renderers[s]?.()}</Fragment>
                         ))}
+                        {renderOrgMembers()}
                     </div>
                 </div>
             </div>
@@ -486,6 +500,7 @@ const UserOrgProfile = async ({
             {visibleSections.map((s) => (
                 <Fragment key={s}>{renderers[s]?.()}</Fragment>
             ))}
+            {renderOrgMembers()}
         </div>
     );
 };

@@ -57,6 +57,14 @@ describe("normalizeProfileCustomization", () => {
         warn.mockRestore();
     });
 
+    it("returns the defaults and warns when input is an array", () => {
+        const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+        const result = normalizeProfileCustomization(["hero", "stats"]);
+        expect(result).toEqual(DEFAULT_PROFILE_CUSTOMIZATION);
+        expect(warn).toHaveBeenCalled();
+        warn.mockRestore();
+    });
+
     it("returns a fully validated customization when stored data is valid", () => {
         const result = normalizeProfileCustomization({
             preset: "editorial",
