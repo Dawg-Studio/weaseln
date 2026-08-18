@@ -229,7 +229,76 @@ After publishing `qa-bob-<timestamp>` as bob:
 
 ---
 
-## 6. What a passing QA run looks like
+## 6. Profile customization
+
+The profile customization editor lives at `/settings/profile/customization`. Auth is gated; anonymous visits redirect to `/api/auth/signin`. After login the user gets a `ProfileCustomization` editor with preset/layout/sections/colors/background/cards/typography controls, all debounced-saved (≈800ms) to `/api/user/profile-customization` (PATCH). The settings affect how the author appears on `/<username>` for everyone, including anonymous viewers.
+
+### Default state (no prior customization)
+A fresh user who has never saved a customization sees the editor pre-filled with:
+- `preset: "minimal"`
+- `layout.variant: "standard"`, full `sectionOrder`, empty `hiddenSections`
+- `backgroundColor`, `backgroundImage`, `cardColor`, `textColor`, `mutedTextColor`, `accentColor`, `backgroundOverlay`, `pageGradient` all `null`
+- `cardOpacity: 100`, `cardRadius: "medium"`, `cardShadow: "subtle"`, `borderStyle: "none"`
+- `fontFamily: "system"`, `headingSize: "large"`, `textAlign: "center"`, `spacingDensity: "comfortable"`
+
+### 6.1 Anonymous redirect
+1. In an unauthenticated browser context, navigate to `/settings/profile/customization`.
+2. **Expected:** redirect to `/api/auth/signin` (HTTP 307). The editor must not render. No request to `/api/user/profile-customization` succeeds.
+
+### 6.2 Editor loads with defaults (alice)
+1. Log in as alice (fresh context).
+2. Navigate to `/settings/profile/customization`.
+3. **Expected:** page renders the editor without errors. The Preset select shows `minimal`, Layout variant shows `standard`, all eight section checkboxes are checked (none hidden), background color swatch is white (placeholder), Background Image preview is absent, and the Cards/Typography selects show the defaults listed above. No "Saving..." or "Saved" indicator on first paint.
+
+### 6.3 Change preset and verify live save
+1. As alice, open `/settings/profile/customization`.
+2. Change the Preset select from `minimal` to `editorial`.
+3. Wait ~1s (the editor debounces ≈800ms before PATCHing).
+4. **Expected:** the save indicator transitions Saving… → Saved.
+5. Reload the page.
+6. **Expected:** Preset is still `editorial`. The other defaults are preserved (SectionOrder unchanged, all defaults still in place).
+
+### 6.4 Change background color and verify
+1. As alice, open `/settings/profile/customization`.
+2. Set the Background color swatch to a specific hex (e.g. `#1f2937`).
+3. Wait for the Saved indicator.
+4. Reload the page.
+5. **Expected:** the Background color swatch still shows `#1f2937` (the saved value, not the white placeholder). All other defaults remain.
+
+### 6.5 View customization on public profile
+1. While still logged in as alice, open a **separate anonymous context** (`browser.newContext()`).
+2. Navigate to `/alice`.
+3. **Expected:** the public profile page renders the customization: the page background reflects the chosen background color (`#1f2937` or whatever was set), and the layout variant (`standard`) is applied. No errors in the network panel; `/api/user/profile-customization` does not need to be hit by anonymous viewers — the customization is fetched server-side at `/<username>` page load.
+
+### 6.6 Reset to defaults
+1. As alice, return to `/settings/profile/customization`.
+2. Click **Reset to defaults**, confirm the browser `confirm` dialog.
+3. **Expected:** a success toast appears; the editor fields snap back to the defaults listed above (Preset `minimal`, Layout `standard`, all sections visible, all colors `null`, Background Image absent).
+4. Reload the page.
+5. **Expected:** defaults are still in place after reload — the reset was persisted.
+
+### 6.7 Public profile returns to default rendering
+1. After the reset in §6.6, reload `/alice` in the anonymous context.
+2. **Expected:** the page background and layout revert to the seed/default look (no custom background color applied). No 500s, no console errors.
+
+### 6.8 Background image upload
+1. As alice, open `/settings/profile/customization`.
+2. Pick any local image file (PNG/JPEG/WebP, a few KB) via the **Choose background** file input.
+3. **Expected:** the preview image appears immediately. While uploading, the button label reads "Uploading..." and is disabled. When the upload completes, a success toast appears and the backgroundImage field is set to a `https://res.cloudinary.com/...` URL (or `/covers/...` if the QA bypass is in effect).
+4. Wait for the Saved indicator.
+5. Reload the page.
+6. **Expected:** the preview still shows the image, the URL persists in the Background Image preview, and `/alice` (anonymous context) renders the uploaded image as the page background.
+
+### 6.9 Negative — invalid color is rejected
+This step verifies the server-side guard. Optional but recommended:
+1. As alice, open `/settings/profile/customization`.
+2. Open DevTools → Network and capture a `PATCH /api/user/profile-customization`.
+3. With the page idle (no Save indicator spinning), repeat the patch with a body containing `backgroundColor: "not-a-color"`.
+4. **Expected:** the API returns HTTP 400 with a JSON error. The existing saved customization is unchanged — the next reload still shows the previously saved hex.
+
+---
+
+## 7. What a passing QA run looks like
 
 A clean run is:
 - `npm run db:seed` succeeds, `npm run dev` (with `ENABLE_DEV_LOGIN=true`) boots without errors.
@@ -237,12 +306,13 @@ A clean run is:
 - All §3 per-user checks pass.
 - All §4 cross-user checks pass.
 - All §5 post-creation checks pass.
+- All §6 profile-customization checks pass.
 - No console errors in the browser on the visited routes (Socket.IO connection failures are expected if the standalone Socket.IO server on `ws://localhost:5000` isn't running — they don't block functional correctness).
 - No 500s in the server log.
 
 ---
 
-## 7. Agent quick-reference
+## 8. Agent quick-reference
 
 ```js
 // Minimal helper for Playwright:
