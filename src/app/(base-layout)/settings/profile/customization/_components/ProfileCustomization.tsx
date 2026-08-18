@@ -23,15 +23,9 @@ type SaveStatus = "idle" | "saving" | "saved" | "error";
 
 type ColorField =
     | "backgroundColor"
-    | "backgroundOverlay"
-    | "pageGradient"
-    | "cardColor"
-    | "textColor"
-    | "mutedTextColor"
-    | "accentColor";
+    | "textColor";
 
 const COLOR_FALLBACK = "#ffffff";
-const SUBTLE_GRADIENT = "linear-gradient(180deg, rgba(255,255,255,0) 0%, rgba(0,0,0,0.06) 100%)";
 const SAVE_DEBOUNCE_MS = 800;
 
 const SECTION_LABELS: Record<ProfileSection, string> = {
@@ -47,11 +41,7 @@ const SECTION_LABELS: Record<ProfileSection, string> = {
 
 const COLOR_FIELDS: Array<{ field: ColorField; label: string }> = [
     { field: "backgroundColor", label: "Background color" },
-    { field: "backgroundOverlay", label: "Background overlay" },
-    { field: "cardColor", label: "Card color" },
     { field: "textColor", label: "Text color" },
-    { field: "mutedTextColor", label: "Muted text color" },
-    { field: "accentColor", label: "Accent color" },
 ];
 
 function SelectField<T extends string>({
@@ -215,13 +205,6 @@ export default function ProfileCustomizationComponent({
             toast.error("Reset failed");
         }
     }
-    function toggleGradient() {
-        setCustomization((c) => ({
-            ...c,
-            pageGradient: c.pageGradient ? null : SUBTLE_GRADIENT,
-        }));
-    }
-
     const backgroundPreview = previewUrl ?? customization.backgroundImage ?? null;
 
     return (
@@ -319,11 +302,6 @@ export default function ProfileCustomizationComponent({
                         </button>
                     </div>
                 ))}
-                <div className="pt-2">
-                    <button type="button" className="btn btn-sm" onClick={toggleGradient}>
-                        {customization.pageGradient ? "Remove page gradient" : "Add subtle page gradient"}
-                    </button>
-                </div>
             </div>
 
             <div className="shadow-lg p-12 rounded-md space-y-2">
@@ -398,28 +376,6 @@ export default function ProfileCustomizationComponent({
                     options={BORDER_STYLES}
                     onChange={(v) => setSimple("borderStyle", v)}
                 />
-                <div className="form-control">
-                    <label htmlFor="cardOpacity" className="label">
-                        Card opacity ({customization.cardOpacity}%)
-                    </label>
-                    <input
-                        id="cardOpacity"
-                        type="number"
-                        min={0}
-                        max={100}
-                        className="input input-bordered"
-                        value={customization.cardOpacity}
-                        onChange={(e) => {
-                            const next = Number(e.target.value);
-                            if (Number.isFinite(next)) {
-                                setSimple(
-                                    "cardOpacity",
-                                    Math.max(0, Math.min(100, Math.round(next))),
-                                );
-                            }
-                        }}
-                    />
-                </div>
             </div>
 
             <div className="shadow-lg p-12 rounded-md space-y-2">

@@ -456,7 +456,12 @@ const UserOrgProfile = async ({
 
     const statsVisible = visibleSections.includes("stats");
     const socialsVisible = visibleSections.includes("socials");
-    const useSidebarLayout = !isWide && (statsVisible || socialsVisible);
+    const useSidebarLayout =
+        customization.layout.variant === "wide"
+            ? false
+            : customization.layout.variant === "sidebar"
+              ? true
+              : statsVisible || socialsVisible;
 
     if (useSidebarLayout) {
         const sidebarSections = visibleSections.filter(

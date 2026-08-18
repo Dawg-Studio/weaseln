@@ -42,8 +42,15 @@ END $$;
 -- Backfill: create one UserProfileCustomization row per existing user,
 -- carrying forward legacy profileTheme (mapped to a supported preset) and
 -- backgroundImage. Idempotent via ON CONFLICT (userId) DO NOTHING.
+--
+-- NOTE: the legacy `backgroundImage` column is dropped in the same migration.
+-- On databases that already ran this migration before the column was added to
+-- the SELECT, the value is lost (the dev DB has no seeded backgroundImage, so
+-- the practical impact is zero). Fresh installs will copy backgroundImage
+-- forward as part of the backfill.
 INSERT INTO "users"."UserProfileCustomization" (
     "id", "userId", "preset", "layout",
+    "backgroundImage",
     "backgroundSize", "backgroundPosition", "cardOpacity",
     "cardRadius", "cardShadow", "borderStyle",
     "fontFamily", "headingSize", "textAlign", "spacingDensity",
@@ -55,6 +62,7 @@ SELECT
     CASE WHEN u."profileTheme" IN ('minimal','warm','cool','bold','mono')
          THEN u."profileTheme" ELSE 'minimal' END,
     '{"variant":"standard","sectionOrder":["hero","stats","about","socials","featuredPost","interests","organizations","posts"],"hiddenSections":[]}'::jsonb,
+    COALESCE(u."backgroundImage", NULL),
     'cover', 'center', 100,
     'medium', 'subtle', 'none',
     'system', 'large', 'center', 'comfortable',

@@ -73,4 +73,17 @@ describe("normalizeProfileCustomization", () => {
         expect(result.preset).toBe("editorial");
         expect(result.backgroundColor).toBe("#ff00ff");
     });
+
+    it("falls back to defaults when a partially-malformed row is loaded", () => {
+        const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+        const result = normalizeProfileCustomization({
+            preset: "editorial",
+            layout: "not-an-object",
+            backgroundColor: "#ff00ff",
+            cardOpacity: 999,
+        });
+        expect(result).toEqual(DEFAULT_PROFILE_CUSTOMIZATION);
+        expect(warn).toHaveBeenCalled();
+        warn.mockRestore();
+    });
 });
