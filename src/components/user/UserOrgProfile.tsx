@@ -351,6 +351,8 @@ const UserOrgProfile = async ({
 
     const renderUserOrganizations = () => {
         if (!hasUserOrganizations) return null;
+        const visible = userOrgs!.slice(0, 3);
+        const overflow = userOrgs!.length - visible.length;
         return (
             <div
                 className={`p-4 ${cardClasses} ${alignClasses}`}
@@ -358,28 +360,41 @@ const UserOrgProfile = async ({
             >
                 <p className="text-xl font-bold mb-4">Organizations</p>
                 <ul className="space-y-2">
-                    {userOrgs!.map((o) => (
+                    {visible.map((o) => (
                         <li
                             key={o.username}
                             className="flex items-center gap-3"
                         >
                             <Link
                                 href={`/organization/${o.username}`}
-                                className="flex items-center gap-3"
+                                className="flex items-center gap-3 hover:opacity-80 transition-opacity"
                             >
-                                <Image
-                                    src={o.image}
-                                    alt={o.name ?? o.username}
-                                    width={32}
-                                    height={32}
-                                    className="rounded-full"
-                                />
+                                <div className="avatar">
+                                    <div
+                                        className={`w-8 ${RADIUS_CLASS[customization.cardRadius]} overflow-hidden`}
+                                    >
+                                        {/* eslint-disable-next-line @next/next/no-img-element -- org avatars come from user-supplied URLs */}
+                                        <img
+                                            src={o.image}
+                                            alt={o.name ?? o.username}
+                                            width={32}
+                                            height={32}
+                                        />
+                                    </div>
+                                </div>
                                 <span className="font-medium">
                                     {o.name ?? o.username}
                                 </span>
                             </Link>
                         </li>
                     ))}
+                    {overflow > 0 && (
+                        <li>
+                            <span className="text-sm opacity-70">
+                                +{overflow} more
+                            </span>
+                        </li>
+                    )}
                 </ul>
             </div>
         );
@@ -465,10 +480,14 @@ const UserOrgProfile = async ({
 
     if (useSidebarLayout) {
         const sidebarSections = visibleSections.filter(
-            (s) => s === "stats" || s === "socials",
+            (s) => s === "stats" || s === "socials" || s === "organizations",
         );
         const mainSections = visibleSections.filter(
-            (s) => s !== "hero" && s !== "stats" && s !== "socials",
+            (s) =>
+                s !== "hero" &&
+                s !== "stats" &&
+                s !== "socials" &&
+                s !== "organizations",
         );
         return (
             <div className={containerClass} style={containerStyle}>

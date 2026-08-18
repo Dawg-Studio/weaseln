@@ -28,7 +28,7 @@ export const DEFAULT_PROFILE_LAYOUT: ProfileLayout = {
         "organizations",
         "posts",
     ],
-    hiddenSections: [],
+    hiddenSections: ["organizations"],
 };
 
 export const DEFAULT_PROFILE_CUSTOMIZATION: ProfileCustomization = {
