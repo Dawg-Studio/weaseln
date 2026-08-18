@@ -140,7 +140,12 @@ export function validateProfileCustomizationInput(
 ): ProfileCustomization {
     if (!isPlainObject(input)) fail("payload must be an object");
 
-    const layout = isPlainObject(input.layout) ? assertLayout(input.layout) : DEFAULT_PROFILE_LAYOUT;
+    let layout: ProfileLayout;
+    if (input.layout === undefined) {
+        layout = DEFAULT_PROFILE_LAYOUT;
+    } else {
+        layout = assertLayout(input.layout);
+    }
 
     if (input.preset !== undefined) {
         assertOneOf(input.preset, PROFILE_PRESETS, "preset");
