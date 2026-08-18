@@ -4,6 +4,7 @@ import ProfileSettingsComponent from "@/app/(base-layout)/settings/profile/_comp
 import { User } from "@prisma/client";
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
+import Link from "next/link";
 
 export default async function ProfileSettings() {
     const session = await auth();
@@ -13,5 +14,17 @@ export default async function ProfileSettings() {
         where: { id: session.user.id },
     })) as User;
 
-    return <ProfileSettingsComponent {...user} />;
+    return (
+        <>
+            <div className="mx-auto lg:w-9/12 pt-6">
+                <Link
+                    href="/settings/profile/customization"
+                    className="link link-primary"
+                >
+                    Customize profile (colors, background, layout)
+                </Link>
+            </div>
+            <ProfileSettingsComponent {...user} />
+        </>
+    );
 }
