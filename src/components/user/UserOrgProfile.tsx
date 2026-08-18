@@ -231,6 +231,21 @@ const UserOrgProfile = async ({
                             Created on {new Date(org.createdAt).toDateString()}{" "}
                         </p>
                     )}
+                    {hasInterests && visibleSections.includes("interests") && (
+                        <div
+                            className="flex flex-wrap justify-center gap-2 pt-2"
+                            data-testid="interests"
+                        >
+                            {user?.interests.map((interest) => (
+                                <span
+                                    key={interest}
+                                    className="text-xs px-2 py-0.5 rounded bg-base-300 uppercase"
+                                >
+                                    {interest}
+                                </span>
+                            ))}
+                        </div>
+                    )}
                 </div>
             </div>
             {user && session && session.user.id !== user.id && (
@@ -322,28 +337,6 @@ const UserOrgProfile = async ({
                 <p className="text-md mt-2">
                     Pinned post id: {user?.pinned}
                 </p>
-            </div>
-        );
-    };
-
-    const renderInterests = () => {
-        if (!hasInterests) return null;
-        return (
-            <div
-                className={`p-4 ${cardClasses} ${alignClasses}`}
-                data-testid="interests"
-            >
-                <p className="text-xl font-bold mb-4">Interests</p>
-                <div className="flex flex-wrap gap-2">
-                    {user?.interests.map((interest) => (
-                        <span
-                            key={interest}
-                            className="text-xs px-2 py-0.5 rounded bg-base-300 uppercase"
-                        >
-                            {interest}
-                        </span>
-                    ))}
-                </div>
             </div>
         );
     };
@@ -449,7 +442,6 @@ const UserOrgProfile = async ({
         stats: renderStats,
         socials: renderSocials,
         featuredPost: renderFeaturedPost,
-        interests: renderInterests,
         organizations: renderUserOrganizations,
         posts: renderPosts,
     };
