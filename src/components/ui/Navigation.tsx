@@ -213,7 +213,12 @@ export default function Navigation({
 }
 
 export function ThemeToggleButton() {
-    const [theme, setTheme] = useState<"light" | "dark">("light");
+    const [theme, setTheme] = useState<"light" | "dark">(() =>
+        typeof document !== "undefined" &&
+        document.documentElement.dataset.theme === "dark"
+            ? "dark"
+            : "light",
+    );
 
     useEffect(() => {
         const read = () => {

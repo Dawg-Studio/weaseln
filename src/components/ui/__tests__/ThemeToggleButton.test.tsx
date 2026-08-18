@@ -7,6 +7,8 @@ vi.mock("next-auth", () => ({
         signIn: vi.fn(),
         signOut: vi.fn(),
     })),
+    auth: vi.fn(),
+    handlers: { GET: vi.fn(), POST: vi.fn() },
 }));
 
 vi.mock("next-auth/react", () => ({
@@ -54,7 +56,7 @@ describe("ThemeToggleButton", () => {
         expect(btn2.dataset.setTheme).toBe("light");
     });
 
-    it("calls theme-change when clicked (smoke — does not throw)", () => {
+    it("does not throw when clicked", () => {
         document.documentElement.dataset.theme = "light";
         render(<ThemeToggleButton />);
         const btn = screen.getByRole("button", { name: /switch to dark theme/i });
