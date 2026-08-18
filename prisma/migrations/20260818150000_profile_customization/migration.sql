@@ -1,5 +1,5 @@
 -- CreateTable
-CREATE TABLE "users"."UserProfileCustomization" (
+CREATE TABLE IF NOT EXISTS "users"."UserProfileCustomization" (
     "id" TEXT NOT NULL,
     "userId" TEXT NOT NULL,
     "preset" TEXT NOT NULL DEFAULT 'minimal',
@@ -29,10 +29,15 @@ CREATE TABLE "users"."UserProfileCustomization" (
 );
 
 -- CreateIndex
-CREATE UNIQUE INDEX "UserProfileCustomization_userId_key" ON "users"."UserProfileCustomization"("userId");
+CREATE UNIQUE INDEX IF NOT EXISTS "UserProfileCustomization_userId_key" ON "users"."UserProfileCustomization"("userId");
 
 -- AddForeignKey
-ALTER TABLE "users"."UserProfileCustomization" ADD CONSTRAINT "UserProfileCustomization_userId_fkey" FOREIGN KEY ("userId") REFERENCES "users"."User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+DO $$ BEGIN
+    ALTER TABLE "users"."UserProfileCustomization"
+        ADD CONSTRAINT "UserProfileCustomization_userId_fkey"
+        FOREIGN KEY ("userId") REFERENCES "users"."User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN null;
+END $$;
 
 -- Backfill: create one UserProfileCustomization row per existing user,
 -- carrying forward legacy profileTheme (mapped to a supported preset) and
@@ -58,5 +63,5 @@ FROM "users"."User" u
 ON CONFLICT ("userId") DO NOTHING;
 
 -- AlterTable: drop legacy columns now that every user has a customization row
-ALTER TABLE "users"."User" DROP COLUMN "backgroundImage",
-DROP COLUMN "profileTheme";
+ALTER TABLE "users"."User" DROP COLUMN IF EXISTS "backgroundImage";
+ALTER TABLE "users"."User" DROP COLUMN IF EXISTS "profileTheme";
