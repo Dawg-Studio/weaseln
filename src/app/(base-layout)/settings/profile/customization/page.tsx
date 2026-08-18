@@ -21,5 +21,16 @@ export default async function ProfileCustomizationSettings() {
         customization = normalizeProfileCustomization(row);
     }
 
-    return <ProfileCustomizationComponent initialCustomization={customization} />;
+    const user = await prisma.user.findUnique({
+        where: { id: session.user.id },
+        select: { name: true, username: true, image: true },
+    });
+
+    return (
+        <ProfileCustomizationComponent
+            initialCustomization={customization}
+            userName={user?.name ?? user?.username ?? "Profile"}
+            userImage={user?.image ?? ""}
+        />
+    );
 }

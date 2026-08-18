@@ -2,6 +2,17 @@
 
 import { useEffect, useRef, useState } from "react";
 import { toast } from "react-hot-toast";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import {
+    faAddressCard,
+    faBlog,
+    faBriefcase,
+    faCircleUser,
+    faHeart,
+    faPeopleGroup,
+    faStar,
+    faThumbtack,
+} from "@fortawesome/free-solid-svg-icons";
 
 import {
     BACKGROUND_POSITIONS,
@@ -18,6 +29,7 @@ import {
     type ProfileCustomization,
     type ProfileSection,
 } from "@/modules/profile-customization/types";
+import ProfileCustomizationPreview from "./ProfileCustomizationPreview";
 
 type SaveStatus = "idle" | "saving" | "saved" | "error";
 
@@ -38,6 +50,19 @@ const SECTION_LABELS: Record<ProfileSection, string> = {
     organizations: "Organizations",
     posts: "Posts",
 };
+
+const SECTION_ICONS: Record<ProfileSection, typeof faCircleUser> = {
+    hero: faCircleUser,
+    stats: faBlog,
+    about: faAddressCard,
+    socials: faPeopleGroup,
+    featuredPost: faStar,
+    interests: faHeart,
+    organizations: faBriefcase,
+    posts: faThumbtack,
+};
+
+const SAVED_FADE_MS = 2500;
 
 const COLOR_FIELDS: Array<{ field: ColorField; label: string }> = [
     { field: "backgroundColor", label: "Background color" },
@@ -80,8 +105,12 @@ function SelectField<T extends string>({
 
 export default function ProfileCustomizationComponent({
     initialCustomization,
+    userName,
+    userImage,
 }: {
     initialCustomization: ProfileCustomization;
+    userName: string;
+    userImage: string;
 }) {
     const [customization, setCustomization] = useState<ProfileCustomization>(
         initialCustomization,
@@ -120,6 +149,12 @@ export default function ProfileCustomizationComponent({
         }, SAVE_DEBOUNCE_MS);
         return () => clearTimeout(timer);
     }, [customization]);
+
+    useEffect(() => {
+        if (saveStatus !== "saved") return;
+        const fadeTimer = setTimeout(() => setSaveStatus("idle"), SAVED_FADE_MS);
+        return () => clearTimeout(fadeTimer);
+    }, [saveStatus]);
 
     function setPreset(value: ProfileCustomization["preset"]) {
         setCustomization((c) => ({ ...c, preset: value }));
@@ -208,77 +243,88 @@ export default function ProfileCustomizationComponent({
     const backgroundPreview = previewUrl ?? customization.backgroundImage ?? null;
 
     return (
-        <div className="mx-auto lg:w-9/12 justify-center space-y-6">
-            <div className="shadow-lg p-12 rounded-md space-y-2">
-                <div className="flex items-center justify-between">
-                    <h3 className="text-2xl font-bold">Profile Customization</h3>
-                    <span aria-live="polite" className="text-sm opacity-70">
-                        {saveStatus === "idle" && "Ready"}
-                        {saveStatus === "saving" && "Saving..."}
-                        {saveStatus === "saved" && "Saved"}
-                        {saveStatus === "error" && "Save failed"}
-                    </span>
+        <div className="mx-auto lg:w-9/12 justify-center grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="lg:col-span-2 space-y-6">
+                <div className="shadow-lg p-12 rounded-md space-y-2">
+                    <div className="flex items-center justify-between">
+                        <h3 className="text-2xl font-bold">Profile Customization</h3>
+                        <span
+                            aria-live="polite"
+                            className={`text-sm transition-opacity duration-500 ${
+                                saveStatus === "idle" ? "opacity-50" : "opacity-100"
+                            }`}
+                        >
+                            {saveStatus === "idle" && "Ready"}
+                            {saveStatus === "saving" && "Saving..."}
+                            {saveStatus === "saved" && "Saved"}
+                            {saveStatus === "error" && "Save failed"}
+                        </span>
+                    </div>
+                    <SelectField
+                        id="preset"
+                        label="Preset"
+                        value={customization.preset}
+                        options={PROFILE_PRESETS}
+                        onChange={setPreset}
+                    />
+                    <SelectField
+                        id="variant"
+                        label="Layout variant"
+                        value={customization.layout.variant}
+                        options={PROFILE_LAYOUT_VARIANTS}
+                        onChange={setLayoutVariant}
+                    />
                 </div>
-                <SelectField
-                    id="preset"
-                    label="Preset"
-                    value={customization.preset}
-                    options={PROFILE_PRESETS}
-                    onChange={setPreset}
-                />
-                <SelectField
-                    id="variant"
-                    label="Layout variant"
-                    value={customization.layout.variant}
-                    options={PROFILE_LAYOUT_VARIANTS}
-                    onChange={setLayoutVariant}
-                />
-            </div>
 
-            <div className="shadow-lg p-12 rounded-md space-y-2">
-                <h3 className="text-2xl font-bold">Sections</h3>
-                <ul className="space-y-2">
-                    {customization.layout.sectionOrder.map((section, index) => {
-                        const isHidden = customization.layout.hiddenSections.includes(section);
-                        const atTop = index === 0;
-                        const atBottom = index === customization.layout.sectionOrder.length - 1;
-                        return (
-                            <li key={section} className="flex items-center gap-2">
-                                <label className="flex items-center gap-2 flex-1 cursor-pointer">
-                                    <input
-                                        type="checkbox"
-                                        className="checkbox"
-                                        checked={!isHidden}
-                                        onChange={() => toggleSectionHidden(section)}
-                                        aria-label={`Show ${SECTION_LABELS[section]}`}
-                                    />
-                                    <span>{SECTION_LABELS[section]}</span>
-                                </label>
-                                <button
-                                    type="button"
-                                    className="btn btn-sm"
-                                    onClick={() => moveSection(index, -1)}
-                                    disabled={atTop}
-                                    aria-label={`Move ${SECTION_LABELS[section]} up`}
-                                    aria-disabled={atTop}
-                                >
-                                    ↑
-                                </button>
-                                <button
-                                    type="button"
-                                    className="btn btn-sm"
-                                    onClick={() => moveSection(index, 1)}
-                                    disabled={atBottom}
-                                    aria-label={`Move ${SECTION_LABELS[section]} down`}
-                                    aria-disabled={atBottom}
-                                >
-                                    ↓
-                                </button>
-                            </li>
-                        );
-                    })}
-                </ul>
-            </div>
+                <div className="shadow-lg p-12 rounded-md space-y-2">
+                    <h3 className="text-2xl font-bold">Sections</h3>
+                    <ul className="space-y-2">
+                        {customization.layout.sectionOrder.map((section, index) => {
+                            const isHidden = customization.layout.hiddenSections.includes(section);
+                            const atTop = index === 0;
+                            const atBottom = index === customization.layout.sectionOrder.length - 1;
+                            return (
+                                <li key={section} className="flex items-center gap-2">
+                                    <label className="flex items-center gap-2 flex-1 cursor-pointer">
+                                        <input
+                                            type="checkbox"
+                                            className="checkbox"
+                                            checked={!isHidden}
+                                            onChange={() => toggleSectionHidden(section)}
+                                            aria-label={`Show ${SECTION_LABELS[section]}`}
+                                        />
+                                        <FontAwesomeIcon
+                                            icon={SECTION_ICONS[section]}
+                                            className="w-4 h-4 opacity-60"
+                                            aria-hidden="true"
+                                        />
+                                        <span>{SECTION_LABELS[section]}</span>
+                                    </label>
+                                    <button
+                                        type="button"
+                                        className="btn btn-sm"
+                                        onClick={() => moveSection(index, -1)}
+                                        disabled={atTop}
+                                        aria-label={`Move ${SECTION_LABELS[section]} up`}
+                                        aria-disabled={atTop}
+                                    >
+                                        ↑
+                                    </button>
+                                    <button
+                                        type="button"
+                                        className="btn btn-sm"
+                                        onClick={() => moveSection(index, 1)}
+                                        disabled={atBottom}
+                                        aria-label={`Move ${SECTION_LABELS[section]} down`}
+                                        aria-disabled={atBottom}
+                                    >
+                                        ↓
+                                    </button>
+                                </li>
+                            );
+                        })}
+                    </ul>
+                </div>
 
             <div className="shadow-lg p-12 rounded-md space-y-2">
                 <h3 className="text-2xl font-bold">Colors</h3>
@@ -414,6 +460,14 @@ export default function ProfileCustomizationComponent({
                 <button type="button" className="btn btn-warning" onClick={handleReset}>
                     Reset to defaults
                 </button>
+            </div>
+            </div>
+            <div className="lg:col-span-1">
+                <ProfileCustomizationPreview
+                    customization={customization}
+                    name={userName}
+                    image={userImage}
+                />
             </div>
         </div>
     );

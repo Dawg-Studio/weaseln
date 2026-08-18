@@ -19,10 +19,13 @@ export default async function ProfileSettings() {
             <div className="mx-auto lg:w-9/12 pt-6">
                 <Link
                     href="/settings/profile/customization"
-                    className="link link-primary"
+                    className="btn btn-primary btn-sm"
                 >
-                    Customize profile (colors, background, layout)
+                    Customize profile
                 </Link>
+                <p className="text-sm opacity-70 mt-2">
+                    Personalize colors, background, and layout.
+                </p>
             </div>
             <ProfileSettingsComponent {...user} />
         </>
