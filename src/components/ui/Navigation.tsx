@@ -4,13 +4,13 @@ import { signIn, signOut, useSession } from "next-auth/react";
 import Image from "next/image";
 import Link from "next/link";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faBars, faBell } from "@fortawesome/free-solid-svg-icons";
+import { faBars, faBell, faSun, faMoon } from "@fortawesome/free-solid-svg-icons";
 import { User } from "@prisma/client";
 import SideMenu from "../menu/SideMenu";
 import SearchBar from "./SearchBar";
 import { cn } from "@/utils/cn";
 import useSocket from "@/socket";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "react-hot-toast";
 
@@ -113,7 +113,8 @@ export default function Navigation({
                     </div>
                 </div>
                 {name && image && id ? (
-                    <div className="flex-none">
+                    <div className="flex-none flex items-center gap-1">
+                        <ThemeToggleButton />
                         <div className="dropdown dropdown-end mr-2">
                             <Link
                                 href={"/notifications"}
@@ -194,7 +195,8 @@ export default function Navigation({
                         </div>
                     </div>
                 ) : (
-                    <div className="flex-none">
+                    <div className="flex-none flex items-center gap-1">
+                        <ThemeToggleButton />
                         <div className="dropdown dropdown-end">
                             <button
                                 className="btn btn-primary"
@@ -207,5 +209,38 @@ export default function Navigation({
                 )}
             </div>
         </>
+    );
+}
+
+export function ThemeToggleButton() {
+    const [theme, setTheme] = useState<"light" | "dark">("light");
+
+    useEffect(() => {
+        const read = () => {
+            const current = document.documentElement.dataset.theme;
+            if (current === "light" || current === "dark") setTheme(current);
+        };
+        read();
+        const obs = new MutationObserver(read);
+        obs.observe(document.documentElement, {
+            attributes: true,
+            attributeFilter: ["data-theme"],
+        });
+        return () => obs.disconnect();
+    }, []);
+
+    const next = theme === "dark" ? "light" : "dark";
+    const label =
+        theme === "dark" ? "Switch to light theme" : "Switch to dark theme";
+
+    return (
+        <button
+            type="button"
+            aria-label={label}
+            data-set-theme={next}
+            className="btn btn-ghost btn-square"
+        >
+            <FontAwesomeIcon icon={theme === "dark" ? faSun : faMoon} />
+        </button>
     );
 }
