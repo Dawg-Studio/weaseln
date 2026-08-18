@@ -6,6 +6,7 @@ import { Metadata } from "next";
 import { auth } from "@/auth";
 
 import UserOrgProfile from "@/components/user/UserOrgProfile";
+import { normalizeProfileCustomization } from "@/modules/profile-customization/validation";
 
 export async function generateMetadata({
     params,
@@ -23,6 +24,9 @@ export async function generateMetadata({
                     username: userId, //for unique username URL
                 },
             ],
+        },
+        include: {
+            profileCustomization: true,
         },
     });
     if (!user) return notFound();
@@ -64,6 +68,15 @@ export default async function ProfilePage({
                     following: true,
                 },
             },
+            profileCustomization: true,
+            organizations: {
+                select: {
+                    id: true,
+                    name: true,
+                    username: true,
+                    image: true,
+                },
+            },
         },
     });
 
@@ -74,6 +87,10 @@ export default async function ProfilePage({
     if (!user) {
         notFound();
     }
+
+    const customization = normalizeProfileCustomization(
+        user.profileCustomization,
+    );
 
     async function checkUserIfFollowing() {
         if (session) {
@@ -103,6 +120,7 @@ export default async function ProfilePage({
                 posts={posts as number}
                 userId={userId}
                 checkIfUserAlreadyFollowed={checkIfUserAlreadyFollowed}
+                customization={customization}
             />
         </Fragment>
     );

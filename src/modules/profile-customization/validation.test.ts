@@ -1,5 +1,10 @@
-import { describe, expect, it } from "vitest";
-import { DEFAULT_PROFILE_LAYOUT, validateProfileCustomizationInput } from "./validation";
+import { describe, expect, it, vi } from "vitest";
+import {
+    DEFAULT_PROFILE_CUSTOMIZATION,
+    DEFAULT_PROFILE_LAYOUT,
+    normalizeProfileCustomization,
+    validateProfileCustomizationInput,
+} from "./validation";
 
 describe("profile customization validation", () => {
     it("uses the approved default section order", () => {
@@ -29,5 +34,35 @@ describe("profile customization validation", () => {
     it("uses the default layout when layout is omitted", () => {
         const result = validateProfileCustomizationInput({ preset: "minimal" });
         expect(result.layout).toEqual(DEFAULT_PROFILE_LAYOUT);
+    });
+});
+
+describe("normalizeProfileCustomization", () => {
+    it("returns the defaults when input is null or not an object", () => {
+        expect(normalizeProfileCustomization(null)).toEqual(
+            DEFAULT_PROFILE_CUSTOMIZATION,
+        );
+        expect(normalizeProfileCustomization("not-an-object")).toEqual(
+            DEFAULT_PROFILE_CUSTOMIZATION,
+        );
+    });
+
+    it("returns the defaults and warns when stored data is malformed", () => {
+        const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+        const result = normalizeProfileCustomization({
+            backgroundImage: "javascript:alert(1)",
+        });
+        expect(result).toEqual(DEFAULT_PROFILE_CUSTOMIZATION);
+        expect(warn).toHaveBeenCalled();
+        warn.mockRestore();
+    });
+
+    it("returns a fully validated customization when stored data is valid", () => {
+        const result = normalizeProfileCustomization({
+            preset: "editorial",
+            backgroundColor: "#ff00ff",
+        });
+        expect(result.preset).toBe("editorial");
+        expect(result.backgroundColor).toBe("#ff00ff");
     });
 });

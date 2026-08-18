@@ -211,3 +211,22 @@ export function validateProfileCustomizationInput(
         layout,
     };
 }
+
+export function normalizeProfileCustomization(
+    input: unknown,
+): ProfileCustomization {
+    if (input === null || typeof input !== "object") {
+        return DEFAULT_PROFILE_CUSTOMIZATION;
+    }
+    try {
+        return validateProfileCustomizationInput(
+            input as Partial<ProfileCustomization>,
+        );
+    } catch (err) {
+        console.warn(
+            "Invalid stored profile customization, falling back to defaults",
+            err,
+        );
+        return DEFAULT_PROFILE_CUSTOMIZATION;
+    }
+}
