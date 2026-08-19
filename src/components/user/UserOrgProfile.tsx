@@ -146,8 +146,8 @@ const UserOrgProfile = async ({
     };
 
     const containerClass = isWide
-        ? "mx-auto mb-12 mt-12 mr-4 ml-4 lg:mr-28 lg:ml-28 max-w-none"
-        : "mx-auto mb-12 mt-12 mr-4 ml-4 lg:mr-28 lg:ml-28";
+        ? "py-12 max-w-none"
+        : "py-12 max-w-none";
 
     const isAboutVisible = visibleSections.includes("about");
     const userOrgs = (user as (User & { organizations?: OrgLite[] }) | undefined)
@@ -490,7 +490,16 @@ const UserOrgProfile = async ({
                 s !== "organizations",
         );
         return (
-            <div className={containerClass} style={containerStyle}>
+            <div
+                className={containerClass}
+                style={{
+                    ...containerStyle,
+                    marginLeft: "calc(50% - 50vw)",
+                    marginRight: "calc(50% - 50vw)",
+                    minWidth: "100vw",
+                }}
+            >
+                <div className="px-4 lg:px-28">
                 {/* Sidebar mode intentionally pins hero above the sidebar+main
                     flex wrapper. The two-column layout (sidebar | main) requires
                     hero as a banner row above the columns; reordering hero into
@@ -515,16 +524,27 @@ const UserOrgProfile = async ({
                         {renderOrgMembers()}
                     </div>
                 </div>
+                </div>
             </div>
         );
     }
 
     return (
-        <div className={containerClass} style={containerStyle}>
-            {visibleSections.map((s) => (
-                <Fragment key={s}>{renderers[s]?.()}</Fragment>
-            ))}
-            {renderOrgMembers()}
+        <div
+            className={containerClass}
+            style={{
+                ...containerStyle,
+                marginLeft: "calc(50% - 50vw)",
+                marginRight: "calc(50% - 50vw)",
+                minWidth: "100vw",
+            }}
+        >
+            <div className="px-4 lg:px-28">
+                {visibleSections.map((s) => (
+                    <Fragment key={s}>{renderers[s]?.()}</Fragment>
+                ))}
+                {renderOrgMembers()}
+            </div>
         </div>
     );
 };

@@ -83,18 +83,21 @@ function SelectField<T extends string>({
     onChange: (_selected: T) => void;
 }) {
     return (
-        <div className="form-control">
-            <label htmlFor={id} className="label">
-                {label}
+        <div className="form-control w-full">
+            <label
+                htmlFor={id}
+                className="label pb-1 text-sm font-medium text-base-content/80"
+            >
+                <span className="label-text">{label}</span>
             </label>
             <select
                 id={id}
-                className="select select-bordered"
+                className="select select-bordered w-full bg-base-100 focus:outline-none focus:ring-2 focus:ring-primary/40 transition-colors"
                 value={value}
                 onChange={(e) => onChange(e.target.value as T)}
             >
                 {options.map((o) => (
-                    <option key={o} value={o}>
+                    <option key={o} value={o} className="bg-base-100">
                         {o}
                     </option>
                 ))}
@@ -115,6 +118,13 @@ export default function ProfileCustomizationComponent({
     const [customization, setCustomization] = useState<ProfileCustomization>(
         initialCustomization,
     );
+    const [pendingColors, setPendingColors] = useState<{
+        backgroundColor: string | null;
+        textColor: string | null;
+    }>({
+        backgroundColor: initialCustomization.backgroundColor,
+        textColor: initialCustomization.textColor,
+    });
     const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle");
     const [uploading, setUploading] = useState(false);
     const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -332,16 +342,29 @@ export default function ProfileCustomizationComponent({
                     <div key={field} className="flex items-center gap-3">
                         <input
                             type="color"
-                            className="w-12 h-10 rounded border"
+                            className="w-12 h-10 rounded border cursor-pointer transition-transform hover:scale-105"
                             aria-label={label}
-                            value={customization[field] ?? COLOR_FALLBACK}
-                            onChange={(e) => setColor(field, e.target.value)}
+                            value={pendingColors[field] ?? COLOR_FALLBACK}
+                            onChange={(e) => {
+                                setPendingColors((p) => ({
+                                    ...p,
+                                    [field]: e.target.value,
+                                }));
+                            }}
+                            onBlur={() => {
+                                if (pendingColors[field] !== customization[field]) {
+                                    setColor(field, pendingColors[field]);
+                                }
+                            }}
                         />
                         <span className="flex-1">{label}</span>
                         <button
                             type="button"
                             className="btn btn-sm btn-ghost"
-                            onClick={() => setColor(field, null)}
+                            onClick={() => {
+                                setPendingColors((p) => ({ ...p, [field]: null }));
+                                setColor(field, null);
+                            }}
                             aria-label={`Clear ${label}`}
                         >
                             Clear
