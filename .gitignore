@@ -45,3 +45,6 @@ next-env.d.ts
 # QA evidence (screenshots collected during browser QA passes — kept locally for
 # inspection, never committed).
 /qa-evidence/
+
+# Browser QA scratch (screenshots/dumps captured during dev QA passes).
+/.tmp/
