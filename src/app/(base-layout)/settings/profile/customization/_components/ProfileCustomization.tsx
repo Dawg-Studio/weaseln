@@ -22,14 +22,14 @@ import {
     CARD_SHADOWS,
     FONT_FAMILIES,
     HEADING_SIZES,
-    PROFILE_LAYOUT_VARIANTS,
-    PROFILE_PRESETS,
     SPACING_DENSITIES,
     TEXT_ALIGNS,
     type ProfileCustomization,
     type ProfileSection,
 } from "@/modules/profile-customization/types";
 import ProfileCustomizationPreview from "./ProfileCustomizationPreview";
+import PresetPicker from "./PresetPicker";
+import VariantPicker from "./VariantPicker";
 
 type SaveStatus = "idle" | "saving" | "saved" | "error";
 
@@ -270,20 +270,21 @@ export default function ProfileCustomizationComponent({
                             {saveStatus === "error" && "Save failed"}
                         </span>
                     </div>
-                    <SelectField
-                        id="preset"
-                        label="Preset"
-                        value={customization.preset}
-                        options={PROFILE_PRESETS}
-                        onChange={setPreset}
-                    />
-                    <SelectField
-                        id="variant"
-                        label="Layout variant"
-                        value={customization.layout.variant}
-                        options={PROFILE_LAYOUT_VARIANTS}
-                        onChange={setLayoutVariant}
-                    />
+                    <div>
+                        <div className="label pb-2 text-sm font-medium text-base-content/80">
+                            Preset
+                        </div>
+                        <PresetPicker value={customization.preset} onChange={setPreset} />
+                    </div>
+                    <div>
+                        <div className="label pb-2 text-sm font-medium text-base-content/80">
+                            Layout variant
+                        </div>
+                        <VariantPicker
+                            value={customization.layout.variant}
+                            onChange={setLayoutVariant}
+                        />
+                    </div>
                 </div>
 
                 <div className="shadow-lg p-12 rounded-md space-y-2">
