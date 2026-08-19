@@ -5,7 +5,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { getCloudinaryImage, uploadCloudinary } from "@/lib/cloudinary";
 
-export async function POST(req: NextRequest): Promise<any> {
+export async function POST(req: NextRequest) {
     const body = await req.formData();
     const image_total = body.get("image_total")
         ? (body.get("image_total") as unknown as number)

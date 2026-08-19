@@ -4,7 +4,7 @@ import prisma from "@/db";
 import { auth } from "@/auth";
 import { getCloudinaryImage, uploadCloudinary } from "@/lib/cloudinary";
 //Promise<any> is a temporary fix
-export async function POST(req: Request): Promise<any> {
+export async function POST(req: Request) {
     const body = await req.formData();
     const img = body.get("imgFile");
     const session = await auth();

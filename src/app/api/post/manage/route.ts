@@ -4,7 +4,7 @@ import { auth } from "@/auth";
 
 import prisma from "@/db";
 
-export async function GET(req: NextRequest): Promise<any> {
+export async function GET(req: NextRequest) {
     const url = new URL(req.url);
 
     const sort = url.searchParams.get("sort") as
@@ -87,7 +87,7 @@ export async function GET(req: NextRequest): Promise<any> {
     }
 }
 
-export async function PUT(req: NextRequest): Promise<any> {
+export async function PUT(req: NextRequest) {
     const session = await auth();
     if (!session) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -111,7 +111,7 @@ export async function PUT(req: NextRequest): Promise<any> {
     }
 }
 
-export async function DELETE(req: NextRequest): Promise<any> {
+export async function DELETE(req: NextRequest) {
     const session = await auth();
     if (!session) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

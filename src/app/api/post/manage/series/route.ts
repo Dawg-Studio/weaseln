@@ -1,9 +1,8 @@
-
 import prisma from "@/db";
 import { auth } from "@/auth";
 import { NextRequest, NextResponse } from "next/server";
 
-export async function GET(): Promise<any> {
+export async function GET() {
     const session = await auth();
     try {
         const getSeries = await prisma.postSeries.findMany({
@@ -23,7 +22,7 @@ export async function GET(): Promise<any> {
     }
 }
 
-export async function PUT(req: NextRequest): Promise<any> {
+export async function PUT(req: NextRequest) {
     const session = await auth();
     const url = new URL(req.url);
     const seriesId = url.searchParams.get("seriesId") as string;
@@ -48,7 +47,7 @@ export async function PUT(req: NextRequest): Promise<any> {
     }
 }
 
-export async function POST(req: NextRequest): Promise<any> {
+export async function POST(req: NextRequest) {
     const session = await auth();
     const body = await req.formData();
     const title = body.get("title") as string;
@@ -72,7 +71,7 @@ export async function POST(req: NextRequest): Promise<any> {
     }
 }
 
-export async function DELETE(req: NextRequest): Promise<any> {
+export async function DELETE(req: NextRequest) {
     const session = await auth();
     const url = new URL(req.url);
     const seriesId = url.searchParams.get("seriesId");

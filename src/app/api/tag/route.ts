@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server";
 import prisma from "@/db";
 
-export async function GET(): Promise<any> {
-
+export async function GET() {
     const default_tags = [
         "travel",
         "food",
@@ -36,21 +35,23 @@ export async function GET(): Promise<any> {
         "celebrities",
         "culture",
         "humor",
-        "sports"
-    ]
+        "sports",
+    ];
     try {
         const postTags = await prisma.post.findMany({
             select: {
-                tags: true
-            }
-        })
-        let tags: string[] = [...default_tags] //add default tags
+                tags: true,
+            },
+        });
+        let tags: string[] = [...default_tags]; //add default tags
         for (const tag of postTags) {
-            tags.push(...tag.tags)
+            tags.push(...tag.tags);
         }
 
-        return NextResponse.json(Array.from(new Set(tags)).sort(), { status: 200 })
+        return NextResponse.json(Array.from(new Set(tags)).sort(), {
+            status: 200,
+        });
     } catch (err) {
-        return NextResponse.json([err], { status: 500 })
+        return NextResponse.json([err], { status: 500 });
     }
 }

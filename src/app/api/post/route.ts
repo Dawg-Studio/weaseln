@@ -13,7 +13,7 @@ import { rankContentForUser } from "@/utils/services/ranking";
 import { buildWhere, buildOrderBy, paginate, ListPostsParams } from "./_query";
 //Promise<any> is a temporary fix
 
-export async function GET(req: NextRequest): Promise<any> {
+export async function GET(req: NextRequest) {
     try {
         const url = new URL(req.url);
         const params: ListPostsParams = {
@@ -39,7 +39,11 @@ export async function GET(req: NextRequest): Promise<any> {
                 postId: params.postId,
             });
             const interests = [
-                ...new Set([...ranked.tags, ...ranked.titles, ...ranked.authors]),
+                ...new Set([
+                    ...ranked.tags,
+                    ...ranked.titles,
+                    ...ranked.authors,
+                ]),
             ]
                 .map((interest) =>
                     interest.replace(/[\s\W]/g, "").toLowerCase(),
@@ -55,7 +59,12 @@ export async function GET(req: NextRequest): Promise<any> {
                 ? [
                       {
                           _relevance: {
-                              fields: ["tags", "title", "description", "author"],
+                              fields: [
+                                  "tags",
+                                  "title",
+                                  "description",
+                                  "author",
+                              ],
                               search: interests,
                               sort: "desc",
                           },
@@ -82,7 +91,7 @@ export async function GET(req: NextRequest): Promise<any> {
     }
 }
 
-export async function POST(req: NextRequest): Promise<any> {
+export async function POST(req: NextRequest) {
     const body = await req.formData();
     const image_total = body.get("image_total")
         ? (body.get("image_total") as unknown as number)
