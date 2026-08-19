@@ -83,10 +83,10 @@ function SelectField<T extends string>({
     onChange: (_selected: T) => void;
 }) {
     return (
-        <div className="form-control w-full">
+        <div className="form-control w-full mb-4">
             <label
                 htmlFor={id}
-                className="label pb-1 text-sm font-medium text-base-content/80"
+                className="label pb-2 text-sm font-medium text-base-content/80"
             >
                 <span className="label-text">{label}</span>
             </label>
