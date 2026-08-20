@@ -44,28 +44,27 @@ model Session {
 }
 
 model User {
-  id                    String                 @id @default(cuid())
-  profileTheme          String?
-  backgroundImage       String?
-  username              String                 @unique
+  id                    String                    @id @default(cuid())
+  profileCustomization  UserProfileCustomization?
+  username              String                    @unique
   name                  String?
   bio                   String?
   address               String?
   occupation            String?
-  email                 String?                @unique
+  email                 String?                   @unique
   emailVerified         DateTime?
   emailVerificationCode EmailVerificationCode?
   image                 String
   views                 Int?
   readingHistory        PostReadingHistory[]
-  bookMarks             Post[]                 @relation("Bookmarks")
+  bookMarks             Post[]                    @relation("Bookmarks")
   pinned                String? //refer to postId only
   interests             String[]
   series                PostSeries[]
   socials               Json[] //refer to FormSocials type in types/user.ts
-  followedBy            User[]                 @relation("UserFollows")
-  following             User[]                 @relation("UserFollows")
-  createdAt             DateTime               @default(now())
+  followedBy            User[]                    @relation("UserFollows")
+  following             User[]                    @relation("UserFollows")
+  createdAt             DateTime                  @default(now())
   apiKeys               ApiKey[]
   comments              PostComment[]
   accounts              Account[]
@@ -74,17 +73,49 @@ model User {
   post                  Post[]
   commentReactions      CommentReaction[]
   postReactions         PostReaction[]
-  sendNotificationEmail Boolean                @default(true)
-  sendNotificationPhone Boolean                @default(false)
+  sendNotificationEmail Boolean                   @default(true)
+  sendNotificationPhone Boolean                   @default(false)
   notifications         UserNotifications[]
-  sentNotifications     UserNotifications[]    @relation("UserNotificationsFromUser")
+  sentNotifications     UserNotifications[]       @relation("UserNotificationsFromUser")
   organizations         Organization[]
-  ownedOrganizations    Organization[]         @relation("UserOwnsOrganizations")
-  adminInOrganizations  Organization[]         @relation("UserAdminOfOrganizations")
+  ownedOrganizations    Organization[]            @relation("UserOwnsOrganizations")
+  adminInOrganizations  Organization[]            @relation("UserAdminOfOrganizations")
 
   @@unique([id, name, image])
   @@unique([id, name, username, image])
   @@index([name])
+  @@schema("users")
+}
+
+model UserProfileCustomization {
+  id     String @id @default(cuid())
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  preset             String  @default("minimal")
+  layout             Json
+  backgroundColor    String?
+  backgroundImage    String?
+  backgroundSize     String  @default("cover")
+  backgroundPosition String  @default("center")
+  backgroundOverlay  String?
+  pageGradient       String?
+  cardColor          String?
+  cardOpacity        Int     @default(100)
+  cardRadius         String  @default("medium")
+  cardShadow         String  @default("subtle")
+  borderStyle        String  @default("none")
+  textColor          String?
+  mutedTextColor     String?
+  accentColor        String?
+  fontFamily         String  @default("system")
+  headingSize        String  @default("large")
+  textAlign          String  @default("center")
+  spacingDensity     String  @default("comfortable")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   @@schema("users")
 }
 

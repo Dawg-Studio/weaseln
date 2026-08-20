@@ -1,9 +1,5 @@
-"use client"
-
-import { useRouter } from "next/navigation"
-
+import { redirect } from "next/navigation";
 
 export default function Manage() {
-    const router = useRouter()
-    router.push('/manage/posts')
+    redirect("/manage/posts");
 }

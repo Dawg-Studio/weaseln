@@ -32,7 +32,9 @@ export default function ProfileSettingsComponent({
     image,
 }: User) {
     const router = useRouter();
-    const socialData = [...socials] as FormSocials[];
+    // ponytail: seed users persist `socials` as null jsonb[], not []. Default
+    // to [] so the spread below doesn't throw "socials is not iterable".
+    const socialData = [...(socials ?? [])] as FormSocials[];
     const uploadImgProps = {
         id,
         image,
@@ -71,10 +73,10 @@ export default function ProfileSettingsComponent({
         if (!initialVerificationCodeSent) setInitialVerificationCodeSent(true);
         if (!isVerificationCodeSent) {
             const generateCode = await generateVerificationCode();
-            if (generateCode?.code || generateCode?.userId) {
+            if (generateCode) {
                 const params = new URLSearchParams({
-                    code: generateCode?.code,
-                    userId: generateCode?.userId,
+                    code: generateCode.code,
+                    userId: generateCode.userId,
                 });
                 const response = await fetch(
                     `/api/email/send/verification?${params}`,
@@ -96,13 +98,16 @@ export default function ProfileSettingsComponent({
     }
 
     useEffect(() => {
-        if (isVerificationCodeSent) {
-            if (countdown > 0) {
-                setTimeout(() => setCountdown(countdown - 1), 1000);
-            } else {
+        if (!isVerificationCodeSent || countdown <= 0) return;
+        const timer = setTimeout(() => {
+            const next = countdown - 1;
+            if (next <= 0) {
                 setIsVerificationCodeSent(false);
+            } else {
+                setCountdown(next);
             }
-        }
+        }, 1000);
+        return () => clearTimeout(timer);
     }, [countdown, isVerificationCodeSent]);
 
     const socialForms: FormContext[] = [
@@ -137,7 +142,7 @@ export default function ProfileSettingsComponent({
             value: socialData.find(
                 (social) => social.name === "Personal Website",
             )?.url
-                ? socialData.find((social) => social.name === "Personal Webite")
+                ? socialData.find((social) => social.name === "Personal Website")
                       ?.url
                 : "",
             required: {

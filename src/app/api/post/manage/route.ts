@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import { getServerSession } from "next-auth";
-import { authConfig } from "@/utils/authConfig";
+import { auth } from "@/auth";
+
 import prisma from "@/db";
 
-export async function GET(req: NextRequest): Promise<any> {
+export async function GET(req: NextRequest) {
     const url = new URL(req.url);
 
     const sort = url.searchParams.get("sort") as
@@ -14,7 +14,11 @@ export async function GET(req: NextRequest): Promise<any> {
         | "most-reactions"
         | "most-comments";
 
-    const session = await getServerSession(authConfig);
+    const session = await auth();
+    if (!session) {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     interface PrismaQuery {
         where: {
             userId: string;
@@ -25,7 +29,7 @@ export async function GET(req: NextRequest): Promise<any> {
 
     const prismaQuery: PrismaQuery = {
         where: {
-            userId: session?.user.id,
+            userId: session.user.id,
         },
         orderBy: {
             createdAt: "desc", // default sorting is it's recent creation
@@ -83,7 +87,12 @@ export async function GET(req: NextRequest): Promise<any> {
     }
 }
 
-export async function PUT(req: NextRequest): Promise<any> {
+export async function PUT(req: NextRequest) {
+    const session = await auth();
+    if (!session) {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const url = new URL(req.url);
     const postId = url.searchParams.get("postId") as string;
     const publish = url.searchParams.get("publish") as "true" | "false";
@@ -102,7 +111,12 @@ export async function PUT(req: NextRequest): Promise<any> {
     }
 }
 
-export async function DELETE(req: NextRequest): Promise<any> {
+export async function DELETE(req: NextRequest) {
+    const session = await auth();
+    if (!session) {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const url = new URL(req.url);
 
     const postId = url.searchParams.get("postId") as string;

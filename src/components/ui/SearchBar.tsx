@@ -41,6 +41,8 @@ export default function SearchBar() {
                         value={searchKeyword}
                     />
                     <button
+                        type="button"
+                        aria-label="Search"
                         className="btn btn-neutral join-item"
                         onClick={searchKeywordFn}
                     >

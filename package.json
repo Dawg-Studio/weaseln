@@ -1,16 +1,25 @@
 {
-  "name": "zefer",
+  "name": "weaseln",
   "version": "0.1.0",
   "private": true,
+  "engines": {
+    "node": ">=20.9"
+  },
+  "prisma": {
+    "seed": "tsx prisma/seed.ts"
+  },
   "scripts": {
-    "dev": "next lint && next dev --turbopack",
-    "build": "prisma generate && prisma db push && next build --turbopack",
-    "postbuild": "next-sitemap",
+    "predev": "prisma generate && prisma db push",
+    "dev": "next dev",
+    "db:setup": "prisma generate && prisma db push",
+    "db:seed": "prisma db seed",
+    "db:studio": "prisma studio",
+    "build": "prisma generate && prisma db push && next build",
     "start": "next start",
-    "lint": "next lint && npx tsc --noemit"
+    "lint": "eslint . && npx tsc --noemit"
   },
   "dependencies": {
-    "@auth/prisma-adapter": "^2.11.1",
+    "@auth/prisma-adapter": "^2.11.3",
     "@ducanh2912/next-pwa": "^10.2.9",
     "@fortawesome/fontawesome-svg-core": "^6.7.1",
     "@fortawesome/free-brands-svg-icons": "^6.7.2",
@@ -21,7 +30,7 @@
     "@paralleldrive/cuid2": "^2.2.2",
     "@prisma/client": "^6.8.2",
     "@react-email/components": "0.0.36",
-    "@sentry/nextjs": "^8.52.0",
+    "@sentry/nextjs": "^10.69.0",
     "@tanstack/react-query": "^5.79.0",
     "@tiptap/extension-character-count": "^2.12.0",
     "@tiptap/extension-document": "^2.12.0",
@@ -43,15 +52,14 @@
     "@vercel/speed-insights": "^1.2.0",
     "autoprefixer": "10.4.21",
     "clsx": "^2.1.1",
-    "eslint": "^9.28.0",
-    "eslint-config-next": "15.3.3",
+    "eslint": "^9.39.5",
+    "eslint-config-next": "^16.3.0",
     "html-react-parser": "^5.2.5",
-    "next": "15.5.6",
-    "next-auth": "^4.24.11",
-    "next-sitemap": "^4.2.3",
-    "nextjs-toploader": "^3.8.16",
-    "nodemailer": "^7.0.10",
-    "postcss": "8.5.4",
+    "next": "^16.3.0",
+    "next-auth": "5.0.0-beta.32",
+    "nextjs-toploader": "^3.9.17",
+    "nodemailer": "^8.0.5",
+    "postcss": "8.5.23",
     "react": "19.1.0",
     "react-dom": "19.1.0",
     "react-email": "4.0.15",
@@ -62,17 +70,25 @@
     "resend": "^4.5.1",
     "socket.io-client": "^4.8.1",
     "tailwind-merge": "^2.5.5",
-    "tailwindcss": "3.4.16",
+    "tailwindcss": "^4.3.3",
     "theme-change": "^2.5.0",
     "typescript": "5.8.3"
   },
   "devDependencies": {
     "@playwright/test": "^1.56.1",
-    "@tailwindcss/typography": "^0.5.15",
+    "@tailwindcss/postcss": "^4.3.3",
+    "@tailwindcss/typography": "^0.5.16",
+    "@testing-library/dom": "^10.4.1",
+    "@testing-library/jest-dom": "^7.0.0",
+    "@testing-library/react": "^16.3.2",
+    "@testing-library/user-event": "^14.6.3",
     "@types/nodemailer": "^6.4.17",
-    "daisyui": "^4.12.14",
+    "@vitejs/plugin-react": "^6.0.5",
+    "daisyui": "^5.7.15",
+    "jsdom": "^29.1.1",
     "prisma": "^6.8.2",
-    "tailwind-scrollbar": "^3.1.0",
-    "webpack": "^5.99.9"
+    "tsx": "^4.19.2",
+    "vitest": "^4.1.10",
+    "webpack": "^5.105.0"
   }
 }

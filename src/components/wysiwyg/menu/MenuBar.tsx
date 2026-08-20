@@ -1,5 +1,6 @@
-import type { MenuItemProps } from "@/types/menu";
-import type { EditorContentProps } from "@tiptap/react";
+import type { IconDefinition } from "@fortawesome/fontawesome-svg-core";
+import type { EditorContentProps, Editor } from "@tiptap/react";
+import { useEditorState } from "@tiptap/react";
 import {
     faBold,
     faItalic,
@@ -17,12 +18,95 @@ import {
     faImage,
     faEllipsis,
 } from "@fortawesome/free-solid-svg-icons";
-import MenuItems from "./MenuItems";
-import { Fragment, useState, useRef } from "react";
+import { Fragment, useCallback, useEffect, useRef, useState } from "react";
 import { cn } from "@/utils/cn";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 
 type MenuBarProps = React.ButtonHTMLAttributes<HTMLDivElement>;
+
+type MenuItem = {
+    icon: IconDefinition;
+    title: string;
+    actionKey: string;
+    activeKey?: string;
+};
+
+const ACTION_KEYS = {
+    bold: "bold",
+    italic: "italic",
+    strike: "strike",
+    highlight: "highlight",
+    heading: "heading",
+    bulletList: "bulletList",
+    orderedList: "orderedList",
+    taskList: "taskList",
+    code: "code",
+    codeBlock: "codeBlock",
+    blockquote: "blockquote",
+    horizontalRule: "horizontalRule",
+    insertImage: "insertImage",
+    link: "link",
+} as const;
+
+const ACTIVE_KEYS = {
+    bold: "bold",
+    italic: "italic",
+    strike: "strike",
+    highlight: "highlight",
+    heading: "heading",
+    bulletList: "bulletList",
+    orderedList: "orderedList",
+    taskList: "taskList",
+    code: "code",
+    codeBlock: "codeBlock",
+    blockquote: "blockquote",
+} as const;
+
+function runEditorAction(editor: Editor | null, key: string): void {
+    if (!editor) return;
+    const chain = editor.chain().focus();
+    switch (key) {
+        case ACTION_KEYS.bold:
+            chain.toggleBold().run();
+            break;
+        case ACTION_KEYS.italic:
+            chain.toggleItalic().run();
+            break;
+        case ACTION_KEYS.strike:
+            chain.toggleStrike().run();
+            break;
+        case ACTION_KEYS.highlight:
+            chain.toggleHighlight().run();
+            break;
+        case ACTION_KEYS.heading:
+            chain.toggleHeading({ level: 2 }).run();
+            break;
+        case ACTION_KEYS.bulletList:
+            chain.toggleBulletList().run();
+            break;
+        case ACTION_KEYS.orderedList:
+            chain.toggleOrderedList().run();
+            break;
+        case ACTION_KEYS.taskList:
+            chain.toggleTaskList().run();
+            break;
+        case ACTION_KEYS.code:
+            chain.toggleCode().run();
+            break;
+        case ACTION_KEYS.codeBlock:
+            chain.toggleCodeBlock().run();
+            break;
+        case ACTION_KEYS.blockquote:
+            chain.toggleBlockquote().run();
+            break;
+        case ACTION_KEYS.horizontalRule:
+            chain.setHorizontalRule().run();
+            break;
+        case ACTION_KEYS.insertImage:
+            document.getElementById("insertImage")?.click();
+            break;
+    }
+}
 
 export default function MenuBar({
     asComment,
@@ -32,37 +116,98 @@ export default function MenuBar({
     const [insertedLink, setInsertedLink] = useState<string>("");
     const link_modal = useRef<HTMLDialogElement>(null);
 
-    function insertImage(event: React.ChangeEvent<HTMLInputElement>) {
-        if (!event.target.files) return;
-        if (event.target.files[0]) {
-            const image = URL.createObjectURL(event.target.files[0]);
-            editor
-                ?.chain()
-                .focus()
-                .setImage({ src: image as string })
-                .run();
-        }
-    }
+    const editorRef = useRef(editor);
+    useEffect(() => {
+        editorRef.current = editor;
+    });
 
-    function promptLinkModal() {
-        const prevLink = editor?.getAttributes("link").href;
-        if (prevLink) {
-            return editor
-                .chain()
+    const editorState = useEditorState({
+        editor,
+        selector: ({ editor }) => ({
+            isBold: editor?.isActive("bold") ?? false,
+            isItalic: editor?.isActive("italic") ?? false,
+            isStrike: editor?.isActive("strike") ?? false,
+            isHighlight: editor?.isActive("highlight") ?? false,
+            isHeading: editor?.isActive("heading", { level: 2 }) ?? false,
+            isBulletList: editor?.isActive("bulletList") ?? false,
+            isOrderedList: editor?.isActive("orderedList") ?? false,
+            isTaskList: editor?.isActive("taskList") ?? false,
+            isCode: editor?.isActive("code") ?? false,
+            isCodeBlock: editor?.isActive("codeBlock") ?? false,
+            isBlockquote: editor?.isActive("blockquote") ?? false,
+        }),
+    });
+
+    const isActive = (key?: string): boolean => {
+        if (!key || !editorState) return false;
+        switch (key) {
+            case ACTIVE_KEYS.bold:
+                return editorState.isBold;
+            case ACTIVE_KEYS.italic:
+                return editorState.isItalic;
+            case ACTIVE_KEYS.strike:
+                return editorState.isStrike;
+            case ACTIVE_KEYS.highlight:
+                return editorState.isHighlight;
+            case ACTIVE_KEYS.heading:
+                return editorState.isHeading;
+            case ACTIVE_KEYS.bulletList:
+                return editorState.isBulletList;
+            case ACTIVE_KEYS.orderedList:
+                return editorState.isOrderedList;
+            case ACTIVE_KEYS.taskList:
+                return editorState.isTaskList;
+            case ACTIVE_KEYS.code:
+                return editorState.isCode;
+            case ACTIVE_KEYS.codeBlock:
+                return editorState.isCodeBlock;
+            case ACTIVE_KEYS.blockquote:
+                return editorState.isBlockquote;
+            default:
+                return false;
+        }
+    };
+
+    const handleAction = useCallback((key: string) => {
+        const ed = editorRef.current;
+        if (key === ACTION_KEYS.link) {
+            const prevLink = ed?.getAttributes("link").href;
+            if (prevLink) {
+                ed?.chain().focus().extendMarkRange("link").unsetLink().run();
+            } else {
+                link_modal.current?.show();
+            }
+            return;
+        }
+        runEditorAction(ed, key);
+    }, []);
+
+    const handleInsertImage = useCallback(
+        (event: React.ChangeEvent<HTMLInputElement>) => {
+            if (!event.target.files) return;
+            if (event.target.files[0]) {
+                const image = URL.createObjectURL(event.target.files[0]);
+                editorRef.current
+                    ?.chain()
+                    .focus()
+                    .setImage({ src: image as string })
+                    .run();
+            }
+        },
+        [],
+    );
+
+    const handleInsertLink = useCallback(() => {
+        if (!insertedLink) return;
+        if (insertedLink === "") {
+            editorRef.current
+                ?.chain()
                 .focus()
                 .extendMarkRange("link")
                 .unsetLink()
                 .run();
         }
-        return link_modal.current?.show();
-    }
-
-    function insertLink() {
-        if (!insertedLink) return;
-        if (insertedLink === "") {
-            editor?.chain().focus().extendMarkRange("link").unsetLink().run();
-        }
-        editor
+        editorRef.current
             ?.chain()
             .focus()
             .extendMarkRange("link")
@@ -76,104 +221,92 @@ export default function MenuBar({
             })
             .run();
         link_modal.current?.close();
-    }
+    }, [insertedLink]);
 
-    const items: MenuItemProps[] = [
+    const displayItems: MenuItem[] = [
         {
             icon: faBold,
             title: "Bold",
-            action: () => editor?.chain().focus().toggleBold().run(),
-            isActive: () => editor?.isActive("bold"),
-            type: "onDisplay",
+            actionKey: ACTION_KEYS.bold,
+            activeKey: ACTIVE_KEYS.bold,
         },
         {
             icon: faHeading,
             title: "Heading 1",
-            action: () =>
-                editor?.chain().focus().toggleHeading({ level: 2 }).run(),
-            isActive: () => editor?.isActive("heading", { level: 2 }),
-            type: "onDisplay",
+            actionKey: ACTION_KEYS.heading,
+            activeKey: ACTIVE_KEYS.heading,
         },
         {
             icon: faItalic,
             title: "Italic",
-            action: () => editor?.chain().focus().toggleItalic().run(),
-            isActive: () => editor?.isActive("italic"),
-            type: "onDisplay",
+            actionKey: ACTION_KEYS.italic,
+            activeKey: ACTIVE_KEYS.italic,
         },
         {
             icon: faStrikethrough,
             title: "Strike",
-            action: () => editor?.chain().focus().toggleStrike().run(),
-            isActive: () => editor?.isActive("strike"),
-            type: "onDisplay",
+            actionKey: ACTION_KEYS.strike,
+            activeKey: ACTIVE_KEYS.strike,
         },
         {
             icon: faLink,
             title: "Link",
-            action: () => promptLinkModal(),
-            type: "onDisplay",
+            actionKey: ACTION_KEYS.link,
         },
         {
             icon: faMarker,
             title: "Highlight",
-            action: () => editor?.chain().focus().toggleHighlight().run(),
-            isActive: () => editor?.isActive("highlight"),
-            type: "onDisplay",
+            actionKey: ACTION_KEYS.highlight,
+            activeKey: ACTIVE_KEYS.highlight,
         },
         {
             icon: faListUl,
             title: "Bullet List",
-            action: () => editor?.chain().focus().toggleBulletList().run(),
-            isActive: () => editor?.isActive("bulletList"),
-            type: "onDisplay",
+            actionKey: ACTION_KEYS.bulletList,
+            activeKey: ACTIVE_KEYS.bulletList,
         },
         {
             icon: faListOl,
             title: "Ordered List",
-            action: () => editor?.chain().focus().toggleOrderedList().run(),
-            isActive: () => editor?.isActive("orderedList"),
-            type: "onDisplay",
+            actionKey: ACTION_KEYS.orderedList,
+            activeKey: ACTIVE_KEYS.orderedList,
         },
         {
             icon: faListCheck,
             title: "Task List",
-            action: () => editor?.chain().focus().toggleTaskList().run(),
-            isActive: () => editor?.isActive("taskList"),
-            type: "onDisplay",
+            actionKey: ACTION_KEYS.taskList,
+            activeKey: ACTIVE_KEYS.taskList,
         },
+    ];
+
+    const dropdownItems: MenuItem[] = [
         {
             icon: faCode,
             title: "Code",
-            action: () => editor?.chain().focus().toggleCode().run(),
-            isActive: () => editor?.isActive("code"),
-            type: "onDropdown",
+            actionKey: ACTION_KEYS.code,
+            activeKey: ACTIVE_KEYS.code,
         },
         {
             icon: faFileCode,
             title: "Code Block",
-            action: () => editor?.chain().focus().toggleCodeBlock().run(),
-            isActive: () => editor?.isActive("codeBlock"),
-            type: "onDropdown",
+            actionKey: ACTION_KEYS.codeBlock,
+            activeKey: ACTIVE_KEYS.codeBlock,
         },
         {
             icon: faQuoteLeft,
             title: "Blockquote",
-            action: () => editor?.chain().focus().toggleBlockquote().run(),
-            isActive: () => editor?.isActive("blockquote"),
-            type: "onDropdown",
+            actionKey: ACTION_KEYS.blockquote,
+            activeKey: ACTIVE_KEYS.blockquote,
         },
         {
             icon: faRulerHorizontal,
             title: "Horizontal Rule",
-            action: () => editor?.chain().focus().setHorizontalRule().run(),
-            type: "onDropdown",
+            actionKey: ACTION_KEYS.horizontalRule,
         },
         {
             icon: faImage,
             title: "Insert Image",
-            action: () => document.getElementById("insertImage")?.click(),
-            type: "onDropdown",
+            actionKey: ACTION_KEYS.insertImage,
         },
     ];
 
@@ -191,7 +324,7 @@ export default function MenuBar({
                             }
                             value={insertedLink}
                         />
-                        <button className="btn" onClick={insertLink}>
+                        <button className="btn" onClick={handleInsertLink}>
                             Insert Link
                         </button>
                     </div>
@@ -208,17 +341,23 @@ export default function MenuBar({
                 type="file"
                 id="insertImage"
                 accept="image/png, image/jpeg"
-                onChange={insertImage}
+                onChange={handleInsertImage}
                 value={""}
                 hidden
             />
             <div className="flex lg:justify-center">
                 <div className="flex-1 items-center">
-                    {items.map((item, index) => (
-                        <Fragment key={index}>
-                            {item.type === "onDisplay" && (
-                                <MenuItems {...item} />
-                            )}
+                    {displayItems.map((item) => (
+                        <Fragment key={item.title}>
+                            <button
+                                className={`btn btn-ghost ${
+                                    isActive(item.activeKey) ? "btn-active" : ""
+                                }`}
+                                onClick={() => handleAction(item.actionKey)}
+                                title={item.title}
+                            >
+                                <FontAwesomeIcon icon={item.icon} />
+                            </button>
                         </Fragment>
                     ))}
                 </div>
@@ -231,15 +370,27 @@ export default function MenuBar({
                             tabIndex={0}
                             className="flex dropdown-content z-[1] shadow bg-base-100 rounded-sm"
                         >
-                            {items.map((item, index) => (
-                                <Fragment key={index}>
-                                    {item.type === "onDropdown" && (
-                                        <>
-                                            {!(
-                                                asComment &&
-                                                item.icon === faImage
-                                            ) && <MenuItems {...item} />}
-                                        </>
+                            {dropdownItems.map((item) => (
+                                <Fragment key={item.title}>
+                                    {!(
+                                        asComment &&
+                                        item.icon === faImage
+                                    ) && (
+                                        <button
+                                            className={`btn btn-ghost ${
+                                                isActive(item.activeKey)
+                                                    ? "btn-active"
+                                                    : ""
+                                            }`}
+                                            onClick={() =>
+                                                handleAction(item.actionKey)
+                                            }
+                                            title={item.title}
+                                        >
+                                            <FontAwesomeIcon
+                                                icon={item.icon}
+                                            />
+                                        </button>
                                     )}
                                 </Fragment>
                             ))}

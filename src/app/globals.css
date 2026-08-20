@@ -1,3 +1,77 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
+
+@plugin "daisyui" {
+    themes: light --default, dark;
+}
+
+@plugin "daisyui/theme" {
+    name: "light";
+    default: true;
+    prefersdark: false;
+    color-scheme: light;
+
+    --color-base-100: oklch(100% 0 0);
+    --color-base-200: oklch(98% 0 0);
+    --color-base-300: oklch(92% 0 0);
+    --color-base-content: oklch(15% 0 0);
+
+    --color-primary: oklch(20% 0 0);
+    --color-primary-content: oklch(98% 0 0);
+
+    --color-secondary: oklch(45% 0 0);
+    --color-secondary-content: oklch(98% 0 0);
+
+    --color-accent: oklch(55% 0 0);
+    --color-accent-content: oklch(98% 0 0);
+
+    --color-neutral: oklch(25% 0 0);
+    --color-neutral-content: oklch(98% 0 0);
+
+    --radius-selector: 0.375rem;
+    --radius-field: 0.5rem;
+    --radius-box: 0.75rem;
+
+    --size-selector: 0.25rem;
+    --size-field: 0.25rem;
+
+    --border: 1px;
+    --depth: 0;
+    --noise: 0;
+}
+
+@plugin "daisyui/theme" {
+    name: "dark";
+    default: false;
+    prefersdark: false;
+    color-scheme: dark;
+
+    --color-base-100: oklch(14% 0 0);
+    --color-base-200: oklch(18% 0 0);
+    --color-base-300: oklch(22% 0 0);
+    --color-base-content: oklch(96% 0 0);
+
+    --color-primary: oklch(96% 0 0);
+    --color-primary-content: oklch(14% 0 0);
+
+    --color-secondary: oklch(65% 0 0);
+    --color-secondary-content: oklch(14% 0 0);
+
+    --color-accent: oklch(75% 0 0);
+    --color-accent-content: oklch(14% 0 0);
+
+    --color-neutral: oklch(85% 0 0);
+    --color-neutral-content: oklch(14% 0 0);
+
+    --radius-selector: 0.375rem;
+    --radius-field: 0.5rem;
+    --radius-box: 0.75rem;
+
+    --size-selector: 0.25rem;
+    --size-field: 0.25rem;
+
+    --border: 1px;
+    --depth: 0;
+    --noise: 0;
+}
+
+@plugin "@tailwindcss/typography";

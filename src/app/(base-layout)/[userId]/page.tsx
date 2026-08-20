@@ -3,9 +3,10 @@ import prisma from "@/db";
 import type { FormSocials } from "@/types/user";
 import { Fragment } from "react";
 import { Metadata } from "next";
-import { getServerSession } from "next-auth";
-import { authConfig } from "@/utils/authConfig";
+import { auth } from "@/auth";
+
 import UserOrgProfile from "@/components/user/UserOrgProfile";
+import { normalizeProfileCustomization } from "@/modules/profile-customization/validation";
 
 export async function generateMetadata({
     params,
@@ -23,6 +24,9 @@ export async function generateMetadata({
                     username: userId, //for unique username URL
                 },
             ],
+        },
+        include: {
+            profileCustomization: true,
         },
     });
     if (!user) return notFound();
@@ -44,7 +48,7 @@ export default async function ProfilePage({
     params: Promise<{ userId: string }>;
 }) {
     const { userId } = await params;
-    const session = await getServerSession(authConfig);
+    const session = await auth();
     const user = await prisma.user.findFirst({
         where: {
             OR: [
@@ -59,23 +63,34 @@ export default async function ProfilePage({
         include: {
             _count: {
                 select: {
-                    post: {
-                        where: {
-                            published: true,
-                        },
-                    },
+                    post: true,
                     followedBy: true,
+                    following: true,
+                },
+            },
+            profileCustomization: true,
+            organizations: {
+                select: {
+                    id: true,
+                    name: true,
+                    username: true,
+                    image: true,
                 },
             },
         },
     });
 
     const followers = user?._count.followedBy;
+    const following = user?._count.following;
     const posts = user?._count.post;
 
     if (!user) {
         notFound();
     }
+
+    const customization = normalizeProfileCustomization(
+        user.profileCustomization,
+    );
 
     async function checkUserIfFollowing() {
         if (session) {
@@ -101,9 +116,11 @@ export default async function ProfilePage({
             <UserOrgProfile
                 user={user}
                 followers={followers as number}
+                following={following as number}
                 posts={posts as number}
                 userId={userId}
                 checkIfUserAlreadyFollowed={checkIfUserAlreadyFollowed}
+                customization={customization}
             />
         </Fragment>
     );

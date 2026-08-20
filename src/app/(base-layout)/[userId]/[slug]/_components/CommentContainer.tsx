@@ -15,7 +15,7 @@ import CommentBox from "./CommentBox";
 import useSocket from "@/socket";
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
-import CommentReactionButton from "../../../../../components/reactions/actions/CommentReactionButton";
+import ReactionButton from "../../../../../components/reactions/actions/ReactionButton";
 import { useSession } from "next-auth/react";
 import { isCommentOwner } from "@/utils/actions/comments";
 import { deleteComments } from "@/utils/actions/comments";
@@ -38,7 +38,7 @@ export default function CommentContainer({
     title: string;
     reactions?: CommentReaction[];
 }) {
-    const { data: session, status } = useSession();
+    const { data: session } = useSession();
     const socket = useSocket();
     const [commentBoxDisplay, setCommentBoxDisplay] = useState<boolean>(false);
     const [isCommentDelete, setCommentDelete] = useState<boolean>(false);
@@ -69,8 +69,10 @@ export default function CommentContainer({
             refetch();
         });
         const getOwnerComment = async () => {
+            if (!session) return;
+
             const { commentOwner, postOwner } = await isCommentOwner(
-                session?.user.id,
+                session.user.id,
                 titleId,
             );
             setOwnComment(commentOwner);
@@ -81,7 +83,7 @@ export default function CommentContainer({
         return () => {
             socket.off("refetchReplies");
         };
-    }, [id, refetch, socket, session?.user.id, titleId]);
+    }, [id, refetch, socket, session, session?.user.id, titleId]);
 
     const deleteCommentBtn = async (id: string) => {
         const data = await deleteComments(id);
@@ -144,17 +146,11 @@ export default function CommentContainer({
                     isRemoved ? null : (
                         <div className="flex justify-start gap-4 mt-4">
                             <div className="flex items-center gap-2">
-                                <CommentReactionButton
-                                    id={id}
-                                    userId={userId}
-                                    session={session}
+                                <ReactionButton
+                                    target={{ id, authorId: userId }}
+                                    targetType="comment"
                                     initialReactionCount={
                                         reactions?.length ?? 0
-                                    }
-                                    isLoggedIn={
-                                        session && status === "authenticated"
-                                            ? true
-                                            : false
                                     }
                                 />
                             </div>

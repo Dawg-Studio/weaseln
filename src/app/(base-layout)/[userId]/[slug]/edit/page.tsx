@@ -1,15 +1,13 @@
 import prisma from "@/db";
 // import { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { getServerSession } from "next-auth";
-import { authConfig } from "@/utils/authConfig";
+import { auth } from "@/auth";
+
 import Tiptap from "@/components/wysiwyg/Tiptap";
 import { JSONContent } from "@tiptap/react";
 
 // export async function generateMetadata({
 //     params,
-// }: {
-//     params: { userId: string; slug: string };
 // }): Promise<Metadata> {
 //     const { userId, slug } = params;
 //     const post = await prisma.post.findFirst({
@@ -55,7 +53,7 @@ export default async function EditPost({
     });
     if (!post) return notFound();
 
-    const session = await getServerSession(authConfig);
+    const session = await auth();
     const user = await prisma.user.findUnique({
         where: { id: session?.user.id },
         select: {

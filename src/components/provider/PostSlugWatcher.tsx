@@ -19,9 +19,11 @@ export default function PostSlugWatcher({
     const readingTimeInterval =
         useRef<ReturnType<typeof setInterval>>(undefined);
     const readTimeCountdown = useRef<NodeJS.Timeout | undefined>(undefined);
+    const viewCountTimer =
+        useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
     useEffect(() => {
-        setTimeout(async () => {
+        viewCountTimer.current = setTimeout(async () => {
             const addViewCount = await addPostView(postId);
             if (addViewCount) isViewCounted.current = true;
         }, 15000);
@@ -69,18 +71,19 @@ export default function PostSlugWatcher({
         window.addEventListener("scroll", handleScroll);
 
         return () => {
-            function clearAllTimeoutsAndIntervals() {
-                var highestTimeoutId = setTimeout(";");
-                for (let i = 0; i < highestTimeoutId; i++) {
-                    clearTimeout(i);
-                }
-
-                var highestIntervalId = setInterval(";");
-                for (let i = 0; i < highestIntervalId; i++) {
-                    clearInterval(i);
-                }
+            window.removeEventListener("scroll", handleScroll);
+            if (viewCountTimer.current) {
+                clearTimeout(viewCountTimer.current);
+                viewCountTimer.current = undefined;
             }
-            clearAllTimeoutsAndIntervals();
+            if (readTimeCountdown.current) {
+                clearTimeout(readTimeCountdown.current);
+                readTimeCountdown.current = undefined;
+            }
+            if (readingTimeInterval.current) {
+                clearInterval(readingTimeInterval.current);
+                readingTimeInterval.current = undefined;
+            }
         };
     }, [postId]);
 

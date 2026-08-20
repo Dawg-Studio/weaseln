@@ -1,20 +1,23 @@
 import { NextResponse } from "next/server";
-import { authConfig } from "@/utils/authConfig";
+
 import prisma from "@/db";
-import { getServerSession } from "next-auth";
+import { auth } from "@/auth";
 import { getCloudinaryImage, uploadCloudinary } from "@/lib/cloudinary";
 //Promise<any> is a temporary fix
-export async function POST(req: Request): Promise<any> {
+export async function POST(req: Request) {
     const body = await req.formData();
     const img = body.get("imgFile");
-    const session = await getServerSession(authConfig);
+    const session = await auth();
+    if (!session) {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
 
     try {
         if (!img) throw new Error("No image file found");
         const cloudinary = await uploadCloudinary({
             file: img,
             folder: "user",
-            public_id: session?.user.id,
+            public_id: session.user.id,
         });
         if (cloudinary.upload.ok) {
             const image = getCloudinaryImage({
@@ -23,7 +26,7 @@ export async function POST(req: Request): Promise<any> {
                 folder: cloudinary.metadata.folder,
             });
             const updateImage = await prisma.user.update({
-                where: { id: session?.user.id },
+                where: { id: session.user.id },
                 data: {
                     image,
                 },

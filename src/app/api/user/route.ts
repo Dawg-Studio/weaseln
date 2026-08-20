@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
-import { authConfig } from "@/utils/authConfig";
+
 import prisma from "@/db";
-import { getServerSession } from "next-auth";
+import { auth } from "@/auth";
 import { User } from "@prisma/client";
 //Promise<any> is a temporary fix
-export async function GET(req: Request): Promise<any> {
+export async function GET(req: Request) {
     const url = new URL(req.url);
     const lastCursor = url.searchParams.get("cursor");
     const keyword = url.searchParams.get("q")?.split(" ").join("&");
@@ -80,9 +80,9 @@ export async function GET(req: Request): Promise<any> {
     }
 }
 
-export async function PATCH(req: Request): Promise<any> {
+export async function PATCH(req: Request) {
     const body = await req.json();
-    const session = await getServerSession(authConfig);
+    const session = await auth();
     try {
         const user = await prisma.user.update({
             where: { id: session?.user.id },

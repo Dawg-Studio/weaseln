@@ -1,141 +1,143 @@
 "use server"
 
-import { getServerSession } from "next-auth"
-import { authConfig } from "../authConfig"
+import { auth } from "@/auth"
 import prisma from "@/db"
-import { TCommentReaction, TPostReaction } from "@/types/reaction"
+import { ReactionType } from "@/types/reaction"
 
-export async function getUserInitialPostReaction(postId: string) {
-    const session = await getServerSession(authConfig)
+type ReactionTarget = "post" | "comment"
+type ReactionKey = { postId: string } | { commentId: string }
 
-    const checkPostReaction = await prisma.postReaction.findUnique({
-        where: {
-            postId_userId: {
-                postId: postId,
-                userId: session?.user.id
-            }
-        }
-    })
-    if (checkPostReaction) return checkPostReaction.type
-    return false
-}
+// ponytail: the post and comment reaction tables share the same access pattern; the only
+// difference is the Prisma model and the key shape. Branch once, expose 3 generic helpers,
+// keep the named exports as 1-line delegations so non-button callers (notifications, other
+// server actions) keep working unchanged.
 
-export async function updateCreatePostReaction(postId: string, type: TPostReaction) {
-    const session = await getServerSession(authConfig)
+export async function getReaction(target: ReactionTarget, key: ReactionKey) {
+    const session = await auth()
+    if (!session) throw new Error("Unauthorized")
 
-    try {
-        const addPostReaction = await prisma.postReaction.upsert({
+    if (target === "post" && "postId" in key) {
+        const reaction = await prisma.postReaction.findUnique({
             where: {
                 postId_userId: {
-                    userId: session?.user.id,
-                    postId: postId
-                }
-            },
-            update: {
-                type: type
-            },
-            create: {
-                type: type,
-                post: {
-                    connect: {
-                        id: postId
-                    }
+                    postId: key.postId,
+                    userId: session.user.id,
                 },
-                user: {
-                    connect: {
-                        id: session?.user.id
-                    }
-                }
-            }
+            },
         })
-        if (addPostReaction) return true
-    } catch (error) {
-        return error
+        return reaction ? reaction.type : false
     }
-}
-
-export async function deletePostReaction(postId: string) {
-    const session = await getServerSession(authConfig)
-
-    try {
-        const deletePostReaction = await prisma.postReaction.delete({
-            where: {
-                postId_userId: {
-                    postId: postId,
-                    userId: session?.user.id
-                }
-            }
-        })
-        if (deletePostReaction) return true
-    } catch (error) {
-        return error
-    }
-}
-
-export async function getInitialCommentReaction(commentId: string) {
-    const session = await getServerSession(authConfig)
-
-    const checkCommentReaction = await prisma.commentReaction.findUnique({
-        where: {
-            commentId_userId: {
-                commentId: commentId,
-                userId: session?.user.id
-            }
-        }
-    })
-
-    if (checkCommentReaction) return checkCommentReaction.type
-    return false
-}
-
-export async function updateCreateCommentReaction(commentId: string, type: TCommentReaction) {
-    const session = await getServerSession(authConfig)
-
-    try {
-        const addCommentReaction = await prisma.commentReaction.upsert({
+    if (target === "comment" && "commentId" in key) {
+        const reaction = await prisma.commentReaction.findUnique({
             where: {
                 commentId_userId: {
-                    commentId: commentId,
-                    userId: session?.user.id
+                    commentId: key.commentId,
+                    userId: session.user.id,
                 },
             },
-            update: {
-                type: type
-            },
-            create: {
-                type: 'heart',
-                comment: {
-                    connect: {
-                        id: commentId
+        })
+        return reaction ? reaction.type : false
+    }
+    throw new Error(`Invalid key shape for target "${target}"`)
+}
+
+export async function toggleReaction(
+    target: ReactionTarget,
+    key: ReactionKey,
+    type: ReactionType,
+) {
+    const session = await auth()
+    if (!session) throw new Error("Unauthorized")
+
+    try {
+        if (target === "post" && "postId" in key) {
+            const upserted = await prisma.postReaction.upsert({
+                where: {
+                    postId_userId: {
+                        userId: session.user.id,
+                        postId: key.postId,
                     },
                 },
-                user: {
-                    connect: {
-                        id: session?.user.id
-                    }
-                }
-            }
-        })
-        if (addCommentReaction) return true
-    } catch (err) {
-        return err
-    }
-}
-
-export async function deleteCommentReaction(commentId: string) {
-    const session = await getServerSession(authConfig)
-
-    try {
-        const deleteCommentReaction = await prisma.commentReaction.delete({
-            where: {
-                commentId_userId: {
-                    commentId: commentId,
-                    userId: session?.user.id
-                }
-            }
-        })
-        if (deleteCommentReaction) return true
+                update: { type },
+                create: {
+                    type,
+                    post: { connect: { id: key.postId } },
+                    user: { connect: { id: session.user.id } },
+                },
+            })
+            if (upserted) return true
+        } else if (target === "comment" && "commentId" in key) {
+            const upserted = await prisma.commentReaction.upsert({
+                where: {
+                    commentId_userId: {
+                        userId: session.user.id,
+                        commentId: key.commentId,
+                    },
+                },
+                update: { type },
+                create: {
+                    type,
+                    comment: { connect: { id: key.commentId } },
+                    user: { connect: { id: session.user.id } },
+                },
+            })
+            if (upserted) return true
+        } else {
+            throw new Error(`Invalid key shape for target "${target}"`)
+        }
     } catch (error) {
         return error
     }
+}
+
+export async function deleteReaction(target: ReactionTarget, key: ReactionKey) {
+    const session = await auth()
+    if (!session) throw new Error("Unauthorized")
+
+    try {
+        if (target === "post" && "postId" in key) {
+            const deleted = await prisma.postReaction.delete({
+                where: {
+                    postId_userId: {
+                        postId: key.postId,
+                        userId: session.user.id,
+                    },
+                },
+            })
+            if (deleted) return true
+        } else if (target === "comment" && "commentId" in key) {
+            const deleted = await prisma.commentReaction.delete({
+                where: {
+                    commentId_userId: {
+                        commentId: key.commentId,
+                        userId: session.user.id,
+                    },
+                },
+            })
+            if (deleted) return true
+        } else {
+            throw new Error(`Invalid key shape for target "${target}"`)
+        }
+    } catch (error) {
+        return error
+    }
+}
+
+export async function getUserInitialPostReaction(postId: string) {
+    return getReaction("post", { postId })
+}
+export async function getInitialCommentReaction(commentId: string) {
+    return getReaction("comment", { commentId })
+}
+export async function updateCreatePostReaction(postId: string, type: ReactionType) {
+    return toggleReaction("post", { postId }, type)
+}
+export async function updateCreateCommentReaction(commentId: string, type: ReactionType) {
+    return toggleReaction("comment", { commentId }, type)
+}
+export async function deletePostReaction(postId: string) {
+    return deleteReaction("post", { postId })
+}
+export async function deleteCommentReaction(commentId: string) {
+    return deleteReaction("comment", { commentId })
 }

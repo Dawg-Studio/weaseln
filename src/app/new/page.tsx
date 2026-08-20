@@ -1,11 +1,13 @@
-import { getServerSession } from "next-auth";
-import { authConfig } from "@/utils/authConfig";
+import { auth } from "@/auth";
+import { redirect } from "next/navigation";
+
 import prisma from "@/db";
 import PostTypeSelector from "@/components/post/PostTypeSelector";
 export default async function CreatePost() {
-    const session = await getServerSession(authConfig);
+    const session = await auth();
+    if (!session?.user) redirect("/api/auth/signin");
     const user = await prisma.user.findUnique({
-        where: { id: session?.user.id },
+        where: { id: session.user.id },
         select: {
             id: true,
             username: true,

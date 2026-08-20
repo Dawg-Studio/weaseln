@@ -2,8 +2,7 @@
 
 import prisma from "@/db";
 import { init } from "@paralleldrive/cuid2";
-import { getServerSession } from "next-auth";
-import { authConfig } from "../authConfig";
+import { auth } from "@/auth";
 
 export async function rerollSecretKey(organizationId: string) {
     const organization = await prisma.organization.findUnique({
@@ -28,7 +27,7 @@ export async function rerollSecretKey(organizationId: string) {
 }
 
 export async function joinOrganizationWithSK(secret: string) {
-    const session = await getServerSession(authConfig);
+    const session = await auth();
     const checkIfOrganizationjExists = await prisma.organization.findUnique({
         where: { secret },
     });
@@ -89,7 +88,7 @@ export async function joinOrganizationWithSK(secret: string) {
 }
 
 export async function addAdmin(organizationId: string, adminId: string) {
-    const session = await getServerSession(authConfig);
+    const session = await auth();
     const organization = await prisma.organization.findUnique({
         where: { id: organizationId },
     });
@@ -114,7 +113,7 @@ export async function addAdmin(organizationId: string, adminId: string) {
 }
 
 export async function addMember(organizationId: string, memberId: string) {
-    const session = await getServerSession(authConfig);
+    const session = await auth();
     const organization = await prisma.organization.findUnique({
         where: { id: organizationId },
         include: {
@@ -144,7 +143,7 @@ export async function addMember(organizationId: string, memberId: string) {
 }
 
 export async function removeAdmin(organizationId: string, adminId: string) {
-    const session = await getServerSession(authConfig);
+    const session = await auth();
     const organization = await prisma.organization.findUnique({
         where: { id: organizationId },
     });
@@ -175,7 +174,7 @@ export async function removeAdmin(organizationId: string, adminId: string) {
 }
 
 export async function removeMember(organizationId: string, memberId: string) {
-    const session = await getServerSession(authConfig);
+    const session = await auth();
     const organization = await prisma.organization.findUnique({
         where: { id: organizationId },
         include: { admins: true },
@@ -204,18 +203,3 @@ export async function removeMember(organizationId: string, memberId: string) {
     if (newMembers) return newMembers;
 }
 
-export async function getOrg(orgId: string | null) {
-    if (!orgId) {
-        return;
-    }
-    const org = await prisma.organization.findUnique({
-        where: {
-            id: orgId,
-        },
-        select: {
-            name: true,
-            image: true,
-        },
-    });
-    if (org) return org;
-}

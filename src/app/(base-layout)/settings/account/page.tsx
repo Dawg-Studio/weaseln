@@ -1,12 +1,12 @@
-import { authConfig } from "@/utils/authConfig";
+
 import prisma from "@/db";
-import { getServerSession } from "next-auth";
+import { auth } from "@/auth";
 import AccountSettingsComponent from "@/app/(base-layout)/settings/account/_components/Account";
 import ApiKeys from "./_components/ApiKeys";
 import maskString from "@/utils/maskString";
 
 export default async function AccountSettings() {
-    const session = await getServerSession(authConfig);
+    const session = await auth();
     const linkedProviders = await prisma.account.findMany({
         where: { userId: session?.user.id },
         select: {

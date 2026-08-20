@@ -7,8 +7,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Metadata } from "next";
 import { Fragment } from "react";
-import { getServerSession } from "next-auth";
-import { authConfig } from "@/utils/authConfig";
+import { auth } from "@/auth";
+
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
     faComment,
@@ -21,10 +21,11 @@ import CommentBox from "@/app/(base-layout)/[userId]/[slug]/_components/CommentB
 import QueryWrapper from "@/components/provider/QueryWrapper";
 import CommentList from "@/app/(base-layout)/[userId]/[slug]/_components/CommentList";
 import NextAuthProvider from "@/components/provider/NextAuthProvider";
-import PostReactionButton from "@/components/reactions/actions/PostReactionButton";
+import ReactionButton from "@/components/reactions/actions/ReactionButton";
 import { PostShareButton } from "@/components/post/PostShareButton";
 import { cn } from "@/utils/cn";
 import tiptapExtensions from "@/utils/tiptapExt";
+import { formatPostDate } from "@/utils/formatPostDate";
 import PostList from "@/components/post/PostList";
 
 export async function generateMetadata({
@@ -94,7 +95,7 @@ export default async function PostPage({
     });
     if (!post) return notFound();
 
-    const session = await getServerSession(authConfig);
+    const session = await auth();
     const isPublisher = (await session?.user.id) === post.userId;
 
     const user = await prisma.user.findUnique({
@@ -150,12 +151,26 @@ export default async function PostPage({
                         ))}
                     </p>
                 )}
-                <Image
-                    src={post?.coverImage as string}
-                    height={1920}
-                    width={1080}
-                    alt={`cover image for ${post.title} `}
-                />
+                {post?.coverImage ? (
+                    <Image
+                        src={post.coverImage as string}
+                        height={1920}
+                        width={1080}
+                        alt={`cover image for ${post.title} `}
+                    />
+                ) : (
+                    // ponytail: post has no cover image. Gradient placeholder
+                    // with title watermark so the post page keeps its
+                    // visual rhythm (matches the feed placeholder).
+                    <div
+                        className="w-full aspect-video bg-gradient-to-br from-base-300 via-base-200 to-base-300 flex items-center justify-center p-6 rounded-lg"
+                        aria-hidden="true"
+                    >
+                        <p className="text-base-content/40 text-2xl lg:text-4xl font-bold text-center line-clamp-3 max-w-2xl">
+                            {post.title}
+                        </p>
+                    </div>
+                )}
                 <div className="lg:-space-y-6 -space-y-4">
                     <h1>{post?.title}</h1>
                     <h4 className="!text-slate-600">{post?.description}</h4>
@@ -245,36 +260,12 @@ export default async function PostPage({
                             new Date(post.createdAt).toDateString() ? (
                                 <p className=" text-xs">
                                     Posted on{" "}
-                                    {new Date(
-                                        post.createdAt,
-                                    ).toLocaleDateString(undefined, {
-                                        month: "short",
-                                        year:
-                                            new Date().getFullYear() ===
-                                            new Date(
-                                                post.createdAt,
-                                            ).getFullYear()
-                                                ? undefined
-                                                : "numeric",
-                                        day: "numeric",
-                                    })}
+                                    {formatPostDate(new Date(post.createdAt))}
                                 </p>
                             ) : (
                                 <p className=" text-xs">
                                     Updated at{" "}
-                                    {new Date(
-                                        post.updatedAt,
-                                    ).toLocaleDateString(undefined, {
-                                        month: "short",
-                                        year:
-                                            new Date().getFullYear() ===
-                                            new Date(
-                                                post.createdAt,
-                                            ).getFullYear()
-                                                ? undefined
-                                                : "numeric",
-                                        day: "numeric",
-                                    })}
+                                    {formatPostDate(new Date(post.updatedAt))}
                                 </p>
                             )}
                         </div>
@@ -285,10 +276,9 @@ export default async function PostPage({
                         <div className="flex-1">
                             <div className="flex items-center gap-2">
                                 <div className="flex items-center gap-2">
-                                    <PostReactionButton
-                                        authorId={post.userId}
-                                        session={session}
-                                        id={post.id}
+                                    <ReactionButton
+                                        target={{ id: post.id, authorId: post.userId }}
+                                        targetType="post"
                                         initialReactionCount={
                                             post._count.reactions
                                         }

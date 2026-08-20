@@ -6,10 +6,13 @@ import { useEffect, useState } from "react";
 import { themeChange } from "theme-change";
 
 export default function ThemeSwitcher() {
-    const [theme, setTheme] = useState<string>("");
+    const [theme, setTheme] = useState<string>(() =>
+        typeof window !== "undefined"
+            ? (localStorage.getItem("theme") as string) ?? ""
+            : "",
+    );
     useEffect(() => {
         themeChange(false);
-        setTheme(localStorage.getItem("theme") as string);
         // 👆 false parameter is required for react project
     }, []);
 

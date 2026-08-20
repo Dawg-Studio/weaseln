@@ -1,12 +1,11 @@
-import { authConfig } from "@/utils/authConfig";
+
 import PostList from "@/components/post/PostList";
 import QueryWrapper from "@/components/provider/QueryWrapper";
 import PeopleContainer from "@/components/people/PeopleContainer";
 import TagFollowButton from "@/components/tag/actions/TagFollowButton";
 import prisma from "@/db";
-import { TagRank } from "@/types/tag";
 import { User } from "@prisma/client";
-import { getServerSession } from "next-auth";
+import { auth } from "@/auth";
 import { notFound } from "next/navigation";
 import { Fragment, Suspense } from "react";
 
@@ -16,56 +15,61 @@ export default async function TagPosts({
     params: Promise<{ slug: string }>;
 }) {
     const { slug } = await params;
-    const session = await getServerSession(authConfig);
-    const getTags = await prisma.tagsRanking.findFirst({
-        take: 1,
-        orderBy: {
-            createdAt: "desc",
-        },
-    });
-    const usersWithRelatedTag = await prisma.user.findMany({
-        take: 10,
-        where: {
-            post: {
-                some: {
-                    tags: {
-                        has: slug,
+    const session = await auth();
+
+    // ponytail: previous version looked the tag up in the cron-populated
+    // `tagsRanking` snapshot. That table is empty on a fresh seed, so every
+    // tag page 404'd. Compute usage/followers directly from posts/users so
+    // the page renders for any tag that exists in the system.
+    const [usage, followers, usersWithRelatedTag] = await Promise.all([
+        prisma.post.count({ where: { tags: { has: slug } } }),
+        prisma.user.count({ where: { interests: { has: slug } } }),
+        prisma.user.findMany({
+            take: 10,
+            where: {
+                OR: [
+                    { interests: { has: slug } },
+                    {
+                        post: {
+                            some: {
+                                tags: { has: slug },
+                            },
+                        },
                     },
-                },
+                ],
             },
-        },
-        orderBy: {
-            post: {
-                _count: "desc",
+            orderBy: {
+                post: { _count: "desc" },
             },
-        },
-        select: {
-            id: true,
-            name: true,
-            username: true,
-            image: true,
-        },
-    });
-    const tag = getTags?.data.find(
-        (tag) => (tag as TagRank).tag === slug,
-    ) as TagRank;
-    if (!tag) {
+            select: {
+                id: true,
+                name: true,
+                username: true,
+                image: true,
+            },
+        }),
+    ]);
+
+    // Render if the tag is actually used somewhere — posts OR followers.
+    // Tags that exist in neither table 404 (unknown / mistyped).
+    if (usage === 0 && followers === 0) {
         notFound();
     }
+
     return (
         <div className="mt-12 mb-12 lg:mr-28 lg:ml-28 p-4 lg:p-0 mx-auto">
             <div className="flex flex-wrap lg:grid lg:grid-cols-2">
                 <div className="flex flex-wrap items-center gap-4">
-                    <h1 className="text-5xl font-bold">#{tag.tag}</h1>
+                    <h1 className="text-5xl font-bold">#{slug}</h1>
                     <TagFollowButton
-                        tag={tag.tag}
+                        tag={slug}
                         isLoggedIn={session ? true : false}
                     />
                 </div>
                 <div className="container">
-                    <h2 className="text-lg lg:text-right">{tag.usage} Posts</h2>
+                    <h2 className="text-lg lg:text-right">{usage} Posts</h2>
                     <h2 className="text-lg lg:text-right">
-                        {tag.followers} Followers
+                        {followers} Followers
                     </h2>
                 </div>
             </div>

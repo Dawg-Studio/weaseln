@@ -98,8 +98,16 @@ export default async function RootLayout({
     children: React.ReactNode;
 }) {
     return (
-        <html lang="en">
+        <html lang="en" data-theme="light" suppressHydrationWarning>
             <body className={inter.className}>
+                <script
+                    dangerouslySetInnerHTML={{
+                        __html:
+                            "(function(){try{var t=localStorage.getItem('theme');" +
+                            "if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t);" +
+                            "}catch(e){}})()",
+                    }}
+                />
                 <ThemeProvider />
                 <Suspense>
                     <NextTopLoader showSpinner={false} />

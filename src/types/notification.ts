@@ -1,8 +1,8 @@
 type UserNotificationInputValidation = {
     userId: string;
     fromUserId: string;
-    from: string;
-    fromImage: string;
+    from?: string | null;
+    fromImage?: string | null;
     message: string;
     postId?: string;
     actionUrl: string;

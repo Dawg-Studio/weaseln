@@ -1,22 +1,42 @@
 "use server";
 
-import { authConfig } from "@/utils/authConfig";
+import { auth } from "@/auth";
 import prisma from "@/db";
-import { getServerSession } from "next-auth";
 import { GoogleGenerativeAI } from "@google/generative-ai";
+import type { TagRank } from "@/types/tag";
 
-export async function getTagRankings() {
-    const tagsRanking = await prisma.tagsRanking.findFirst({
-        orderBy: {
-            createdAt: "desc",
-        },
-        take: 1,
+// ponytail: previous implementation read `tagsRanking` (a cron-populated
+// snapshot table). The table is empty on a fresh seed, so trending tags
+// rendered as an empty list. Now we compute from posts/users directly:
+// usage = posts that include the tag, followers = users with the tag in
+// their interests. Returns the top 10 by usage. The cached `tagsRanking`
+// snapshot is still populated by the cron if you want cheaper reads; this
+// path is the source of truth.
+export async function getTagRankings(): Promise<TagRank[]> {
+    const posts = await prisma.post.findMany({
+        select: { tags: true },
     });
-    return tagsRanking?.data.slice(0, 10);
+    const usageByTag = new Map<string, number>();
+    for (const post of posts) {
+        for (const tag of post.tags) {
+            usageByTag.set(tag, (usageByTag.get(tag) ?? 0) + 1);
+        }
+    }
+
+    const ranks: TagRank[] = [];
+    for (const [tag, usage] of usageByTag.entries()) {
+        const followers = await prisma.user.count({
+            where: { interests: { has: tag } },
+        });
+        ranks.push({ tag, usage, followers });
+    }
+
+    ranks.sort((a, b) => b.usage - a.usage);
+    return ranks.slice(0, 10);
 }
 
 export async function updateInterest(tag: string) {
-    const session = await getServerSession(authConfig);
+    const session = await auth();
     try {
         const getUser = await prisma.user.findUnique({
             where: {
@@ -62,7 +82,7 @@ export async function updateInterest(tag: string) {
 }
 
 export async function ifTagFollowing(tag: string) {
-    const session = await getServerSession(authConfig);
+    const session = await auth();
     const tagFollowed = await prisma.user.findUnique({
         where: {
             id: session?.user.id,
@@ -77,7 +97,7 @@ export async function ifTagFollowing(tag: string) {
 
 export async function validateTag(tag: string) {
     const genAI = new GoogleGenerativeAI(process.env.GOOGLE_AI_KEY as string);
-    const model = genAI.getGenerativeModel({ model: "gemini-pro" });
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash-latest" });
     const prompt = `You are a helpful assistant and I want you to validate the following keyword for tag creation. Follow the rules: 1. A tag must not contain any malicious word in any languages. 2. You will only output true or false. Now validate the tag: ${tag}`;
     const result = await model.generateContent(prompt);
     const response = result.response;

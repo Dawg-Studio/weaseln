@@ -1,17 +1,16 @@
 "use server"
 
-import { authConfig } from "@/utils/authConfig";
+import { auth } from "@/auth";
 import prisma from "@/db";
-import { getServerSession } from "next-auth";
 
 export async function checkUserLoggedIn() {
-    const session = await getServerSession(authConfig)
+    const session = await auth()
     if (session) return true
     return false
 }
 
 async function followUser(userId: string) {
-    const session = await getServerSession(authConfig)
+    const session = await auth()
     try {
         const follow = await prisma.user.update({
             where: { id: userId },
@@ -31,7 +30,7 @@ async function followUser(userId: string) {
 }
 
 async function unfollowUser(userId: string) {
-    const session = await getServerSession(authConfig)
+    const session = await auth()
     try {
         const unfollow = await prisma.user.update({
             where: { id: userId },
@@ -50,7 +49,7 @@ async function unfollowUser(userId: string) {
 }
 
 export async function toggleFollowUser(userId: string) {
-    const session = await getServerSession(authConfig)
+    const session = await auth()
     const checkUserFollowed = await prisma.user.findUnique({
         where: {
             id: session?.user.id,

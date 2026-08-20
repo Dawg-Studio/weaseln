@@ -1,8 +1,7 @@
 "use server"
 
-import { authConfig } from "@/utils/authConfig";
+import { auth } from "@/auth";
 import prisma from "@/db";
-import { getServerSession } from "next-auth";
 
 export async function addPostView(postId: string) {
     const postView = await prisma.postView.create({
@@ -12,11 +11,11 @@ export async function addPostView(postId: string) {
             }
         }
     })
-    if (postView) return true
+    return !!postView
 }
 
 export async function addOrUpdateUserPostReadingHistory(postId: string, readingLengthMs: number) {
-    const session = await getServerSession(authConfig)
+    const session = await auth()
 
     async function addPostReadingLength() {
         const newPostReadingLength = await prisma.postReadingLength.create({
@@ -77,7 +76,7 @@ export async function addOrUpdateUserPostReadingHistory(postId: string, readingL
 }
 
 async function bookmarkPost(titleId: string) {
-    const session = await getServerSession(authConfig)
+    const session = await auth()
 
     try {
         const bookmarkPost = await prisma.user.update({
@@ -99,7 +98,7 @@ async function bookmarkPost(titleId: string) {
 
 }
 async function unBookmarkPost(titleId: string) {
-    const session = await getServerSession(authConfig)
+    const session = await auth()
 
     try {
         const unBookmarkPost = await prisma.user.update({
@@ -121,7 +120,7 @@ async function unBookmarkPost(titleId: string) {
 
 
 export async function checkBookmarkPostStatus(titleId: string) {
-    const session = await getServerSession(authConfig)
+    const session = await auth()
     try {
         const checkBookmarkPost = await prisma.user.findUnique({
             where: {
@@ -141,7 +140,7 @@ export async function checkBookmarkPostStatus(titleId: string) {
 }
 
 export async function setBookmarkPost(titleId: string) {
-    const session = await getServerSession(authConfig)
+    const session = await auth()
     try {
         const checkBookmarkPost = await prisma.user.findUnique({
             where: {
