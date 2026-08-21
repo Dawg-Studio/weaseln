@@ -6,7 +6,9 @@ import {
 } from "@fortawesome/free-solid-svg-icons";
 import { faShareSquare as faRegShareSquare } from "@fortawesome/free-regular-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { useState } from "react";
+import { useState, useSyncExternalStore } from "react";
+
+const subscribeToLocation = () => () => {};
 
 export function PostShareButton({
     userId,
@@ -15,7 +17,15 @@ export function PostShareButton({
     userId: string;
     titleId: string;
 }) {
-    const shareLink: string = `https://zefer.vercel.app/${userId}/${titleId}`;
+    const shareLink = useSyncExternalStore(
+        subscribeToLocation,
+        () =>
+            new URL(
+                `/${userId}/${titleId}`,
+                window.location.origin,
+            ).toString(),
+        () => "",
+    );
     const [linkCopyStatus, setLinkCopyStatus] = useState<boolean>(false);
     const [postShareActed, setPostShareActed] = useState<boolean>(false);
     return (

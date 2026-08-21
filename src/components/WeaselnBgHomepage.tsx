@@ -5,7 +5,7 @@ import Navigation from "./ui/Navigation";
 import QueryWrapper from "./provider/QueryWrapper";
 import NextAuthProvider from "./provider/NextAuthProvider";
 
-export default function ZeFerBgHomepage({ user }: { user: User }) {
+export default function WeaselnBgHomepage({ user }: { user: User }) {
     return (
         <QueryWrapper>
             <NextAuthProvider>

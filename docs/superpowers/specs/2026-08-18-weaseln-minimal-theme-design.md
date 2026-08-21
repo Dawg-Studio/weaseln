@@ -1,4 +1,4 @@
-# ZeFer minimal theme + light/dark toggle — design
+# weaseln minimal theme + light/dark toggle — design
 
 **Status:** approved (brainstorming, 2026-08-18)
 **Scope:** DaisyUI v5 + Tailwind v4 styling fix on the Next.js 16.3 App Router.

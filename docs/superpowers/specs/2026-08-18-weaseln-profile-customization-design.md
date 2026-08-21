@@ -1,4 +1,4 @@
-# ZeFer creative profile customization — design
+# weaseln creative profile customization — design
 
 **Status:** approved for specification (brainstorming, 2026-08-18)
 **Scope:** curated, responsive customization for public user profiles.

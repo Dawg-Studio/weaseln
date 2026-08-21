@@ -6,7 +6,7 @@ import { auth } from "@/auth";
 import { User } from "@prisma/client";
 import SideMenu from "@/components/menu/SideMenu";
 import TagRankingMenu from "@/components/menu/TagRankingMenu";
-import ZeFerBgHomepage from "@/components/ZeFerBgHompage";
+import WeaselnBgHomepage from "@/components/WeaselnBgHomepage";
 import { Suspense } from "react";
 
 export default async function Home() {
@@ -24,7 +24,7 @@ export default async function Home() {
 
     return (
         <>
-            <ZeFerBgHomepage user={user} />
+            <WeaselnBgHomepage user={user} />
             <div className="mx-auto mt-12 mb-12 lg:mr-28 lg:ml-28">
                 <div className="flex justify-center">
                     <div className="hidden lg:block w-1/4">

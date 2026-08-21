@@ -22,7 +22,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
                     pass: process.env.RESEND_API_KEY!,
                 },
             },
-            from: "no-reply@zefer.blog",
+            from: "no-reply@weaseln.blog",
         }),
         Google({
             clientId: process.env.GOOGLE_CLIENT_ID!,
@@ -64,7 +64,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         },
     },
     theme: {
-        logo: "/zefer.svg",
+        logo: "/weaseln.svg",
     },
     pages: {
         newUser: "/settings/profile",
