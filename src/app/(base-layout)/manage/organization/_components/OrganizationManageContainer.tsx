@@ -190,7 +190,7 @@ export default function OrganizationManageContainer({
                     <div className="flex items-center justify-between mb-2 flex-wrap md:flex-nowrap gap-4 md:gap-0">
                         <div className="w-full flex justify-center md:justify-start">
                             <select
-                                className="select select-bordered font-bold text-lg w-full max-w-xs"
+                                className="select font-bold text-lg w-full max-w-xs"
                                 value={selectedOrganization.id}
                                 onChange={(e) =>
                                     setSelectedOrganization(
@@ -223,7 +223,7 @@ export default function OrganizationManageContainer({
                             </button>
                         </div>
                     </div>
-                    <div className="shadow-lg p-12 rounded-md space-y-2">
+                    <div className="rounded-box border border-hairline bg-surface p-5 elev-1 sm:p-6 space-y-5">
                         <div className="space-y-4">
                             <div className="container">
                                 <h3 className="text-2xl font-bold">Members</h3>
@@ -239,9 +239,7 @@ export default function OrganizationManageContainer({
                                                 </th>
                                                 <td>
                                                     <span
-                                                        className={
-                                                            "badge badge-neutral"
-                                                        }
+                                                        className="inline-flex items-center gap-1 rounded-full border border-hairline bg-base-300 px-2.5 py-1 text-eyebrow uppercase text-base-content/80"
                                                     >
                                                         OWNER (
                                                         {userRole === "Owner" &&
@@ -412,7 +410,7 @@ export default function OrganizationManageContainer({
                                 <div className="flex justify-start">
                                     <div className="join mt-4">
                                         <input
-                                            className="input input-bordered join-item w-full"
+                                            className="input join-item w-full"
                                             value={selectedOrganization.secret}
                                         />
                                         <button
@@ -435,7 +433,7 @@ export default function OrganizationManageContainer({
                                         </button>
                                     </div>
                                 </div>
-                                <div className=" divider divider-vertical"></div>
+                                <hr className="my-3 h-px w-full border-0 bg-hairline" />
                                 <div className="flex justify-start items-center mt-4 gap-4 flex-wrap">
                                     <button
                                         className="btn btn-neutral"
@@ -443,7 +441,7 @@ export default function OrganizationManageContainer({
                                     >
                                         Generate new secret key
                                     </button>
-                                    <p className=" text-lg text-red-600">
+                                    <p className="text-lg text-error">
                                         Reroll this regularly!
                                     </p>
                                 </div>

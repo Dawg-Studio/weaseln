@@ -1,0 +1,238 @@
+⚠ Slow filesystem detected. The benchmark took 371ms. If \\?\G:\weaseln\.next\dev is a network drive, consider moving it to a local folder.
+See more: https://nextjs.org/docs/app/guides/local-development
+[browser] A tree hydrated but some attributes of the server rendered HTML didn't match the client properties. This won't be patched up. This can happen if a SSR-ed Client Component used:
+
+- A server/client branch `if (typeof window !== 'undefined')`.
+- Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.
+- Date formatting in a user's locale which doesn't match the server.
+- External changing data without sending a snapshot of it along with the HTML.
+- Invalid HTML tag nesting.
+
+It can also happen if the client has a browser extension installed which messes with the HTML before React loaded.
+
+https://react.dev/link/hydration-mismatch
+
+  ...
+    <SegmentViewNode type="page" pagePath="page.tsx">
+      <SegmentTrieNode>
+      <Home>
+        <ZeFerBgHomepage user={null}>
+          <QueryWrapper>
+            <QueryClientProvider client={{}}>
+              <NextAuthProvider>
+                <SessionProvider>
+                  <Navigation>
+                    <div className="navbar bg-...">
+                      <div>
+                      <div>
+                      <div className="flex-none ...">
+                        <ThemeToggleButton>
+                          <button
+                            type="button"
++                           aria-label="Switch to light theme"
+-                           aria-label="Switch to dark theme"
++                           data-set-theme="light"
+-                           data-set-theme="dark"
+                            className="btn btn-ghost btn-square"
+                          >
+                            <FontAwesomeIcon icon={{prefix:"fas", ...}}>
+                              <svg
+                                aria-hidden="true"
+                                focusable="false"
+                                data-prefix="fas"
++                               data-icon="sun"
+-                               data-icon="moon"
++                               className={"svg-inline--fa fa-sun "}
+-                               className={"svg-inline--fa fa-moon "}
+                                role="img"
+                                xmlns="http://www.w3.org/2000/svg"
++                               viewBox="0 0 512 512"
+-                               viewBox="0 0 384 512"
+                                style={{}}
+                                ref={null}
+                              >
+                                <path
+                                  fill="currentColor"
++                                 d="M361.5 1.2c5 2.1 8.6 6.6 9.6 11.9L391 121l107.9 19.8c5.3 1 9.8 4.6 11.9 9.6s1.5 1..."
+-                                 d="M223.5 32C100 32 0 132.3 0 256S100 480 223.5 480c60.6 0 115.5-24.2 155.8-63.4c5-4..."
+                                  style={{}}
+                                >
+                        ...
+        ...
+    ...
+ 
+[browser] A tree hydrated but some attributes of the server rendered HTML didn't match the client properties. This won't be patched up. This can happen if a SSR-ed Client Component used:
+
+- A server/client branch `if (typeof window !== 'undefined')`.
+- Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.
+- Date formatting in a user's locale which doesn't match the server.
+- External changing data without sending a snapshot of it along with the HTML.
+- Invalid HTML tag nesting.
+
+It can also happen if the client has a browser extension installed which messes with the HTML before React loaded.
+
+https://react.dev/link/hydration-mismatch
+
+  ...
+    <SegmentViewNode type="page" pagePath="page.tsx">
+      <SegmentTrieNode>
+      <Home>
+        <ZeFerBgHomepage user={null}>
+          <QueryWrapper>
+            <QueryClientProvider client={{}}>
+              <NextAuthProvider>
+                <SessionProvider>
+                  <Navigation>
+                    <div className="navbar bg-...">
+                      <div>
+                      <div>
+                      <div className="flex-none ...">
+                        <ThemeToggleButton>
+                          <button
+                            type="button"
++                           aria-label="Switch to light theme"
+-                           aria-label="Switch to dark theme"
++                           data-set-theme="light"
+-                           data-set-theme="dark"
+                            className="btn btn-ghost btn-square"
+                          >
+                            <FontAwesomeIcon icon={{prefix:"fas", ...}}>
+                              <svg
+                                aria-hidden="true"
+                                focusable="false"
+                                data-prefix="fas"
++                               data-icon="sun"
+-                               data-icon="moon"
++                               className={"svg-inline--fa fa-sun "}
+-                               className={"svg-inline--fa fa-moon "}
+                                role="img"
+                                xmlns="http://www.w3.org/2000/svg"
++                               viewBox="0 0 512 512"
+-                               viewBox="0 0 384 512"
+                                style={{}}
+                                ref={null}
+                              >
+                                <path
+                                  fill="currentColor"
++                                 d="M361.5 1.2c5 2.1 8.6 6.6 9.6 11.9L391 121l107.9 19.8c5.3 1 9.8 4.6 11.9 9.6s1.5 1..."
+-                                 d="M223.5 32C100 32 0 132.3 0 256S100 480 223.5 480c60.6 0 115.5-24.2 155.8-63.4c5-4..."
+                                  style={{}}
+                                >
+                        ...
+        ...
+    ...
+ 
+[browser] Image with src "/icons/weasln.png" was detected as the Largest Contentful Paint (LCP). Please add the `loading="eager"` property if this image is above the fold.
+Read more: https://nextjs.org/docs/app/api-reference/components/image#loading
+[browser] Image with src "/icons/weasln.png" was detected as the Largest Contentful Paint (LCP). Please add the `loading="eager"` property if this image is above the fold.
+Read more: https://nextjs.org/docs/app/api-reference/components/image#loading
+[browser] Image with src "/icons/weasln.png" was detected as the Largest Contentful Paint (LCP). Please add the `loading="eager"` property if this image is above the fold.
+Read more: https://nextjs.org/docs/app/api-reference/components/image#loading
+⨯ Error: The destination stream closed early.
+    at ignore-listed frames {
+  digest: '2675678093'
+}
+[browser] Image with src "/icons/weasln.png" was detected as the Largest Contentful Paint (LCP). Please add the `loading="eager"` property if this image is above the fold.
+Read more: https://nextjs.org/docs/app/api-reference/components/image#loading
+[browser] Image with src "/icons/weasln.png" was detected as the Largest Contentful Paint (LCP). Please add the `loading="eager"` property if this image is above the fold.
+Read more: https://nextjs.org/docs/app/api-reference/components/image#loading
+[browser] Image with src "/icons/weasln.png" was detected as the Largest Contentful Paint (LCP). Please add the `loading="eager"` property if this image is above the fold.
+Read more: https://nextjs.org/docs/app/api-reference/components/image#loading
+[browser] Image with src "/icons/weasln.png" was detected as the Largest Contentful Paint (LCP). Please add the `loading="eager"` property if this image is above the fold.
+Read more: https://nextjs.org/docs/app/api-reference/components/image#loading
+[browser] Image with src "/icons/weasln.png" was detected as the Largest Contentful Paint (LCP). Please add the `loading="eager"` property if this image is above the fold.
+Read more: https://nextjs.org/docs/app/api-reference/components/image#loading
+Browserslist: browsers data (caniuse-lite) is 7 months old. Please run:
+  npx update-browserslist-db@latest
+  Why you should do it regularly: https://github.com/browserslist/update-db#readme
+[browser] Image with src "/icons/weaslnnobg.png" was detected as the Largest Contentful Paint (LCP). Please add the `loading="eager"` property if this image is above the fold.
+Read more: https://nextjs.org/docs/app/api-reference/components/image#loading
+[browser] A tree hydrated but some attributes of the server rendered HTML didn't match the client properties. This won't be patched up. This can happen if a SSR-ed Client Component used:
+
+- A server/client branch `if (typeof window !== 'undefined')`.
+- Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.
+- Date formatting in a user's locale which doesn't match the server.
+- External changing data without sending a snapshot of it along with the HTML.
+- Invalid HTML tag nesting.
+
+It can also happen if the client has a browser extension installed which messes with the HTML before React loaded.
+
+https://react.dev/link/hydration-mismatch
+
+  ...
+    <SegmentViewNode type="page" pagePath="page.tsx">
+      <SegmentTrieNode>
+      <Home>
+        <ZeFerBgHomepage user={null}>
+          <QueryWrapper>
+            <QueryClientProvider client={{}}>
+              <NextAuthProvider>
+                <SessionProvider>
+                  <Navigation>
+                    <div className="navbar bg-...">
+                      <div>
+                      <div>
+                      <div className="flex-none ...">
+                        <ThemeToggleButton>
+                          <button
+                            type="button"
++                           aria-label="Switch to light theme"
+-                           aria-label="Switch to dark theme"
++                           data-set-theme="light"
+-                           data-set-theme="dark"
+                            className="btn btn-ghost btn-square"
+                          >
+                            <FontAwesomeIcon icon={{prefix:"fas", ...}}>
+                              <svg
+                                aria-hidden="true"
+                                focusable="false"
+                                data-prefix="fas"
++                               data-icon="sun"
+-                               data-icon="moon"
++                               className={"svg-inline--fa fa-sun "}
+-                               className={"svg-inline--fa fa-moon "}
+                                role="img"
+                                xmlns="http://www.w3.org/2000/svg"
++                               viewBox="0 0 512 512"
+-                               viewBox="0 0 384 512"
+                                style={{}}
+                                ref={null}
+                              >
+                                <path
+                                  fill="currentColor"
++                                 d="M361.5 1.2c5 2.1 8.6 6.6 9.6 11.9L391 121l107.9 19.8c5.3 1 9.8 4.6 11.9 9.6s1.5 1..."
+-                                 d="M223.5 32C100 32 0 132.3 0 256S100 480 223.5 480c60.6 0 115.5-24.2 155.8-63.4c5-4..."
+                                  style={{}}
+                                >
+                        ...
+        ...
+    ...
+ 
+[browser] Image with src "/icons/weaslnnobg.png" was detected as the Largest Contentful Paint (LCP). Please add the `loading="eager"` property if this image is above the fold.
+Read more: https://nextjs.org/docs/app/api-reference/components/image#loading
+[browser] Image with src "/icons/weaslnnobg.png" was detected as the Largest Contentful Paint (LCP). Please add the `loading="eager"` property if this image is above the fold.
+Read more: https://nextjs.org/docs/app/api-reference/components/image#loading
+
+thread 'tokio-rt-worker' (36440) panicked at turbopack\crates\turbo-tasks-backend\src\backend\operation\mod.rs:292:17:
+Restore of All for task TaskId 302941 failed in another thread: restoring failed
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+thread 'tokio-rt-worker' (1868) panicked at turbopack\crates\turbo-tasks-backend\src\backend\operation\mod.rs:292:17:
+Restore of All for task TaskId 301959 failed in another thread: restoring failed
+
+thread 'tokio-rt-worker' (2296) panicked at turbopack\crates\turbo-tasks-backend\src\backend\operation\mod.rs:292:17:
+Restore of All for task TaskId 302709 failed in another thread: restoring failed
+
+thread 'tokio-rt-worker' (24016) panicked at turbopack\crates\turbo-tasks-backend\src\backend\operation\mod.rs:292:17:
+Restore of All for task TaskId 361605 failed in another thread: restoring failed
+
+thread 'tokio-rt-worker' (16832) panicked at turbopack\crates\turbo-tasks-backend\src\backend\operation\mod.rs:292:17:
+Restore of All for task TaskId 301959 failed in another thread: restoring failed
+
+turbo-tasks: an internal panic occurred outside the per-task panic boundary. This is a bug in turbo-tasks/Turbopack — please report it at https://github.com/vercel/next.js/discussions and include the panic message and stack trace above.
+
+Aborting.
+
+turbo-tasks: an internal panic occurred outside the per-task panic boundary. This is a bug in turbo-tasks/Turbopack — please report it at https://github.com/vercel/next.js/discussions and include the panic message and stack trace above.
+
+Aborting.

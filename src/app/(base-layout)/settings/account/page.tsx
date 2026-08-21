@@ -26,7 +26,7 @@ export default async function AccountSettings() {
 
     return (
         <div className="mx-auto lg:w-9/12 justify-center">
-            <div className="shadow-lg p-12 rounded-md space-y-2">
+            <div className="rounded-box border border-hairline bg-surface p-5 elev-1 sm:p-6 space-y-5">
                 <AccountSettingsComponent providers={[...linkedProviders]} />
                 <ApiKeys initialApiKeys={maskedKeys} />
             </div>

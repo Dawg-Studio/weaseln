@@ -1,6 +1,6 @@
 {
-    "name": "ZeFer",
-    "short_name": "ZeFer",
+    "name": "Weaseln",
+    "short_name": "Weaseln",
     "icons": [
         {
             "src": "/icons/192.png",
@@ -19,8 +19,8 @@
             "type": "image/png"
         }
     ],
-    "theme_color": "#FFFFFF",
-    "background_color": "#FFFFFF",
+    "theme_color": "#FBF8F0",
+    "background_color": "#FBF8F0",
     "start_url": "/",
     "display": "standalone",
     "orientation": "portrait"

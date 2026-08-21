@@ -1,20 +1,57 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 1080" preserveAspectRatio="xMidYMid slice">
   <defs>
-    <linearGradient id="g1" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="#581c87"/>
-      <stop offset="50%" stop-color="#be185d"/>
-      <stop offset="100%" stop-color="#ea580c"/>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1080" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FCF9F2"/>
+      <stop offset="1" stop-color="#EAD9B8"/>
     </linearGradient>
-    <radialGradient id="g2" cx="0.5" cy="0.5" r="0.7">
-      <stop offset="0%" stop-color="#fef3c7" stop-opacity="0.3"/>
-      <stop offset="100%" stop-color="#fef3c7" stop-opacity="0"/>
-    </radialGradient>
+    <linearGradient id="head" x1="200" y1="120" x2="360" y2="440" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#C87A4E"/>
+      <stop offset="1" stop-color="#A9573A"/>
+    </linearGradient>
+    <linearGradient id="badge" x1="64" y1="32" x2="448" y2="480" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FDFCF7"/>
+      <stop offset="1" stop-color="#F3EAD9"/>
+    </linearGradient>
+    <symbol id="weaseln" viewBox="0 0 512 512">
+      <rect x="24" y="24" width="464" height="464" rx="116" fill="url(#badge)"/>
+      <rect x="24" y="24" width="464" height="464" rx="116" stroke="#DF9F53" stroke-opacity="0.55" stroke-width="10"/>
+      <circle cx="256" cy="256" r="206" stroke="#B76745" stroke-opacity="0.18" stroke-width="6"/>
+      <g>
+        <path d="M222 168 L124 92 L170 210 Z" fill="url(#head)" stroke="url(#head)" stroke-width="14" stroke-linejoin="round"/>
+        <path d="M290 168 L388 92 L342 210 Z" fill="url(#head)" stroke="url(#head)" stroke-width="14" stroke-linejoin="round"/>
+        <path d="M188 430 C 148 366 142 252 178 186 C 214 122 298 122 334 186 C 370 252 364 366 324 430 C 306 454 206 454 188 430 Z" fill="url(#head)"/>
+        <path d="M208 176 L150 126 L184 196 Z" fill="#F8EFDC" opacity="0.9"/>
+        <path d="M304 176 L362 126 L328 196 Z" fill="#F8EFDC" opacity="0.9"/>
+        <path d="M218 306 C 234 288 278 288 294 306 C 316 328 322 360 308 388 C 296 408 272 414 256 414 C 240 414 216 408 204 388 C 190 360 196 328 218 306 Z" fill="#DF9F53"/>
+        <circle cx="204" cy="252" r="17" fill="#2E2016"/>
+        <circle cx="308" cy="252" r="17" fill="#2E2016"/>
+        <circle cx="199" cy="247" r="6" fill="#FBF8F0"/>
+        <circle cx="303" cy="247" r="6" fill="#FBF8F0"/>
+        <ellipse cx="256" cy="322" rx="15" ry="10" fill="#2E2016"/>
+        <path d="M238 384 Q256 398 274 384" stroke="#B76745" stroke-width="9" fill="none" stroke-linecap="round"/>
+        <circle cx="196" cy="350" r="5" fill="#FBF8F0" opacity="0.95"/>
+        <circle cx="188" cy="368" r="5" fill="#FBF8F0" opacity="0.95"/>
+        <circle cx="200" cy="386" r="5" fill="#FBF8F0" opacity="0.95"/>
+        <circle cx="316" cy="350" r="5" fill="#FBF8F0" opacity="0.95"/>
+        <circle cx="324" cy="368" r="5" fill="#FBF8F0" opacity="0.95"/>
+        <circle cx="312" cy="386" r="5" fill="#FBF8F0" opacity="0.95"/>
+      </g>
+    </symbol>
   </defs>
-  <rect width="1920" height="1080" fill="url(#g1)"/>
-  <rect width="1920" height="1080" fill="url(#g2)"/>
-  <g transform="translate(960 540)" opacity="0.4">
-    <polygon points="0,-300 260,150 -260,150" fill="#fef3c7"/>
-    <polygon points="0,-180 156,90 -156,90" fill="#ea580c"/>
-    <polygon points="0,-80 70,40 -70,40" fill="#fef3c7"/>
-  </g>
+  <rect width="1920" height="1080" fill="url(#sky)"/>
+  <circle cx="960" cy="400" r="200" fill="#DF9F53" opacity="0.5"/>
+  <path d="M0 640 C 360 480 720 620 1080 560 C 1440 500 1680 600 1920 540 L 1920 1080 L 0 1080 Z" fill="#DF9F53" opacity="0.55"/>
+  <path d="M0 800 C 400 660 800 820 1240 740 C 1560 682 1760 780 1920 740 L 1920 1080 L 0 1080 Z" fill="#B76745" opacity="0.7"/>
+  <path d="M0 1000 C 520 900 1080 1000 1920 940 L 1920 1080 L 0 1080 Z" fill="#2E2016" opacity="0.55"/>
+  <path d="M0 560 C 480 480 960 620 1440 520 C 1680 470 1800 400 1920 300" stroke="#C87A4E" stroke-width="16" fill="none" stroke-linecap="round" opacity="0.5"/>
+  <path d="M0 600 C 480 520 960 660 1440 560 C 1680 510 1800 440 1920 340" stroke="#FCF9F2" stroke-width="8" fill="none" stroke-linecap="round" opacity="0.5"/>
+  <circle cx="300" cy="260" r="24" fill="#DF9F53"/>
+  <circle cx="420" cy="320" r="11" fill="#B76745"/>
+  <circle cx="640" cy="240" r="8" fill="#B76745" opacity="0.6"/>
+  <circle cx="1220" cy="300" r="14" fill="#FCF9F2" opacity="0.9"/>
+  <circle cx="1560" cy="240" r="9" fill="#DF9F53"/>
+  <circle cx="1720" cy="420" r="12" fill="#FCF9F2" opacity="0.8"/>
+  <circle cx="480" cy="560" r="9" fill="#FCF9F2" opacity="0.6"/>
+  <circle cx="1040" cy="700" r="7" fill="#FCF9F2" opacity="0.5"/>
+  <image href="/icons/weasln.png" x="1500" y="790" width="300" height="225" opacity="0.16" preserveAspectRatio="xMidYMid meet"/>
 </svg>

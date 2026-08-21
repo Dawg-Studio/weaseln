@@ -13,15 +13,15 @@ config.autoAddCss = false;
 
 const inter = Inter({ subsets: ["latin"] });
 
-const APP_NAME = "ZeFer";
+const APP_NAME = "Weaseln";
 const APP_DEFAULT_TITLE =
-    "ZeFer, a publishing platform for developers and creatives alike.";
-const APP_TITLE_TEMPLATE = "%s | ZeFer";
+    "Weaseln, a publishing platform for developers and creatives alike.";
+const APP_TITLE_TEMPLATE = "%s | Weaseln";
 const APP_DESCRIPTION =
     "A dynamic publishing platform for developers and creatives to share their content or story to the world.";
 
 export const viewport: Viewport = {
-    themeColor: "#FFFFFF",
+    themeColor: "#FBF8F0",
 };
 
 export const metadata: Metadata = {
@@ -43,7 +43,7 @@ export const metadata: Metadata = {
             template: APP_TITLE_TEMPLATE,
         },
         description: APP_DESCRIPTION,
-        images: "/zefer-bg.svg",
+        images: "/weaseln-bg.svg",
     },
     twitter: {
         card: "summary",
@@ -74,14 +74,14 @@ export const metadata: Metadata = {
         telephone: false,
     },
     keywords: [
-        "ZeFer",
+        "Weaseln",
         "blog",
         "publishing",
         "developers",
         "creatives",
         "content",
         "story",
-        "zefer",
+        "weaseln",
         "publishing platform",
         "blog posts",
         "posts",
@@ -112,7 +112,23 @@ export default async function RootLayout({
                 <Suspense>
                     <NextTopLoader showSpinner={false} />
                 </Suspense>
-                <Toaster position="top-center" gutter={24} />
+                {/* react-hot-toast hardcodes `background:#fff; color:#363636`
+                    as an INLINE style, so a className alone cannot reach it —
+                    the inline values have to be neutralised first, then the
+                    token-based surface applied through the class. */}
+                <Toaster
+                    position="top-center"
+                    gutter={24}
+                    toastOptions={{
+                        className:
+                            "rounded-box border border-hairline bg-surface text-base-content elev-3",
+                        style: {
+                            background: "transparent",
+                            boxShadow: "none",
+                            color: "inherit",
+                        },
+                    }}
+                />
                 {children}
                 <Analytics />
                 <SpeedInsights />

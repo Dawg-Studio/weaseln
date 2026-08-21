@@ -43,10 +43,10 @@ function PresetCard({
             role="radio"
             aria-checked={selected}
             onClick={onSelect}
-            className={`group relative text-left rounded-lg border-2 transition-all duration-150 overflow-hidden focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 hover:-translate-y-0.5 ${
+            className={`group relative text-left rounded-box border-2 transition-all duration-150 overflow-hidden focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 hover:-translate-y-0.5 ${
                 selected
-                    ? "border-primary shadow-md ring-1 ring-primary/30"
-                    : "border-base-300 hover:border-base-content/30"
+                    ? "border-primary elev-2 ring-1 ring-primary/30"
+                    : "border-hairline hover:border-hairline-strong"
             }`}
         >
             {selected && (

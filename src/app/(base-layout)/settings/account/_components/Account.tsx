@@ -1,5 +1,6 @@
 "use client";
 import Modal from "@/components/ui/Modal";
+import { cn } from "@/utils/cn";
 import { deleteUser, unlinkAccount } from "@/utils/actions/account";
 import { faGithub, faGoogle } from "@fortawesome/free-brands-svg-icons";
 import { faGlobe } from "@fortawesome/free-solid-svg-icons";
@@ -40,30 +41,32 @@ function ProviderList({
         <>
             <div className="container pt-4">
                 <Modal ref={modalOauthRemoveRef}>
-                    <h3 className="font-bold text-lg mt-4">
+                    <h3 className="mt-4 text-headline text-base-content">
                         Remove{" "}
                         {provider.charAt(0).toUpperCase() + provider.slice(1)}{" "}
                         Account
                     </h3>
-                    <p className="text-md">
+                    <p className="measure text-sm text-base-content/70">
                         Are you sure you want to remove this account?
                     </p>
-                    <div className="modal-action">
+                    <div className="modal-action mt-6 gap-2 pt-4 hairline-t">
                         <form method="dialog">
-                            <div className="flex gap-4">
+                            <div className="flex gap-2">
                                 <button
-                                    className="btn btn-error"
+                                    className="btn btn-error h-11 min-h-11 rounded-field px-5 text-sm font-semibold press"
                                     onClick={handleConfirmRemove}
                                 >
                                     Remove
                                 </button>
-                                <button className="btn">Close</button>
+                                <button className="btn btn-ghost h-11 min-h-11 rounded-field px-5 text-sm font-semibold press">
+                                    Close
+                                </button>
                             </div>
                         </form>
                     </div>
                 </Modal>
                 <div className="lg:space-x-4 space-y-4">
-                    <h2 className="text-2xl font-bold">
+                    <h2 className="brand-rule text-headline text-base-content">
                         {linkAction} OAuth Accounts
                     </h2>
                     {displayProviders.map((provider) => (
@@ -76,10 +79,16 @@ function ProviderList({
                                 }
                             >
                                 <div
-                                    className={`flex gap-4 items-center shadow-md w-72 justify-center p-4 ${
-                                        linkAction === "Remove" &&
-                                        "bg-error text-white"
-                                    } rounded-lg`}
+                                    className={cn(
+                                        "flex w-72 items-center justify-center gap-4 rounded-box border border-hairline p-4 elev-1 press",
+                                        // `text-white` on an error fill is only
+                                        // 2.87:1 against the dark theme's error.
+                                        // error-content is tuned per theme
+                                        // (5.64:1 light / 6.48:1 dark).
+                                        linkAction === "Remove"
+                                            ? "bg-error text-error-content"
+                                            : "bg-surface text-base-content",
+                                    )}
                                 >
                                     <FontAwesomeIcon
                                         icon={PROVIDER_ICONS[
@@ -87,7 +96,7 @@ function ProviderList({
                                         ] ?? faGlobe}
                                         size="xl"
                                     />
-                                    <p className="text-md">
+                                    <p className="text-sm font-medium">
                                         {linkAction === "Connect"
                                             ? "Sign in with"
                                             : "Remove"}{" "}
@@ -173,23 +182,26 @@ export default function AccountSettingsComponent({
                 />
             )}
             <div className="container pt-4">
-                <h2 className="text-2xl font-bold">Delete Account</h2>
-                <p className="text-md mt-4">
+                <h2 className="brand-rule text-headline text-base-content">
+                    Delete Account
+                </h2>
+                <p className="measure mt-4 text-sm text-base-content/70">
                     Deleting your account will remove all your posts, reactions,
                     comments and your information stored within our database.
                 </p>
                 <div className="mt-4 mb-4">
                     <input
-                        className="input input-bordered"
+                        aria-label='Type DELETE to confirm account deletion'
+                        className="input h-11 w-full rounded-field border-hairline bg-surface text-base-content transition-[border-color,box-shadow] duration-150 placeholder:text-muted hover:border-hairline-strong focus:border-primary focus:[--input-color:var(--color-primary)] max-w-xs"
                         onChange={(e) => setInputDelete(e.currentTarget.value)}
                     />
-                    <p className="text-sm mt-2">
+                    <p className="mt-2 text-meta text-muted">
                         Type &quot;DELETE&quot; to proceed on deleting your
                         account.
                     </p>
                 </div>
                 <button
-                    className="btn btn-error text-white"
+                    className="btn btn-error h-11 min-h-11 rounded-field px-5 text-sm font-semibold press"
                     value={inputDelete}
                     disabled={inputDelete !== "DELETE"}
                     onClick={deleteAccount}

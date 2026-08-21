@@ -3,6 +3,7 @@
 import { useRef, useState } from "react";
 import NextImage from "next/image";
 import Modal from "@/components/ui/Modal";
+import { cn } from "@/utils/cn";
 
 export default function ImageUploadForm({
     onUpload,
@@ -31,7 +32,12 @@ export default function ImageUploadForm({
         <>
             <label
                 htmlFor="coverImage"
-                className={`btn ${previewUrl ? "btn-info" : "btn-outline"}`}
+                className={cn(
+                    "btn h-11 min-h-11 rounded-field px-5 text-sm font-semibold press",
+                    previewUrl
+                        ? "border-primary bg-tint text-base-content hover:border-primary hover:bg-tint-strong"
+                        : "btn-outline border-hairline-strong bg-transparent text-base-content hover:border-primary hover:bg-tint hover:text-base-content",
+                )}
                 onClick={handleButtonClick}
             >
                 {previewUrl ? "View Cover Image" : "Add Cover Image"}

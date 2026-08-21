@@ -92,7 +92,7 @@ function SelectField<T extends string>({
             </label>
             <select
                 id={id}
-                className="select select-bordered w-full bg-base-100 focus:outline-none focus:ring-2 focus:ring-primary/40 transition-colors"
+                className="select w-full bg-base-100 focus:outline-none focus:ring-2 focus:ring-primary/40 transition-colors"
                 value={value}
                 onChange={(e) => onChange(e.target.value as T)}
             >
@@ -255,7 +255,7 @@ export default function ProfileCustomizationComponent({
     return (
         <div className="mx-auto lg:w-9/12 justify-center grid grid-cols-1 lg:grid-cols-3 gap-6">
             <div className="lg:col-span-2 space-y-6">
-                <div className="shadow-lg p-12 rounded-md space-y-2">
+                <div className="rounded-box border border-hairline bg-surface p-5 elev-1 sm:p-6 space-y-5">
                     <div className="flex items-center justify-between">
                         <h3 className="text-2xl font-bold">Profile Customization</h3>
                         <span
@@ -287,7 +287,7 @@ export default function ProfileCustomizationComponent({
                     </div>
                 </div>
 
-                <div className="shadow-lg p-12 rounded-md space-y-2">
+                <div className="rounded-box border border-hairline bg-surface p-5 elev-1 sm:p-6 space-y-5">
                     <h3 className="text-2xl font-bold">Sections</h3>
                     <ul className="space-y-2">
                         {customization.layout.sectionOrder.map((section, index) => {
@@ -337,7 +337,7 @@ export default function ProfileCustomizationComponent({
                     </ul>
                 </div>
 
-            <div className="shadow-lg p-12 rounded-md space-y-2">
+            <div className="rounded-box border border-hairline bg-surface p-5 elev-1 sm:p-6 space-y-5">
                 <h3 className="text-2xl font-bold">Colors</h3>
                 {COLOR_FIELDS.map(({ field, label }) => (
                     <div key={field} className="flex items-center gap-3">
@@ -374,7 +374,7 @@ export default function ProfileCustomizationComponent({
                 ))}
             </div>
 
-            <div className="shadow-lg p-12 rounded-md space-y-2">
+            <div className="rounded-box border border-hairline bg-surface p-5 elev-1 sm:p-6 space-y-5">
                 <h3 className="text-2xl font-bold">Background Image</h3>
                 {backgroundPreview && (
                     // eslint-disable-next-line @next/next/no-img-element -- preview may be a blob URL; next/image cannot optimize unknown hosts.
@@ -423,7 +423,7 @@ export default function ProfileCustomizationComponent({
                 />
             </div>
 
-            <div className="shadow-lg p-12 rounded-md space-y-2">
+            <div className="rounded-box border border-hairline bg-surface p-5 elev-1 sm:p-6 space-y-5">
                 <h3 className="text-2xl font-bold">Cards and Surfaces</h3>
                 <SelectField
                     id="cardRadius"
@@ -448,7 +448,7 @@ export default function ProfileCustomizationComponent({
                 />
             </div>
 
-            <div className="shadow-lg p-12 rounded-md space-y-2">
+            <div className="rounded-box border border-hairline bg-surface p-5 elev-1 sm:p-6 space-y-5">
                 <h3 className="text-2xl font-bold">Typography</h3>
                 <SelectField
                     id="fontFamily"

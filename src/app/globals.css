@@ -1,77 +1,749 @@
 @import "tailwindcss";
 
+/* ==========================================================================
+   Weaseln — "Warm Signal"
+   The authoritative design system. Palette source of truth: docs/ASSETS.md.
+
+   Brand hex -> oklch:
+     cream       #FBF8F0  oklch(97.9%  0.011 90)   canvas / PWA theme_color
+     cream-lift  #FDFCF7  oklch(99.1%  0.007 97)   raised sheet (--color-surface)
+     cream-shade #F3EAD9  oklch(93.9%  0.025 83)   base-300, rules, skeleton stock
+     tan         #DF9F53  oklch(75%    0.120 69)   secondary  (FILLS ONLY in light)
+     rust        #B76745  oklch(59.8%  0.114 43)   brand mid — see note below
+     rust-soft   #C87A4E  oklch(65.4%  0.114 49)   accent
+     rust-deep   #A9573A  oklch(55%    0.116 40)   PRIMARY
+     ink         #2E2016  oklch(25.8%  0.028 57)   neutral / darkest surface
+     coffee      #59402A  oklch(39.4%  0.049 62)   the muted voice
+
+   Contrast decisions (computed, not eyeballed):
+     - rust #B76745 cannot be a semantic token: cream-on-rust is 3.93:1 and
+       ink-on-rust is 3.73:1 — both fail AA. Primary is therefore rust-deep
+       #A9573A, which scores 4.80:1 BOTH as text on cream and as cream text on
+       the fill, so one token safely serves links and buttons.
+     - tan is kept at its exact brand value but is never text on cream (2.14:1).
+       Fills, rings and rules only, where ink-on-tan reads 6.92:1.
+     - Light body text: 12.96:1 on base-100, 12.36:1 on base-200, 11.50:1 on
+       base-300, 13.42:1 on surface. Dark: 15.05 / 13.61 / 11.35 / 13.61.
+     - text-base-content/60 fails on cream (3.91:1). /70 is the hard floor
+       (5.13:1 light, 7.78:1 dark); prefer the explicit text-muted token
+       (6.79:1 light, 7.45:1 dark), which is AA by construction.
+     - primary text on a primary/12 tint is only 4.11:1 in light. Active and
+       selected states therefore use a tint background with base-content text
+       plus a primary rail — never rust-on-rust-tint.
+
+   Engineering note: every multi-value token (shadows, gradients) lives OUTSIDE
+   the daisyUI @plugin blocks. Tailwind v4 parses @plugin options and splits
+   comma-separated values into separate declarations, which silently destroys
+   multi-layer box-shadows. Plain theme-keyed CSS keeps them intact.
+   ========================================================================== */
+
 @plugin "daisyui" {
-    themes: light --default, dark;
+    /* Both themes are fully defined below with @plugin "daisyui/theme", and
+       that is what registers them — light carries default:true, so it owns the
+       :where(:root) fallback selector. Listing the stock light/dark here as
+       well would additionally emit ~3.8KB of achromatic tokens under the very
+       same selectors as ours, losing to them on source order alone. Any later
+       reshuffle of these blocks would then silently revert the product to
+       grayscale with no build error. Opt out, and keep one definition per
+       theme. */
+    themes: false;
 }
 
+/* ------------------------------- LIGHT ---------------------------------- */
 @plugin "daisyui/theme" {
     name: "light";
     default: true;
     prefersdark: false;
     color-scheme: light;
 
-    --color-base-100: oklch(100% 0 0);
-    --color-base-200: oklch(98% 0 0);
-    --color-base-300: oklch(92% 0 0);
-    --color-base-content: oklch(15% 0 0);
+    /* cream -> warm paper -> cream-shade */
+    --color-base-100: oklch(97.9% 0.011 90);
+    --color-base-200: oklch(96.3% 0.016 87);
+    --color-base-300: oklch(93.9% 0.025 83);
+    --color-base-content: oklch(30% 0.04 59);
 
-    --color-primary: oklch(20% 0 0);
-    --color-primary-content: oklch(98% 0 0);
+    /* rust-deep — 4.80:1 as text on cream AND for cream text on the fill */
+    --color-primary: oklch(55% 0.116 40);
+    --color-primary-content: oklch(97.9% 0.011 90);
 
-    --color-secondary: oklch(45% 0 0);
-    --color-secondary-content: oklch(98% 0 0);
+    /* tan — fills, rings and rules only; never small text on cream */
+    --color-secondary: oklch(75% 0.12 69);
+    --color-secondary-content: oklch(25.8% 0.028 57);
 
-    --color-accent: oklch(55% 0 0);
-    --color-accent-content: oklch(98% 0 0);
+    /* rust-soft */
+    --color-accent: oklch(66% 0.115 50);
+    --color-accent-content: oklch(21% 0.028 52);
 
-    --color-neutral: oklch(25% 0 0);
-    --color-neutral-content: oklch(98% 0 0);
+    /* ink */
+    --color-neutral: oklch(25.8% 0.028 57);
+    --color-neutral-content: oklch(97% 0.012 90);
 
-    --radius-selector: 0.375rem;
-    --radius-field: 0.5rem;
-    --radius-box: 0.75rem;
+    --color-info: oklch(52% 0.09 232);
+    --color-info-content: oklch(97.9% 0.011 90);
+    --color-success: oklch(50% 0.095 150);
+    --color-success-content: oklch(97.9% 0.011 90);
+    --color-warning: oklch(76% 0.135 73);
+    --color-warning-content: oklch(25.8% 0.028 57);
+    --color-error: oklch(52% 0.165 27);
+    --color-error-content: oklch(97.9% 0.011 90);
+
+    /* radii echo the logo badge (rx 116 on a 512 viewBox is ~22.6%) */
+    --radius-selector: 0.5rem;
+    --radius-field: 0.625rem;
+    --radius-box: 1rem;
 
     --size-selector: 0.25rem;
     --size-field: 0.25rem;
 
+    /* depth 1 lets daisyUI tint each control drop shadow with that control own
+       background, so a rust button reads as lit rather than pasted on. */
     --border: 1px;
-    --depth: 0;
+    --depth: 1;
     --noise: 0;
 }
 
+/* -------------------------------- DARK ---------------------------------- */
+/* A lit burrow, not a void: every neutral holds 0.015-0.023 chroma at hue
+   55-57, so surfaces and shadows read warm instead of blue-gray. The ramp
+   ASCENDS (base-100 darkest -> base-300 lightest) so that bg-base-200 means
+   "one step off the canvas" in both themes and every class recipe in this
+   system works unchanged under either. */
 @plugin "daisyui/theme" {
     name: "dark";
     default: false;
     prefersdark: false;
     color-scheme: dark;
 
-    --color-base-100: oklch(14% 0 0);
-    --color-base-200: oklch(18% 0 0);
-    --color-base-300: oklch(22% 0 0);
-    --color-base-content: oklch(96% 0 0);
+    --color-base-100: oklch(19% 0.015 55);
+    --color-base-200: oklch(23.5% 0.019 56);
+    --color-base-300: oklch(29.5% 0.023 57);
+    --color-base-content: oklch(93% 0.018 85);
 
-    --color-primary: oklch(96% 0 0);
-    --color-primary-content: oklch(14% 0 0);
+    --color-primary: oklch(74% 0.118 48);
+    --color-primary-content: oklch(20% 0.028 52);
 
-    --color-secondary: oklch(65% 0 0);
-    --color-secondary-content: oklch(14% 0 0);
+    --color-secondary: oklch(81% 0.105 74);
+    --color-secondary-content: oklch(21% 0.03 60);
 
-    --color-accent: oklch(75% 0 0);
-    --color-accent-content: oklch(14% 0 0);
+    --color-accent: oklch(70% 0.12 45);
+    --color-accent-content: oklch(19% 0.03 44);
 
-    --color-neutral: oklch(85% 0 0);
-    --color-neutral-content: oklch(14% 0 0);
+    --color-neutral: oklch(31% 0.024 57);
+    --color-neutral-content: oklch(93% 0.018 85);
 
-    --radius-selector: 0.375rem;
-    --radius-field: 0.5rem;
-    --radius-box: 0.75rem;
+    --color-info: oklch(76% 0.09 232);
+    --color-info-content: oklch(19% 0.03 232);
+    --color-success: oklch(78% 0.11 152);
+    --color-success-content: oklch(19% 0.03 152);
+    --color-warning: oklch(83% 0.13 78);
+    --color-warning-content: oklch(21% 0.03 60);
+    --color-error: oklch(70% 0.16 25);
+    --color-error-content: oklch(19% 0.03 25);
+
+    --radius-selector: 0.5rem;
+    --radius-field: 0.625rem;
+    --radius-box: 1rem;
 
     --size-selector: 0.25rem;
     --size-field: 0.25rem;
 
     --border: 1px;
-    --depth: 0;
+    --depth: 1;
     --noise: 0;
 }
 
 @plugin "@tailwindcss/typography";
+
+/* dark: follows the app data-theme toggle (layout.tsx + theme-change),
+   not the OS preference. */
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
+/* ==========================================================================
+   Weaseln extension tokens — deliberately outside the @plugin blocks.
+   Specificity is equal across the light selectors and the dark ones, so
+   source order decides: :root supplies light, the dark block overrides.
+   ========================================================================== */
+:root,
+[data-theme="light"],
+:root:has(input.theme-controller[value="light"]:checked) {
+    /* cream-lift: a raised sheet, one step ABOVE the cream canvas */
+    --wsl-surface: oklch(99.1% 0.007 97);
+    /* a recessed well: code blocks, inputs on tinted panels, wells */
+    --wsl-sunk: oklch(94.8% 0.022 85);
+    /* the coffee voice — AA metadata without relying on opacity (6.79:1) */
+    --wsl-muted: oklch(46% 0.048 61);
+
+    --wsl-hairline: oklch(30% 0.04 59 / 0.13);
+    --wsl-hairline-strong: oklch(30% 0.04 59 / 0.24);
+    /* rust wash for active / selected states — carries base-content text */
+    --wsl-tint: oklch(55% 0.116 40 / 0.1);
+    --wsl-tint-strong: oklch(55% 0.116 40 / 0.16);
+    /* tan wash for the "saved / set aside" family and for selection */
+    --wsl-tint-warm: oklch(75% 0.12 69 / 0.18);
+
+    --wsl-nav-bg: oklch(97.9% 0.011 90 / 0.82);
+    --wsl-scrim: oklch(25.8% 0.028 57 / 0.45);
+    --wsl-scroll-thumb: oklch(30% 0.04 59 / 0.24);
+    --wsl-scroll-thumb-hover: oklch(30% 0.04 59 / 0.4);
+
+    /* Warm ink elevation — never pure black in light. */
+    --wsl-e1:
+        0 1px 2px -1px oklch(25.8% 0.028 57 / 0.08),
+        0 1px 3px oklch(25.8% 0.028 57 / 0.06);
+    --wsl-e2:
+        0 2px 4px -2px oklch(25.8% 0.028 57 / 0.08),
+        0 6px 14px -4px oklch(25.8% 0.028 57 / 0.1);
+    --wsl-e3:
+        0 4px 8px -4px oklch(25.8% 0.028 57 / 0.08),
+        0 14px 30px -8px oklch(25.8% 0.028 57 / 0.14);
+    --wsl-e4:
+        0 8px 16px -8px oklch(25.8% 0.028 57 / 0.1),
+        0 28px 56px -16px oklch(25.8% 0.028 57 / 0.2);
+}
+
+[data-theme="dark"],
+:root:has(input.theme-controller[value="dark"]:checked) {
+    --wsl-surface: oklch(23.5% 0.019 56);
+    --wsl-sunk: oklch(15.5% 0.013 54);
+    --wsl-muted: oklch(72% 0.028 82);
+
+    --wsl-hairline: oklch(93% 0.018 85 / 0.14);
+    --wsl-hairline-strong: oklch(93% 0.018 85 / 0.26);
+    --wsl-tint: oklch(74% 0.118 48 / 0.16);
+    --wsl-tint-strong: oklch(74% 0.118 48 / 0.24);
+    --wsl-tint-warm: oklch(81% 0.105 74 / 0.2);
+
+    --wsl-nav-bg: oklch(19% 0.015 55 / 0.8);
+    --wsl-scrim: oklch(11% 0.01 54 / 0.62);
+    --wsl-scroll-thumb: oklch(93% 0.018 85 / 0.2);
+    --wsl-scroll-thumb-hover: oklch(93% 0.018 85 / 0.34);
+
+    --wsl-e1: 0 1px 2px -1px oklch(0% 0 0 / 0.4), 0 1px 3px oklch(0% 0 0 / 0.35);
+    --wsl-e2:
+        0 2px 4px -2px oklch(0% 0 0 / 0.45), 0 6px 14px -4px oklch(0% 0 0 / 0.45);
+    --wsl-e3:
+        0 4px 8px -4px oklch(0% 0 0 / 0.5), 0 14px 30px -8px oklch(0% 0 0 / 0.55);
+    --wsl-e4:
+        0 8px 16px -8px oklch(0% 0 0 / 0.55),
+        0 28px 56px -16px oklch(0% 0 0 / 0.65);
+}
+
+/* ------------------- Theme-aware tokens exposed as utilities ------------- */
+/* inline, so the var() is written straight into each utility and picks up
+   whichever theme block is active at runtime. */
+@theme inline {
+    --color-surface: var(--wsl-surface);
+    --color-sunk: var(--wsl-sunk);
+    --color-muted: var(--wsl-muted);
+    --color-hairline: var(--wsl-hairline);
+    --color-hairline-strong: var(--wsl-hairline-strong);
+    --color-tint: var(--wsl-tint);
+    --color-tint-strong: var(--wsl-tint-strong);
+    --color-tint-warm: var(--wsl-tint-warm);
+    --color-scrim: var(--wsl-scrim);
+}
+
+/* ------------------------------ Type scale ------------------------------ */
+/* One named ladder for the whole product. Negative tracking on the large end,
+   positive on the eyebrow. Inter is loaded by layout.tsx via next/font — this
+   scale only sets size, leading, tracking and weight, never the family. */
+@theme {
+    --text-display: 3rem;
+    --text-display--line-height: 1.06;
+    --text-display--letter-spacing: -0.03em;
+    --text-display--font-weight: 800;
+
+    --text-title: 2rem;
+    --text-title--line-height: 1.14;
+    --text-title--letter-spacing: -0.025em;
+    --text-title--font-weight: 700;
+
+    --text-headline: 1.375rem;
+    --text-headline--line-height: 1.26;
+    --text-headline--letter-spacing: -0.018em;
+    --text-headline--font-weight: 700;
+
+    --text-subhead: 1.0625rem;
+    --text-subhead--line-height: 1.5;
+    --text-subhead--letter-spacing: -0.006em;
+
+    --text-meta: 0.8125rem;
+    --text-meta--line-height: 1.15rem;
+    --text-meta--letter-spacing: 0.004em;
+
+    --text-eyebrow: 0.6875rem;
+    --text-eyebrow--line-height: 1rem;
+    --text-eyebrow--letter-spacing: 0.12em;
+    --text-eyebrow--font-weight: 700;
+
+    /* one easing for the product: quick, low to the ground, settles */
+    --ease-burrow: cubic-bezier(0.22, 0.68, 0.32, 1);
+    --ease-out-quint: cubic-bezier(0.22, 1, 0.36, 1);
+
+    --animate-rise: rise 0.42s var(--ease-out-quint) both;
+    --animate-fade: fade 0.3s var(--ease-out-quint) both;
+    --animate-shimmer: shimmer 1.6s linear infinite;
+
+    @keyframes rise {
+        from {
+            opacity: 0;
+            transform: translate3d(0, 10px, 0);
+        }
+        to {
+            opacity: 1;
+            transform: none;
+        }
+    }
+    @keyframes fade {
+        from {
+            opacity: 0;
+        }
+        to {
+            opacity: 1;
+        }
+    }
+    @keyframes shimmer {
+        from {
+            background-position: -140% 0;
+        }
+        to {
+            background-position: 140% 0;
+        }
+    }
+}
+
+/* ================================= Base ================================= */
+@layer base {
+    /* Tailwind v4 preflight leaves border-color at currentColor, so every bare
+       border-b (PostContainer, tables, dividers) paints a full base-content
+       line. Warm hairline instead — one rule, the single biggest visual win in
+       this file. Declared after preflight in the same layer, so it wins on
+       equal specificity; daisyUI components and border-* utilities live in the
+       utilities layer and still override it normally. */
+    *,
+    ::after,
+    ::before,
+    ::backdrop,
+    ::file-selector-button {
+        border-color: var(--wsl-hairline, currentcolor);
+    }
+
+    html {
+        -webkit-text-size-adjust: 100%;
+        scroll-behavior: smooth;
+    }
+
+    body {
+        background-color: var(--color-base-100);
+        color: var(--color-base-content);
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+        text-rendering: optimizeLegibility;
+        font-synthesis-weight: none;
+        font-feature-settings:
+            "kern" 1,
+            "liga" 1,
+            "calt" 1;
+    }
+
+    h1,
+    h2,
+    h3,
+    h4 {
+        letter-spacing: -0.018em;
+        text-wrap: balance;
+    }
+
+    p {
+        text-wrap: pretty;
+    }
+
+    ::selection {
+        background-color: var(--wsl-tint-warm);
+        color: var(--color-base-content);
+    }
+
+    /* One rust focus ring everywhere. Rust clears the 3:1 non-text floor on
+       every surface in both themes (4.80:1 light, 7.73:1 dark). */
+    :where(
+        a,
+        button,
+        input,
+        select,
+        textarea,
+        summary,
+        [tabindex]
+    ):focus-visible {
+        outline: 2px solid var(--color-primary);
+        outline-offset: 2px;
+    }
+
+    ::-webkit-scrollbar {
+        width: 10px;
+        height: 10px;
+    }
+    ::-webkit-scrollbar-track {
+        background: transparent;
+    }
+    ::-webkit-scrollbar-thumb {
+        background-color: var(--wsl-scroll-thumb);
+        border-radius: 9999px;
+        border: 2px solid transparent;
+        background-clip: content-box;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+        background-color: var(--wsl-scroll-thumb-hover);
+        background-clip: content-box;
+    }
+
+    img {
+        color: transparent;
+    }
+}
+
+/* daisyUI sets scrollbar-color on :root inside its own layer, which outranks
+   anything written in @layer base. Restate it unlayered so the page scrollbar
+   matches every inner scroll pane. Chrome 121+ prefers this over the
+   ::-webkit-scrollbar rules above; those remain for older WebKit. */
+:root {
+    scrollbar-width: thin;
+    scrollbar-color: var(--wsl-scroll-thumb) transparent;
+}
+
+/* =============================== Utilities ============================== */
+
+/* ---- Elevation: four steps, warm ink in light, deep black in dark ------- */
+@utility elev-0 {
+    box-shadow: none;
+}
+@utility elev-1 {
+    box-shadow: var(--wsl-e1);
+}
+@utility elev-2 {
+    box-shadow: var(--wsl-e2);
+}
+@utility elev-3 {
+    box-shadow: var(--wsl-e3);
+}
+@utility elev-4 {
+    box-shadow: var(--wsl-e4);
+}
+
+/* ---- Interaction ------------------------------------------------------- */
+
+/* Restrained card lift: 2px of travel, a rust-warmed hairline, one step of
+   elevation. Settles on press. */
+@utility lift {
+    transition-property: transform, box-shadow, border-color, background-color;
+    transition-duration: 200ms;
+    transition-timing-function: var(--ease-burrow);
+
+    &:hover {
+        transform: translateY(-2px);
+        box-shadow: var(--wsl-e3);
+        border-color: color-mix(in oklab, var(--color-primary) 34%, transparent);
+    }
+    &:active {
+        transform: translateY(0);
+        box-shadow: var(--wsl-e1);
+    }
+}
+
+/* Button press feedback. */
+@utility press {
+    transition:
+        transform 120ms var(--ease-burrow),
+        box-shadow 200ms var(--ease-burrow),
+        background-color 200ms var(--ease-burrow),
+        border-color 200ms var(--ease-burrow),
+        color 200ms var(--ease-burrow);
+
+    &:active {
+        transform: translateY(1px) scale(0.985);
+    }
+}
+
+/* Opt-in ring for custom controls that set outline-none or that are not
+   natively focusable elements. */
+@utility focus-ring {
+    &:focus-visible {
+        outline: 2px solid var(--color-primary);
+        outline-offset: 2px;
+    }
+}
+
+/* ---- Rules and separators ---------------------------------------------- */
+/* For a border colour on its own use the border-hairline token utility; these
+   two set width, style and colour in a single class. */
+@utility hairline-t {
+    border-top: 1px solid var(--wsl-hairline);
+}
+@utility hairline-b {
+    border-bottom: 1px solid var(--wsl-hairline);
+}
+
+/* ---- Chrome ------------------------------------------------------------ */
+
+/* Translucent sticky chrome — the one place blur is allowed.
+   Named glass-nav, not glass: daisyUI 5 already ships a .glass component and a
+   same-named utility would inherit its border:none / inset box-shadow. */
+@utility glass-nav {
+    background-color: var(--wsl-nav-bg);
+    backdrop-filter: saturate(180%) blur(14px);
+    -webkit-backdrop-filter: saturate(180%) blur(14px);
+
+    @supports not (backdrop-filter: blur(1px)) {
+        background-color: var(--color-base-100);
+    }
+}
+
+/* ---- Brand surfaces, borrowed from the cover art ----------------------- */
+
+/* Ember Trail low rust glow with a tan bloom (see public/covers/cover-2.svg). */
+@utility brand-wash {
+    background-image:
+        radial-gradient(
+            118% 88% at 10% 104%,
+            color-mix(in oklab, var(--color-primary) 18%, transparent) 0%,
+            transparent 62%
+        ),
+        radial-gradient(
+            86% 72% at 94% -12%,
+            color-mix(in oklab, var(--color-secondary) 22%, transparent) 0%,
+            transparent 60%
+        );
+}
+
+/* The sparse cream/tan dot field shared by all four default covers. */
+@utility brand-dots {
+    background-image: radial-gradient(
+        var(--wsl-hairline-strong) 1px,
+        transparent 1px
+    );
+    background-size: 22px 22px;
+    background-position: -1px -1px;
+}
+
+/* The rust accent bar from the OG image, reused as a section marker. */
+@utility brand-rule {
+    position: relative;
+    padding-inline-start: 0.875rem;
+
+    &::before {
+        content: "";
+        position: absolute;
+        inset-inline-start: 0;
+        top: 0.22em;
+        bottom: 0.22em;
+        width: 3px;
+        border-radius: 9999px;
+        background: linear-gradient(
+            to bottom,
+            var(--color-primary),
+            var(--color-secondary)
+        );
+    }
+}
+
+/* ---- Content ----------------------------------------------------------- */
+
+/* One crop for every cover image in the product. */
+@utility cover-crop {
+    aspect-ratio: 16 / 10;
+    width: 100%;
+    height: auto;
+    object-fit: cover;
+    background-color: var(--color-base-200);
+}
+
+/* The reading measure. Use in place of prose max-w-* utilities. */
+@utility measure {
+    max-width: 68ch;
+}
+
+/* Long-form body tuning on the Inter stack: one size up, generous leading. */
+@utility reading {
+    font-size: 1.125rem;
+    line-height: 1.75;
+    letter-spacing: -0.003em;
+}
+
+/* Tabular figures so counts, dates and stats stop jittering. */
+@utility nums {
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum";
+}
+
+/* ---- Loading ----------------------------------------------------------- */
+
+/* Warm travelling highlight. Replaces the daisyUI skeleton pulse, which reads
+   as a dead tan block on cream. */
+@utility shimmer {
+    background-color: color-mix(
+        in oklab,
+        var(--color-base-content) 8%,
+        var(--color-base-100)
+    );
+    background-image: linear-gradient(
+        90deg,
+        transparent 0%,
+        color-mix(in oklab, var(--color-base-content) 5%, transparent) 42%,
+        color-mix(in oklab, var(--color-secondary) 16%, transparent) 50%,
+        color-mix(in oklab, var(--color-base-content) 5%, transparent) 58%,
+        transparent 100%
+    );
+    background-size: 220% 100%;
+    background-repeat: no-repeat;
+    animation: var(--animate-shimmer);
+}
+
+/* ---- Entrance ---------------------------------------------------------- */
+
+/* Stagger a list with class="enter [--enter-delay:120ms]". */
+@utility enter {
+    animation: var(--animate-rise);
+    animation-delay: var(--enter-delay, 0ms);
+}
+@utility enter-fade {
+    animation: var(--animate-fade);
+    animation-delay: var(--enter-delay, 0ms);
+}
+
+/* ==========================================================================
+   Component tuning. Unlayered on purpose: daisyUI ships its components inside
+   the utilities layer, so a layered rule here would lose. Everything below
+   either sets custom properties or targets descendants, so ordinary Tailwind
+   utility classes still override normally.
+   ========================================================================== */
+
+/* Menu active state: a rust tint carrying base-content text. Rust text on a
+   rust tint is only 4.11:1 in light and fails AA, so the brand shows up as the
+   wash, the rail and the weight — never as the letterforms. */
+.menu {
+    --menu-active-bg: var(--wsl-tint);
+    --menu-active-fg: var(--color-base-content);
+}
+
+.menu
+    :where(li > *:not(ul, .menu-title, details, .btn)):is(
+        .menu-active,
+        [aria-current="page"]
+    ) {
+    background-color: var(--wsl-tint);
+    color: var(--color-base-content);
+    font-weight: 600;
+    box-shadow: inset 2px 0 0 0 var(--color-primary);
+}
+
+/* Prose follows base-content in both themes — dark:prose-invert is never
+   needed, and the article page reads correctly under the dark toggle. */
+.prose {
+    --tw-prose-body: var(--color-base-content);
+    --tw-prose-headings: var(--color-base-content);
+    --tw-prose-lead: var(--wsl-muted);
+    --tw-prose-links: var(--color-primary);
+    --tw-prose-bold: var(--color-base-content);
+    --tw-prose-counters: var(--wsl-muted);
+    --tw-prose-bullets: var(--color-secondary);
+    --tw-prose-hr: var(--wsl-hairline);
+    --tw-prose-quotes: var(--color-base-content);
+    --tw-prose-quote-borders: var(--color-primary);
+    --tw-prose-captions: var(--wsl-muted);
+    --tw-prose-code: var(--color-base-content);
+    --tw-prose-pre-code: var(--color-base-content);
+    --tw-prose-pre-bg: var(--wsl-sunk);
+    --tw-prose-th-borders: var(--wsl-hairline-strong);
+    --tw-prose-td-borders: var(--wsl-hairline);
+    --tw-prose-kbd: var(--color-base-content);
+    --tw-prose-kbd-shadows: 46 32 22;
+}
+
+[data-theme="dark"] .prose {
+    --tw-prose-kbd-shadows: 237 231 219;
+}
+
+.prose :where(a):not(:where([class~="not-prose"] *)) {
+    text-decoration-thickness: 1px;
+    text-underline-offset: 0.2em;
+    text-decoration-color: color-mix(
+        in oklab,
+        var(--color-primary) 45%,
+        transparent
+    );
+    transition: text-decoration-color 160ms var(--ease-burrow);
+}
+.prose :where(a):not(:where([class~="not-prose"] *)):hover {
+    text-decoration-color: var(--color-primary);
+}
+
+.prose :where(code):not(:where(pre *, [class~="not-prose"] *)) {
+    background-color: var(--wsl-tint-warm);
+    border-radius: var(--radius-selector);
+    padding: 0.15em 0.4em;
+    font-weight: 600;
+}
+.prose :where(code):not(:where(pre *, [class~="not-prose"] *))::before,
+.prose :where(code):not(:where(pre *, [class~="not-prose"] *))::after {
+    content: none;
+}
+
+.prose :where(pre):not(:where([class~="not-prose"] *)) {
+    border: 1px solid var(--wsl-hairline);
+    border-radius: var(--radius-box);
+}
+
+.prose :where(img, video):not(:where([class~="not-prose"] *)) {
+    border-radius: var(--radius-box);
+}
+
+.prose :where(blockquote):not(:where([class~="not-prose"] *)) {
+    border-inline-start-width: 3px;
+    font-style: normal;
+    background-color: var(--wsl-tint);
+    border-start-end-radius: var(--radius-field);
+    border-end-end-radius: var(--radius-field);
+    padding-block: 0.25rem;
+}
+
+/* Every daisyUI control gets the same press feel without a per-call class. */
+.btn:active:not(.btn-disabled):not([disabled]) {
+    transform: translateY(1px) scale(0.985);
+}
+
+/* nextjs-toploader picks up the brand. */
+#nprogress .bar {
+    background: var(--color-primary) !important;
+}
+#nprogress .peg {
+    box-shadow:
+        0 0 10px var(--color-primary),
+        0 0 6px var(--color-secondary) !important;
+}
+
+/* ============================ Motion preferences ======================== */
+@media (prefers-reduced-motion: reduce) {
+    html {
+        scroll-behavior: auto;
+    }
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        /* Also neutralise the stagger. .enter/.enter-fade fill "both", so a
+           surviving [--enter-delay] would hold the element at opacity 0 for the
+           length of the delay — invisible content for the users who asked for
+           less motion, not less motion. A negative delay lands the animation on
+           its end frame at t=0. */
+        animation-delay: -0.01ms !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
+    /* genuinely still, not merely faster */
+    .lift:hover,
+    .lift:active,
+    .press:active,
+    .btn:active {
+        transform: none !important;
+    }
+}

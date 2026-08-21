@@ -121,7 +121,7 @@ export default function ApiKeys({
                 <div className="flex justify-center">
                     <div className="join mt-4">
                         <input
-                            className="input input-bordered join-item w-full"
+                            className="input join-item w-full"
                             defaultValue={newApiKeyCreated}
                         />
                         <button

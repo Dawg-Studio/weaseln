@@ -20,11 +20,12 @@ export async function POST(req: NextRequest) {
         });
         if (user?.email) {
             const data = await resend.emails.send({
-                from: "ZeFer <verification@zefer.blog>",
+                from: "Weaseln <verification@zefer.blog>",
                 to: [user?.email],
                 subject: "Verify your email.",
                 react: VerifyEmailTemplate({
                     verificationUrl,
+                    logoUrl: `${baseUrl}/icons/weaslnnobg.png`,
                 }),
             });
             return NextResponse.json(data);

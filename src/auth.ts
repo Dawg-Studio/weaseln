@@ -64,7 +64,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         },
     },
     theme: {
-        logo: "/zefer.svg",
+        logo: "/icons/weaslnnobg.png",
     },
     pages: {
         newUser: "/settings/profile",

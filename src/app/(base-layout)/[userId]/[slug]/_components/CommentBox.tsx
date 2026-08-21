@@ -140,14 +140,17 @@ export default function CommentBox({
                                     />
                                 ) : (
                                     <div
-                                        className="w-10 h-10 rounded-full bg-base-300"
+                                        className="w-10 h-10 rounded-full bg-base-300 ring-1 ring-hairline-strong"
                                         aria-hidden
                                     />
                                 )}
                             </div>
                         </div>
                         <div className="container">
-                            <div className="shadow-md rounded-box border-solid border-2 focus-within:border-slate-500">
+                            {/* `border-2` with no colour resolved to
+                                currentColor - a 2px near-black frame. One warm
+                                1px hairline and a rust focus instead. */}
+                            <div className="rounded-box border border-hairline bg-surface elev-1 focus-within:border-primary">
                                 <EditorContent editor={editor} />
                                 <MenuBar
                                     editor={editor}
@@ -157,7 +160,7 @@ export default function CommentBox({
                             </div>
                             <div className="flex justify-start gap-4 mt-4">
                                 <button
-                                    className="btn btn-outline"
+                                    className="btn btn-primary h-11 min-h-11 rounded-field border-0 px-5 text-sm font-semibold elev-1 press hover:elev-2"
                                     onClick={submitComment}
                                     disabled={submitState}
                                 >

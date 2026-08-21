@@ -311,27 +311,47 @@ export default function MenuBar({
     ];
 
     return (
-        <div className={cn("sticky top-14 z-10 bg-base-100", className)}>
-            <dialog ref={link_modal} className="modal">
-                <div className="modal-box">
+        // ponytail: was `sticky top-14`, 8px short of the 64px navbar
+        // (Navigation.tsx is `min-h-16`), so the toolbar slid under it.
+        <div
+            className={cn(
+                "glass-nav px-2 py-1.5",
+                // In the comment box the toolbar sits UNDER the editor, so it
+                // caps the sheet from below and must not stick.
+                asComment
+                    ? "rounded-b-box hairline-t"
+                    : "sticky top-16 z-10 rounded-t-box hairline-b",
+                className,
+            )}
+        >
+            <dialog
+                ref={link_modal}
+                className="modal open:bg-scrim open:backdrop-blur-[2px]"
+            >
+                <div className="modal-box rounded-box border border-hairline bg-surface p-6 elev-4 max-w-lg">
                     <div className="flex justify-center flex-wrap space-y-4 p-4">
                         <input
                             type="text"
                             placeholder="URL..."
-                            className="input input-bordered w-full max-w-xs"
+                            className="input h-11 w-full max-w-xs rounded-field border-hairline bg-surface text-base-content transition-[border-color,box-shadow] duration-150 placeholder:text-muted hover:border-hairline-strong focus:border-primary focus:[--input-color:var(--color-primary)]"
                             onChange={(e) =>
                                 setInsertedLink(e.currentTarget.value)
                             }
                             value={insertedLink}
                         />
-                        <button className="btn" onClick={handleInsertLink}>
+                        <button
+                            className="btn btn-primary h-11 min-h-11 rounded-field border-0 px-5 text-sm font-semibold elev-1 press hover:elev-2"
+                            onClick={handleInsertLink}
+                        >
                             Insert Link
                         </button>
                     </div>
-                    <div className="modal-action">
+                    <div className="modal-action mt-6 gap-2 pt-4 hairline-t">
                         <form method="dialog">
                             {/* if there is a button in form, it will close the modal */}
-                            <button className="btn">Close</button>
+                            <button className="btn btn-ghost h-11 min-h-11 rounded-field px-5 text-sm font-semibold press">
+                                Close
+                            </button>
                         </form>
                     </div>
                 </div>
@@ -350,9 +370,11 @@ export default function MenuBar({
                     {displayItems.map((item) => (
                         <Fragment key={item.title}>
                             <button
-                                className={`btn btn-ghost ${
-                                    isActive(item.activeKey) ? "btn-active" : ""
-                                }`}
+                                className={cn(
+                                    "btn btn-ghost btn-square btn-sm h-9 min-h-9 w-9 rounded-field text-base-content/70 press hover:bg-base-200 hover:text-base-content",
+                                    isActive(item.activeKey) &&
+                                        "bg-tint text-primary hover:bg-tint-strong hover:text-primary",
+                                )}
                                 onClick={() => handleAction(item.actionKey)}
                                 title={item.title}
                             >
@@ -363,12 +385,15 @@ export default function MenuBar({
                 </div>
                 <div className="flex justify-end">
                     <div className="dropdown dropdown-bottom dropdown-end">
-                        <label tabIndex={0} className="btn btn-ghost">
+                        <label
+                            tabIndex={0}
+                            className="btn btn-ghost btn-square btn-sm h-9 min-h-9 w-9 rounded-field text-base-content/70 press hover:bg-base-200 hover:text-base-content"
+                        >
                             <FontAwesomeIcon icon={faEllipsis} />
                         </label>
                         <div
                             tabIndex={0}
-                            className="flex dropdown-content z-[1] shadow bg-base-100 rounded-sm"
+                            className="flex dropdown-content z-[1] gap-1 rounded-box border border-hairline bg-surface p-1.5 elev-3"
                         >
                             {dropdownItems.map((item) => (
                                 <Fragment key={item.title}>
@@ -377,11 +402,11 @@ export default function MenuBar({
                                         item.icon === faImage
                                     ) && (
                                         <button
-                                            className={`btn btn-ghost ${
-                                                isActive(item.activeKey)
-                                                    ? "btn-active"
-                                                    : ""
-                                            }`}
+                                            className={cn(
+                                                "btn btn-ghost btn-square btn-sm h-9 min-h-9 w-9 rounded-field text-base-content/70 press hover:bg-base-200 hover:text-base-content",
+                                                isActive(item.activeKey) &&
+                                                    "bg-tint text-primary hover:bg-tint-strong hover:text-primary",
+                                            )}
                                             onClick={() =>
                                                 handleAction(item.actionKey)
                                             }

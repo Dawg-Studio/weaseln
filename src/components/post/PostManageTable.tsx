@@ -1,6 +1,9 @@
 "use client";
 
-import { faEllipsis } from "@fortawesome/free-solid-svg-icons";
+import {
+    faEllipsis,
+    faFeatherPointed,
+} from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { Post } from "@prisma/client";
 import { useMutation, useQuery } from "@tanstack/react-query";
@@ -124,32 +127,39 @@ export default function PostManageTable() {
 
     return (
         <div className="container">
-            <dialog className="modal" ref={deleteModalWarnRef}>
-                <div className="modal-box">
-                    <h3 className="font-bold text-lg">Delete Post</h3>
-                    <p className="py-4">
+            {/* Same modal shell as components/ui/Modal.tsx: warm ink scrim,
+                hairline sheet, elevation from the token ramp. */}
+            <dialog
+                className="modal open:bg-scrim open:backdrop-blur-[2px]"
+                ref={deleteModalWarnRef}
+            >
+                <div className="modal-box max-w-lg rounded-box border border-hairline bg-surface p-6 elev-4">
+                    <h3 className="mb-1 text-headline text-base-content">
+                        Delete Post
+                    </h3>
+                    <p className="measure text-sm text-base-content/70">
                         Are you sure you want to delete this post? This action
                         cannot be undone.
                     </p>
-                    <div className="modal-action">
+                    <div className="modal-action mt-6 gap-2 pt-4 hairline-t">
                         <form method="dialog">
                             {/* if there is a button in form, it will close the modal */}
-                            <div className="flex justify-center gap-4">
+                            <div className="flex justify-center gap-2">
                                 <button
-                                    className="btn btn-error"
-                                    onClick={() =>
-                                        handleDeleteModalWarn("delete")
-                                    }
-                                >
-                                    Delete
-                                </button>
-                                <button
-                                    className="btn"
+                                    className="btn btn-ghost h-11 min-h-11 rounded-field px-5 text-sm font-semibold press"
                                     onClick={() =>
                                         handleDeleteModalWarn("cancel")
                                     }
                                 >
                                     Close
+                                </button>
+                                <button
+                                    className="btn btn-error h-11 min-h-11 rounded-field px-5 text-sm font-semibold press"
+                                    onClick={() =>
+                                        handleDeleteModalWarn("delete")
+                                    }
+                                >
+                                    Delete
                                 </button>
                             </div>
                         </form>
@@ -157,9 +167,10 @@ export default function PostManageTable() {
                 </div>
             </dialog>
 
-            <div className="flex justify-end">
+            <div className="mb-4 flex justify-end">
                 <select
-                    className=" select select-bordered"
+                    aria-label="Sort your posts"
+                    className="select h-11 w-auto rounded-field border-hairline bg-surface text-base-content transition-[border-color,box-shadow] duration-150 hover:border-hairline-strong focus:border-primary focus:[--input-color:var(--color-primary)]"
                     onChange={(e) =>
                         setOrderBy(
                             e.target.value as
@@ -180,15 +191,15 @@ export default function PostManageTable() {
                     <option value="most-comments">Most Comments</option>
                 </select>
             </div>
-            <div className="overflow-x-auto">
-                <table className="table table-lg">
+            <div className="overflow-x-auto rounded-box border border-hairline bg-surface elev-1">
+                <table className="table table-lg w-full">
                     <tbody>
                         {isSuccess &&
                             data &&
                             data.map((post: Post) => (
                                 <Fragment key={post.id}>
-                                    <tr>
-                                        <th className=" text-xl">
+                                    <tr className="hairline-b">
+                                        <th className="text-base font-semibold text-base-content">
                                             <Link
                                                 href={`/${
                                                     post.authorUsername ||
@@ -203,11 +214,15 @@ export default function PostManageTable() {
                                             </Link>
                                         </th>
                                         <td>
+                                            {/* `badge-neutral` is brand ink
+                                                (#2E2016) — a near-black slab.
+                                                Status reads as semantic colour
+                                                instead. */}
                                             <span
                                                 className={
                                                     post.published
-                                                        ? "badge badge-neutral"
-                                                        : "badge badge-warning"
+                                                        ? "badge badge-sm badge-success font-semibold uppercase tracking-[0.06em]"
+                                                        : "badge badge-sm badge-warning font-semibold uppercase tracking-[0.06em]"
                                                 }
                                             >
                                                 {post.published
@@ -218,7 +233,7 @@ export default function PostManageTable() {
                                         <td>
                                             <div className="flex justify-end items-center gap-4">
                                                 <button
-                                                    className="btn btn-xs btn-outline btn-error"
+                                                    className="btn btn-xs btn-outline btn-error rounded-field font-semibold press"
                                                     onClick={() => {
                                                         deleteModalWarnRef.current?.show();
                                                         setSelectedPostIdForDeletion(
@@ -233,13 +248,17 @@ export default function PostManageTable() {
                                                         post.authorUsername ||
                                                         post.userId
                                                     }/${post.titleId}/edit`}
-                                                    className="btn btn-xs btn-outline btn-primary"
+                                                    className="btn btn-xs btn-outline btn-primary rounded-field font-semibold press"
                                                 >
                                                     Edit
                                                 </Link>
 
                                                 <div className="dropdown dropdown-left">
-                                                    <label tabIndex={0}>
+                                                    <label
+                                                        tabIndex={0}
+                                                        aria-label="More actions for this post"
+                                                        className="btn btn-ghost btn-square h-9 min-h-9 w-9 rounded-field text-base-content/70 press hover:bg-base-200 hover:text-base-content"
+                                                    >
                                                         <FontAwesomeIcon
                                                             icon={faEllipsis}
                                                             className="cursor-pointer"
@@ -248,7 +267,7 @@ export default function PostManageTable() {
                                                     </label>
                                                     <ul
                                                         tabIndex={0}
-                                                        className="dropdown-content z-[1] menu p-2 shadow bg-base-100 rounded-box w-52"
+                                                        className="dropdown-content z-[1] menu w-52 gap-0.5 rounded-box border border-hairline bg-surface p-2 elev-3"
                                                     >
                                                         <li>
                                                             <button>
@@ -297,19 +316,27 @@ export default function PostManageTable() {
                             ))}
                     </tbody>
                 </table>
-                {data === undefined ||
-                    ((data as Array<typeof data>).length === 0 &&
-                        !isLoading &&
-                        !isRefetching && (
-                            <>
-                                <div className="container">
-                                    <p className="text-xl font-bold">
-                                        No results were found.
-                                    </p>
-                                </div>
-                            </>
-                        ))}
             </div>
+            {/* Outside the table sheet — a dashed empty state must never nest
+                inside another surface card. */}
+            {data === undefined ||
+                ((data as Array<typeof data>).length === 0 &&
+                    !isLoading &&
+                    !isRefetching && (
+                        <div className="brand-wash mt-4 flex flex-col items-center justify-center gap-3 rounded-box border border-dashed border-hairline-strong px-6 py-14 text-center">
+                            <FontAwesomeIcon
+                                icon={faFeatherPointed}
+                                className="text-3xl text-primary/55"
+                            />
+                            <h3 className="text-base font-semibold text-base-content">
+                                No results were found.
+                            </h3>
+                            <p className="measure text-sm text-muted">
+                                Nothing matches this filter yet. Publish a post
+                                or pick a different sort.
+                            </p>
+                        </div>
+                    ))}
         </div>
     );
 }

@@ -7,7 +7,7 @@ import { Fragment } from "react";
 import { useEditor } from "@tiptap/react";
 
 const prose =
-    "prose prose-sm sm:prose lg:prose-lg xl:prose-xl mx-auto mt-8 mb-8 mr-4 ml-4 sm:mr-auto sm:ml-auto max-w-md focus:outline-none";
+    "prose prose-sm sm:prose lg:prose-lg measure reading mx-auto my-8 px-4 sm:px-6 focus:outline-none";
 
 export function PreviewEditor({
     editor,
@@ -26,38 +26,46 @@ export function PreviewEditor({
     return (
         <section className={prose}>
             {coverImage && (
-                <NextImage
-                    src={coverImage}
-                    height={1920}
-                    width={1080}
-                    alt="cover"
-                />
+                <figure className="not-prose relative my-8 overflow-hidden rounded-box border border-hairline bg-base-200 elev-1">
+                    <NextImage
+                        src={coverImage}
+                        height={1920}
+                        width={1080}
+                        alt="cover"
+                        className="cover-crop"
+                    />
+                </figure>
             )}
             <div className="container -space-y-6">
-                <h1>{editorTitle?.getText()}</h1>
-                <h4 className="!text-slate-600">
+                <h1 className="text-title text-base-content lg:text-display">
+                    {editorTitle?.getText()}
+                </h1>
+                <h4 className="text-subhead text-muted">
                     {editorDescription?.getText()}
                 </h4>
                 <br />
             </div>
-            <p>
+            <p className="text-sm text-base-content">
                 <strong>[Your Name]</strong> · [number] min read
             </p>
-            <p className=" text-xs">
+            <p className="text-meta text-muted nums">
                 Posted on {new Date().toDateString()}
             </p>
             {inputTags.length !== 0 && (
-                <div className="flex space-x-4">
+                <div className="not-prose flex flex-wrap gap-2">
                     {inputTags.map((tag: string, index: number) => (
                         <Fragment key={index}>
-                            <Link href="/">
-                                <p className="text-sm">#{tag}</p>
+                            <Link
+                                href="/"
+                                className="inline-flex items-center gap-1 rounded-full border border-hairline bg-base-300 px-2.5 py-1 text-meta font-medium text-base-content/80 transition-colors duration-150 hover:border-primary/45 hover:bg-tint hover:text-base-content focus-ring"
+                            >
+                                #{tag}
                             </Link>
                         </Fragment>
                     ))}
                 </div>
             )}
-            <div className="divider divider-vertical"></div>
+            <hr className="my-8 h-px w-full border-0 bg-hairline" />
             {parse(`${renderHtml}`)}
         </section>
     );

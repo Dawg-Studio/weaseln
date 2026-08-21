@@ -61,8 +61,11 @@ export default async function PostPage({
 }: {
     params: Promise<{ userId: string; slug: string }>;
 }) {
+    // `measure` (68ch) + `reading` replace the old `max-w-md`, which pinned
+    // long-form copy to a 28rem phone column on desktop. globals.css retargets
+    // every --tw-prose-* at base-content, so no dark:prose-invert is needed.
     const prose =
-        "min-h-screen prose prose-sm sm:prose lg:prose-lg mx-auto mt-12 mb-12 mr-4 ml-4 sm:mr-auto sm:ml-auto max-w-md focus:outline-none";
+        "min-h-screen prose prose-sm sm:prose lg:prose-lg measure reading mx-auto px-4 py-10 sm:px-6 lg:py-12 focus:outline-none";
     const { slug, userId } = await params;
     const post = await prisma.post.findUnique({
         where: {
@@ -109,23 +112,32 @@ export default async function PostPage({
         <PostSlugWatcher postId={post.id}>
             <main className={prose}>
                 {isPublisher && (
-                    <div className="flex justify-end">
+                    <div className="not-prose mb-6 flex items-center justify-end gap-3">
                         <Link
                             href={`/${user?.username || user?.id}/${
                                 post.titleId
                             }/edit`}
-                            className="text-sm"
+                            className="btn btn-ghost h-9 min-h-9 rounded-field px-3 text-sm font-medium text-base-content/70 press hover:bg-base-200 hover:text-base-content"
                         >
                             Edit
                         </Link>
-                        <div className="divider divider-horizontal"></div>
-                        <Link href={"/manage"} className="text-sm">
+                        {/* daisyUI's `divider` reserves a full 1rem flex row and
+                            centres a heavier line — replaced everywhere by the
+                            1px warm hairline. */}
+                        <span
+                            aria-hidden="true"
+                            className="h-4 w-px bg-hairline"
+                        />
+                        <Link
+                            href={"/manage"}
+                            className="btn btn-ghost h-9 min-h-9 rounded-field px-3 text-sm font-medium text-base-content/70 press hover:bg-base-200 hover:text-base-content"
+                        >
                             Manage
                         </Link>
                     </div>
                 )}
                 {post.series.length !== 0 && (
-                    <p className="text-sm">
+                    <p className="text-sm text-muted">
                         This is a part of the following series: &nbsp;
                         {post.series.map((series, index) => (
                             <Fragment key={series.id}>
@@ -151,43 +163,55 @@ export default async function PostPage({
                         ))}
                     </p>
                 )}
-                {post?.coverImage ? (
-                    <Image
-                        src={post.coverImage as string}
-                        height={1920}
-                        width={1080}
-                        alt={`cover image for ${post.title} `}
-                    />
-                ) : (
-                    // ponytail: post has no cover image. Gradient placeholder
-                    // with title watermark so the post page keeps its
-                    // visual rhythm (matches the feed placeholder).
-                    <div
-                        className="w-full aspect-video bg-gradient-to-br from-base-300 via-base-200 to-base-300 flex items-center justify-center p-6 rounded-lg"
-                        aria-hidden="true"
-                    >
-                        <p className="text-base-content/40 text-2xl lg:text-4xl font-bold text-center line-clamp-3 max-w-2xl">
-                            {post.title}
-                        </p>
-                    </div>
-                )}
+                <figure className="not-prose relative my-8 overflow-hidden rounded-box border border-hairline bg-base-200 elev-1">
+                    {post?.coverImage ? (
+                        <Image
+                            src={post.coverImage as string}
+                            height={1920}
+                            width={1080}
+                            alt={`cover image for ${post.title} `}
+                            className="cover-crop"
+                        />
+                    ) : (
+                        // ponytail: post has no cover image. Brand wash + title
+                        // watermark so the post page keeps its visual rhythm.
+                        // Identical treatment to the feed card placeholder in
+                        // PostContainer.tsx, so a post looks the same branded
+                        // in the feed and when opened.
+                        <div
+                            className="cover-crop brand-wash brand-dots flex items-center justify-center p-6"
+                            aria-hidden="true"
+                        >
+                            <p className="line-clamp-3 max-w-2xl text-balance text-center text-headline text-base-content/30 lg:text-title">
+                                {post.title}
+                            </p>
+                        </div>
+                    )}
+                </figure>
                 <div className="lg:-space-y-6 -space-y-4">
-                    <h1>{post?.title}</h1>
-                    <h4 className="!text-slate-600">{post?.description}</h4>
+                    <h1 className="text-title text-base-content lg:text-display">
+                        {post?.title}
+                    </h1>
+                    <h4 className="text-subhead text-muted">
+                        {post?.description}
+                    </h4>
                     <br />
                     {post.tags.length !== 0 && (
-                        <div className="flex gap-2 flex-wrap">
+                        <div className="not-prose flex gap-2 flex-wrap">
                             {post.tags.map((tag: string, index: number) => (
                                 <Fragment key={index}>
-                                    <Link href={`/tag/${tag}`}>
-                                        <p className="text-sm">#{tag}</p>
+                                    <Link
+                                        href={`/tag/${tag}`}
+                                        className="inline-flex items-center gap-1 rounded-full border border-hairline bg-base-300 px-2.5 py-1 text-meta font-medium text-base-content/80 transition-colors duration-150 hover:border-primary/45 hover:bg-tint hover:text-base-content focus-ring"
+                                    >
+                                        #{tag}
                                     </Link>
                                 </Fragment>
                             ))}
                         </div>
                     )}
 
-                    <div className="flex gap-2 items-center not-prose !mt-1 !mb-2">
+                    <div className="flex gap-2 items-center not-prose !mt-1 !mb-2 pb-4 hairline-b">
                         {/* <div className="avatar">
                             <div className="rounded-full">
                                 <Image
@@ -206,7 +230,7 @@ export default async function PostPage({
                                         post.organizationId,
                                 })}
                             >
-                                <div className="w-7 rounded-full">
+                                <div className="w-7 rounded-full ring-1 ring-hairline-strong">
                                     <Image
                                         src={post.authorImage}
                                         alt={post.author}
@@ -217,7 +241,7 @@ export default async function PostPage({
                             </div>
                             {post.organizationId && post.organization && (
                                 <div className="avatar">
-                                    <div className="w-12 rounded">
+                                    <div className="w-12 rounded-field ring-2 ring-surface elev-1">
                                         <Image
                                             src={
                                                 post.organization
@@ -234,7 +258,7 @@ export default async function PostPage({
                             )}
                         </div>
                         <div className="container">
-                            <p className="text-sm">
+                            <p className="text-sm text-base-content">
                                 <strong>
                                     <Link
                                         href={`/${
@@ -258,12 +282,12 @@ export default async function PostPage({
                             </p>
                             {new Date(post.updatedAt).toDateString() ===
                             new Date(post.createdAt).toDateString() ? (
-                                <p className=" text-xs">
+                                <p className="text-meta text-muted nums">
                                     Posted on{" "}
                                     {formatPostDate(new Date(post.createdAt))}
                                 </p>
                             ) : (
-                                <p className=" text-xs">
+                                <p className="text-meta text-muted nums">
                                     Updated at{" "}
                                     {formatPostDate(new Date(post.updatedAt))}
                                 </p>
@@ -271,7 +295,7 @@ export default async function PostPage({
                         </div>
                     </div>
                 </div>
-                <div className="container p-2">
+                <div className="not-prose container py-3 hairline-b">
                     <div className="flex items-center">
                         <div className="flex-1">
                             <div className="flex items-center gap-2">
@@ -284,7 +308,10 @@ export default async function PostPage({
                                         }
                                     />
                                 </div>
-                                <div className="flex items-center gap-2">
+                                {/* Glyph and count are one control, sized to
+                                    the same h-9 baseline as every other action
+                                    in the row. */}
+                                <div className="flex h-9 items-center gap-2 rounded-field px-2 text-base-content/70">
                                     <FontAwesomeIcon
                                         icon={
                                             post._count.comments !== 0
@@ -293,21 +320,32 @@ export default async function PostPage({
                                         }
                                         title="Comments"
                                     />
-                                    <div>{post._count.comments}</div>
+                                    <div className="text-meta nums">
+                                        {post._count.comments}
+                                    </div>
                                 </div>
                             </div>
                         </div>
-                        <div className="flex items-center gap-4">
-                            <PostBookmark titleId={post.titleId} />
-                            <PostShareButton userId={userId} titleId={slug} />
+                        <div className="flex items-center gap-1">
+                            <PostBookmark
+                                titleId={post.titleId}
+                                className="h-9 min-h-9 w-9"
+                            />
+                            <PostShareButton
+                                userId={userId}
+                                titleId={slug}
+                                className="h-9 min-h-9 w-9"
+                            />
                             {/* <FontAwesomeIcon icon={faEllipsis} title="More" /> */}
                         </div>
                     </div>
                 </div>
                 <article>{parse(`${postContent}`)}</article>
-                <div className="divider divider-vertical"></div>
+                <hr className="my-8 h-px w-full border-0 bg-hairline" />
                 <div className="not-prose">
-                    <h2 className="text-3xl font-bold mb-8">Comments</h2>
+                    <h2 className="brand-rule mb-8 text-headline text-base-content">
+                        Comments
+                    </h2>
                     <NextAuthProvider>
                         <CommentBox
                             titleId={slug}
@@ -322,12 +360,16 @@ export default async function PostPage({
                     </NextAuthProvider>
                 </div>
             </main>
-            <section className="lg:max-w-[70vw] lg:mx-auto ml-4 mr-4">
-                <div className="divider divider-vertical"></div>
-                <h3 className="text-2xl font-bold mb-8">Read Next</h3>
-                <QueryWrapper>
-                    <PostList postId={post.id} isHideFeedOpts={true} />
-                </QueryWrapper>
+            <section className="mx-auto w-full max-w-[88rem] px-4 pb-12 sm:px-6 lg:px-8">
+                <hr className="my-8 h-px w-full border-0 bg-hairline" />
+                <div className="mx-auto max-w-[46rem]">
+                    <h3 className="brand-rule mb-8 text-headline text-base-content">
+                        Read Next
+                    </h3>
+                    <QueryWrapper>
+                        <PostList postId={post.id} isHideFeedOpts={true} />
+                    </QueryWrapper>
+                </div>
             </section>
         </PostSlugWatcher>
     );

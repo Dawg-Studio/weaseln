@@ -27,8 +27,11 @@ import {
     collectEditorImages,
 } from "./previewUtils";
 
+// `measure` (68ch) replaces the old `max-w-md`, which pinned the composer to a
+// 28rem phone column on desktop. Matches the reading page exactly, so what the
+// author types is laid out the way a reader will see it.
 const prose =
-    "prose prose-sm sm:prose lg:prose-lg xl:prose-xl mx-auto mt-8 mb-8 mr-4 ml-4 sm:mr-auto sm:ml-auto max-w-md focus:outline-none";
+    "prose prose-sm sm:prose lg:prose-lg measure mx-auto my-8 px-4 sm:px-6 focus:outline-none";
 
 // ponytail: when QA_NO_COVER is set, the editor auto-applies a placeholder
 // /covers/*.svg URL instead of requiring a real upload. The /api/post route
@@ -400,20 +403,27 @@ export default function Tiptap({
 
     return (
         <>
-            <div className=" z-50 sticky top-0 bg-base-100 rounded-lg">
+            {/* ponytail: this bar used to be `z-50 sticky top-0`, which put it
+                ABOVE the navbar (Navigation.tsx is `sticky top-0 z-30
+                min-h-16`) and covered it on /[userId]/[slug]/edit. Park it
+                below the 64px nav at a lower stacking order instead. */}
+            <div className="glass-nav sticky top-16 z-20 rounded-t-box hairline-b">
                 <div className="flex flex-wrap justify-center p-2">
-                    <div className="flex items-center overflow-auto space-x-4">
+                    <div className="flex items-center overflow-auto gap-3">
                         <ImageUploadForm onUpload={setCoverImage} />
                         <button
-                            className={`btn ${
-                                preview ? "btn-info" : "btn-outline"
-                            }`}
+                            className={cn(
+                                "btn h-11 min-h-11 rounded-field px-5 text-sm font-semibold press",
+                                preview
+                                    ? "border-primary bg-tint text-base-content hover:border-primary hover:bg-tint-strong"
+                                    : "btn-outline border-hairline-strong bg-transparent text-base-content hover:border-primary hover:bg-tint hover:text-base-content",
+                            )}
                             onClick={togglePreview}
                         >
                             {preview ? "Edit" : "Preview"}
                         </button>
                         <button
-                            className="btn btn-outline"
+                            className="btn btn-outline h-11 min-h-11 rounded-field border-hairline-strong bg-transparent px-5 text-sm font-semibold text-base-content press hover:border-primary hover:bg-tint hover:text-base-content"
                             disabled={
                                 publishState ||
                                 isAutoSavingDraft ||
@@ -426,8 +436,9 @@ export default function Tiptap({
                             )}
                             {isSavingDraft ? "Saving..." : "Save as Draft"}
                         </button>
+                        {/* The one filled action in the composer. */}
                         <button
-                            className="btn btn-success btn-outline"
+                            className="btn btn-primary h-11 min-h-11 rounded-field border-0 px-5 text-sm font-semibold elev-1 press hover:elev-2"
                             disabled={publishState || isAutoSavingDraft}
                             onClick={() => uploadPost(true)}
                         >
@@ -465,11 +476,23 @@ export default function Tiptap({
                             validate={validateTag}
                         />
                     </div>
-                    <MenuBar
-                        editor={editor}
-                        className={cn("!mt-2", prose)}
-                    />
-                    <EditorContent editor={editor} className="mb-24" />
+                    {/* The toolbar and the body are one sheet — a warm
+                        hairline card on the canvas, matching `field-input`.
+                        No `overflow-hidden` here: it would break the
+                        toolbar's `sticky` positioning. */}
+                    <div className="measure mx-auto mt-2 mb-24 px-4 sm:px-6">
+                        <div className="rounded-box border border-hairline bg-surface">
+                            {/* top-31 (124px) = the 64px navbar plus this
+                                file's own 61px publish bar, so the formatting
+                                toolbar parks directly under both instead of
+                                sliding beneath them. */}
+                            <MenuBar
+                                editor={editor}
+                                className="w-full top-31"
+                            />
+                            <EditorContent editor={editor} />
+                        </div>
+                    </div>
                 </>
             )}
         </>

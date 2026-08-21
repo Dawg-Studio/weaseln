@@ -70,3 +70,13 @@ Running only one is **not** sufficient. The 26 pre-existing lint errors in `Tipt
 - `docs/CONCERNS.md` — known correctness/refactor issues, including the `socials` crash (A3), the `gemini-pro` shutdown (A5), and the load-bearing typo `StautsNotif` (A4).
 - `docs/QA.md` — seeded fixtures and per-user browser smoke checks, including post creation (§5).
 - `README.md` — local dev setup, dev-login flag, and seeded credentials.
+
+<!-- BEGIN:nextjs-agent-rules -->
+
+# This is NOT the Next.js you know
+
+This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` (resolved from this file's directory; in monorepos the `next` package may not be visible from the repo root) before writing any code. Heed deprecation notices.
+
+This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
+
+<!-- END:nextjs-agent-rules -->

@@ -209,7 +209,7 @@ export default function SeriesManageContainer() {
                 </FormProvider>
                 <div className="modal-action">
                     <button
-                        className="btn btn-info"
+                        className="btn btn-primary h-11 min-h-11 rounded-field border-0 px-5 text-sm font-semibold elev-1 press hover:elev-2"
                         onClick={() =>
                             editingSeries
                                 ? mutationEditSeries.mutate()
@@ -238,7 +238,7 @@ export default function SeriesManageContainer() {
                     data &&
                     data.map((series: PostSeriesWithPosts) => (
                         <Fragment key={series.id}>
-                            <div className="flex flex-col gap-4 shadow-lg hover:outline outline-gray-400 rounded-lg ">
+                            <div className="flex flex-col gap-4 rounded-box border border-hairline bg-surface elev-1 lift">
                                 <div
                                     className="card card-compact w-96 bg-base-100 cursor-pointer"
                                     onClick={() =>

@@ -31,7 +31,7 @@ export default async function ManageFollowing() {
                         <>
                             {userFollowing.map((following) => (
                                 <Fragment key={following.id}>
-                                    <div className="card w-72 bg-base-100 shadow-md">
+                                    <div className="w-72 rounded-box border border-hairline bg-surface elev-1 lift">
                                         <div className="card-body">
                                             <PeopleContainer {...following} />
                                             <div className="card-actions justify-center">
@@ -60,7 +60,7 @@ export default async function ManageFollowing() {
                         <>
                             {userTagInterest.map((tag) => (
                                 <Fragment key={tag}>
-                                    <div className="container p-4 max-w-xs shadow-md rounded-xl">
+                                    <div className="container max-w-xs rounded-box border border-hairline bg-surface p-4 elev-1">
                                         <div className="flex gap-4 items-center justify-center">
                                             <div className="break-words">
                                                 <Link href={`/tag/${tag}`}>

@@ -201,17 +201,20 @@ export default function OrganizationManageCreateContainer({
     return (
         <>
             <FormProvider {...joinOrgForm}>
-                <div className="shadow-lg p-12 rounded-md space-y-2">
+                <div className="rounded-box border border-hairline bg-surface p-5 elev-1 sm:p-6 space-y-5">
                     <h3 className="text-2xl font-bold">Join an Organization</h3>
                     <Input {...sk_validation} />
                 </div>
             </FormProvider>
-            <button className="btn btn-info w-full" onClick={joinOrganization}>
+            <button
+                className="btn btn-primary h-11 min-h-11 rounded-field border-0 px-5 text-sm font-semibold elev-1 press hover:elev-2 w-full"
+                onClick={joinOrganization}
+            >
                 Join Organization
             </button>
-            <div className="divider divider-horizontal"></div>
+            <div aria-hidden="true" className="mx-3 w-px self-stretch bg-hairline" />
             <FormProvider {...createOrgForm}>
-                <div className="shadow-lg p-12 rounded-md space-y-2">
+                <div className="rounded-box border border-hairline bg-surface p-5 elev-1 sm:p-6 space-y-5">
                     <h3 className="text-2xl font-bold">
                         {id ? "Update Organization" : "Create an Organization"}
                     </h3>
@@ -250,7 +253,7 @@ export default function OrganizationManageCreateContainer({
                 </div>
             </FormProvider>
             <button
-                className="btn btn-info w-full"
+                className="btn btn-primary h-11 min-h-11 rounded-field border-0 px-5 text-sm font-semibold elev-1 press hover:elev-2 w-full"
                 onClick={createOrganization}
             >
                 {id ? "Update Organization" : "Create Organization"}
