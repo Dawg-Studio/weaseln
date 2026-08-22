@@ -102,10 +102,10 @@ export default function Navigation({
                 <div className="flex-1 gap-4 flex items-center">
                     <Link href={"/"} className="normal-case text-xl">
                         <Image
-                            src={"/zefer.svg"}
+                            src={"/weaseln.svg"}
                             height={50}
                             width={50}
-                            alt="ZeFer Logo"
+                            alt="weaseln logo"
                         />
                     </Link>
                     <div className="hidden lg:block">

@@ -12,8 +12,10 @@ import {
 
 export const VerifyEmailTemplate = ({
     verificationUrl,
+    websiteUrl,
 }: {
     verificationUrl: string;
+    websiteUrl: string;
 }) => (
     <Html>
         <Head />
@@ -44,18 +46,18 @@ export const VerifyEmailTemplate = ({
                     email.
                 </Text>
                 <Img
-                    src="https://zefer.blog/zefer.svg"
+                    src={`${websiteUrl}/weaseln.svg`}
                     width="32"
                     height="32"
-                    alt="ZeFer's Logo"
+                    alt="weaseln logo"
                 />
                 <Text style={footer}>
                     <Link
-                        href="https://zefer.blog"
+                        href={websiteUrl}
                         target="_blank"
                         style={{ ...link, color: "#898989" }}
                     >
-                        ZeFer{" "}
+                        weaseln{" "}
                     </Link>
                     Tell your story to the world.
                     <br />

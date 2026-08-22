@@ -132,7 +132,7 @@ export async function POST(req: NextRequest) {
             }
             const cloudinary = await uploadCloudinary({
                 file: coverField as File,
-                folder: "zefer/post/draft",
+                folder: "weaseln/post/draft",
                 public_id: `${draft.id}_cover`,
             });
             if (cloudinary.upload.ok) {

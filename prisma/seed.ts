@@ -3,19 +3,7 @@ import { PrismaClient, Prisma } from "@prisma/client";
 const prisma = new PrismaClient();
 
 const SEEDED_EMAILS = ["alice@test.com", "bob@test.com", "carol@test.com"] as const;
-const SEEDED_TITLE_IDS = [
-    "welcome-to-zefer",
-    "designing-for-readers",
-    "the-state-of-blogging",
-    "comment-as-feature",
-    "reading-history-ux",
-    "api-keys-explained",
-    "why-i-write-here",
-    "notes-on-notifications",
-    "starting-threads",
-    "draft-wip",
-];
-const SEEDED_ORG_USERNAME = "zefer-test-org";
+const SEEDED_ORG_USERNAME = "weaseln-test-org";
 
 // ponytail: explicit follow pairs — written to users._UserFollows directly via
 // $executeRaw. Using the implicit M2M `following.connect(...)` form silently
@@ -47,11 +35,19 @@ async function main() {
     // Wipe in dependency order. Composite FK Post.(userId,author,authorImage) →
     // User.(id,name,image) has no onDelete, so posts must go before users.
     // Cascading clears PostComment / PostReaction / PostView / reading history.
+    // Ownership-based cleanup also removes legacy fixtures created by these
+    // dedicated QA accounts without retaining old-brand identifiers.
+    const seededUserIds = (
+        await prisma.user.findMany({
+            where: { email: { in: [...SEEDED_EMAILS] } },
+            select: { id: true },
+        })
+    ).map(({ id }) => id);
     await prisma.post.deleteMany({
-        where: { titleId: { in: [...SEEDED_TITLE_IDS] } },
+        where: { userId: { in: seededUserIds } },
     });
     await prisma.organization.deleteMany({
-        where: { username: SEEDED_ORG_USERNAME },
+        where: { ownerId: { in: seededUserIds } },
     });
     await prisma.user.deleteMany({
         where: { email: { in: [...SEEDED_EMAILS] } },
@@ -97,9 +93,9 @@ async function main() {
 
     const org = await prisma.organization.create({
         data: {
-            name: "ZeFer Test Org",
-            username: "zefer-test-org",
-            image: avatar("zefer-org"),
+            name: "Weaseln Test Org",
+            username: SEEDED_ORG_USERNAME,
+            image: avatar("weaseln-org"),
             secret: crypto.randomUUID(),
             summary: "Organization used by the QA seed.",
             ownerId: alice.id,
@@ -110,12 +106,12 @@ async function main() {
     });
 
     const postSpecs = [
-        { titleId: "welcome-to-zefer", author: alice, title: "Welcome to ZeFer", description: "An intro post for the QA seed.", tags: ["intro", "platform"], published: true, orgId: org.id, cover: "/covers/cover-1.svg" },
+        { titleId: "welcome-to-weaseln", author: alice, title: "Welcome to weaseln", description: "An intro post for the QA seed.", tags: ["intro", "platform"], published: true, orgId: org.id, cover: "/covers/cover-1.svg" },
         { titleId: "designing-for-readers", author: alice, title: "Designing for Readers", description: "Notes on reader-first design.", tags: ["design", "ux"], published: true, orgId: org.id, cover: "/covers/cover-2.svg" },
         { titleId: "the-state-of-blogging", author: bob, title: "The State of Blogging", description: "Where blogging is heading.", tags: ["writing", "industry"], published: true, orgId: null, cover: "/covers/cover-3.svg" },
         { titleId: "comment-as-feature", author: carol, title: "Comment as Feature", description: "Why comments still matter.", tags: ["comments", "community"], published: true, orgId: null, cover: "/covers/cover-4.svg" },
         { titleId: "reading-history-ux", author: carol, title: "Reading History UX", description: "Designing a calm reading history.", tags: ["ux", "reading"], published: true, orgId: org.id, cover: "/covers/cover-1.svg" },
-        { titleId: "api-keys-explained", author: alice, title: "API Keys, Explained", description: "How ZeFer API keys work.", tags: ["api", "docs"], published: true, orgId: null, cover: "/covers/cover-2.svg" },
+        { titleId: "api-keys-explained", author: alice, title: "API Keys, Explained", description: "How weaseln API keys work.", tags: ["api", "docs"], published: true, orgId: null, cover: "/covers/cover-2.svg" },
         { titleId: "why-i-write-here", author: bob, title: "Why I Write Here", description: "A short note on why.", tags: ["writing", "personal"], published: true, orgId: null, cover: "/covers/cover-3.svg" },
         { titleId: "notes-on-notifications", author: carol, title: "Notes on Notifications", description: "Notification design that respects attention.", tags: ["notifications"], published: true, orgId: null, cover: "/covers/cover-4.svg" },
         { titleId: "starting-threads", author: alice, title: "Starting Threads", description: "How to seed a good discussion.", tags: ["comments"], published: true, orgId: org.id, cover: "/covers/cover-1.svg" },

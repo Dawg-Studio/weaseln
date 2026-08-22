@@ -8,6 +8,8 @@ End-to-end browser tests for the seeded fixture set, plus the magic-link login f
 
 What's in the DB after `npm run db:seed`. Use this to know what to look for in the browser.
 
+Re-running the QA seed resets posts, organizations, and related fixture activity owned by the three dedicated seeded QA accounts before recreating the standard fixtures.
+
 ### Users
 
 | Email             | Display name    | Role                              |
@@ -19,7 +21,7 @@ What's in the DB after `npm run db:seed`. Use this to know what to look for in t
 All usernames match the local part of the email — `/alice`, `/bob`, `/carol` are their profile URLs.
 
 ### Organization
-- **"ZeFer Test Org"** — `/organization/zefer-test-org` (the route is `/organization/[orgId]` and accepts either the cuid or the username)
+- **"Weaseln Test Org"** — `/organization/weaseln-test-org` (the route is `/organization/[orgId]` and accepts either the cuid or the username)
 - Owner: alice · Admins: bob · Members: bob, carol
 - 4 of the 10 posts below are org posts (marked in the next table).
 
@@ -29,7 +31,7 @@ Visit each at `/<author-username>/<titleId>`. The author-username is the handle,
 
 | titleId                  | author username | org? |
 | ------------------------ | --------------- | ---- |
-| `welcome-to-zefer`       | alice           | ✓    |
+| `welcome-to-weaseln`     | alice           | ✓    |
 | `designing-for-readers`  | alice           | ✓    |
 | `the-state-of-blogging`  | bob             |      |
 | `comment-as-feature`     | carol           |      |
@@ -43,12 +45,12 @@ Visit each at `/<author-username>/<titleId>`. The author-username is the handle,
 `draft-wip` is the only unpublished post. It does **not** appear in feeds or search; it's visible only to bob at `/manage/posts`.
 
 ### Comments (4 total)
-- `welcome-to-zefer` — bob's top comment, alice's threaded reply ("Thanks Bob!").
+- `welcome-to-weaseln` — bob's top comment, alice's threaded reply ("Thanks Bob!").
 - `designing-for-readers` — carol's top comment ("I love how this focuses on the reader.").
 - `the-state-of-blogging` — alice's top comment ("Where do you see this going in five years?").
 
 ### Reactions (4 likes)
-- `welcome-to-zefer`: 👍 bob, 👍 carol.
+- `welcome-to-weaseln`: 👍 bob, 👍 carol.
 - `designing-for-readers`: 👍 alice.
 - `reading-history-ux`: 👍 bob.
 
@@ -58,7 +60,7 @@ Visit each at `/<author-username>/<titleId>`. The author-username is the handle,
 - carol → alice, carol → bob
 
 ### Bookmarks
-Alice has bookmarked 2 posts: `welcome-to-zefer`, `the-state-of-blogging`. Visible at `/readinglist` while signed in as alice.
+Alice has bookmarked 2 posts: `welcome-to-weaseln`, `the-state-of-blogging`. Visible at `/readinglist` while signed in as alice.
 
 ---
 
@@ -124,15 +126,15 @@ For each user, log in fresh and walk through these checks.
 ### As alice (`alice@test.com`)
 1. **Home feed (`/`)** — see Alice's authored posts; org badge visible on the 4 org posts.
 2. **`/alice`** — profile shows 4 authored posts (published + drafts), 2 followings (bob, carol), 2 followers.
-3. **`/readinglist`** — 2 bookmarked posts (`welcome-to-zefer`, `the-state-of-blogging`).
-4. **`/alice/welcome-to-zefer`** — comment thread shows bob's comment with alice's "Thanks Bob!" nested as a reply.
+3. **`/readinglist`** — 2 bookmarked posts (`welcome-to-weaseln`, `the-state-of-blogging`).
+4. **`/alice/welcome-to-weaseln`** — comment thread shows bob's comment with alice's "Thanks Bob!" nested as a reply.
 5. **`/settings/profile`** — name "Alice Anderson", bio "QA seed user — Alice.", image URL contains `seed=alice`. Form fields render without crashing (verifies the `socials is not iterable` fix).
 
 ### As bob (`bob@test.com`)
-1. **`/bob`** — 3 authored posts (the QA doc expects 3: 2 published + 1 draft `draft-wip`), 1 following (alice), 2 followers, and admin-of-org badge on the `ZeFer Test Org` card on the org page.
+1. **`/bob`** — 3 authored posts (the QA doc expects 3: 2 published + 1 draft `draft-wip`), 1 following (alice), 2 followers, and admin-of-org badge on the `Weaseln Test Org` card on the org page.
 2. **`/bob/the-state-of-blogging`** — alice's comment visible ("Where do you see this going in five years?").
 3. **`/bob/draft-wip`** — **404 / not found** (draft not visible to anyone, including the author via direct URL). Draft appears in `/manage/posts`.
-4. **`/organization/zefer-test-org`** — org page lists posts where `org?` column is ✓ in §1, and shows a members section listing Alice (owner), Bob (admin), Carol (member) with role badges.
+4. **`/organization/weaseln-test-org`** — org page lists posts where `org?` column is ✓ in §1, and shows a members section listing Alice (owner), Bob (admin), Carol (member) with role badges.
 
 ### As carol (`carol@test.com`)
 1. **`/carol`** — 3 authored posts, 2 followings (alice, bob), 2 followers.
@@ -153,8 +155,8 @@ Tests that require two browser contexts at once.
 ### Reply thread (alice → bob's comment)
 1. Log in as alice (context A).
 2. Log in as bob (context B).
-3. In alice's context, navigate to `/alice/welcome-to-zefer` and post a top-level comment.
-4. In bob's context, reload `/alice/welcome-to-zefer`.
+3. In alice's context, navigate to `/alice/welcome-to-weaseln` and post a top-level comment.
+4. In bob's context, reload `/alice/welcome-to-weaseln`.
 5. **Expected:** bob sees alice's new comment.
 
 ### Bookmark sync (alice)
@@ -164,7 +166,7 @@ Tests that require two browser contexts at once.
 4. Visit `/readinglist` — new bookmark appears.
 
 ### Org membership visibility
-1. As alice, visit `/organization/zefer-test-org`.
+1. As alice, visit `/organization/weaseln-test-org`.
 2. **Expected:** org page shows a "Members" section with Alice (owner badge), Bob (admin badge), and Carol (member badge). Bob is also listed as admin (so owner and admin can both appear, deduplicated).
 
 ---
@@ -188,7 +190,7 @@ The post composer lives at `/new`. Auth is gated; anonymous visits redirect to `
 5. Upload a cover image (any local image ≥ a few KB).
 6. Type ≥ 50 words in the body editor (e.g., a couple of paragraphs of lorem-style text).
 7. Add a tag `qa`.
-8. Leave the organization selector as "None" (or pick `ZeFer Test Org`; both are valid).
+8. Leave the organization selector as "None" (or pick `Weaseln Test Org`; both are valid).
 9. Click **Publish**.
 10. **Expected:** redirected to `/alice/qa-hello-world-<timestamp>` (the post page). Title, description, cover image, and body render.
 

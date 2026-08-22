@@ -9,6 +9,11 @@ export async function POST(req: NextRequest) {
     try {
         const url = new URL(req.url);
         const baseUrl = url.origin;
+        const websiteUrl = (
+            process.env.BASE_URL ??
+            process.env.NEXTAUTH_URL ??
+            "http://localhost:3000"
+        ).replace(/\/+$/, "");
         const code = url.searchParams.get("code");
         const userId = url.searchParams.get("userId");
         const verificationUrl = `${baseUrl}/verify/email/${code}/${userId}`;
@@ -20,11 +25,12 @@ export async function POST(req: NextRequest) {
         });
         if (user?.email) {
             const data = await resend.emails.send({
-                from: "ZeFer <verification@zefer.blog>",
+                from: "weaseln <verification@weaseln.blog>",
                 to: [user?.email],
                 subject: "Verify your email.",
                 react: VerifyEmailTemplate({
                     verificationUrl,
+                    websiteUrl,
                 }),
             });
             return NextResponse.json(data);
