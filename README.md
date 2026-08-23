@@ -1,16 +1,18 @@
-# ZeFer, tell your story to the world
+# weaseln, tell your story to the world
 
 ## Your story is yours to unfold
 
-Join us on this exciting journey as we build not just a platform, but a living, breathing community where stories resonate, ideas flourish, and connections thrive. ZeFer, the open-source publishing platform, awaits, ready to amplify your voice and celebrate the diverse narratives that make us who we are.
+Join us on this exciting journey as we build not just a platform, but a living, breathing community where stories resonate, ideas flourish, and connections thrive. weaseln, the open-source publishing platform, awaits, ready to amplify your voice and celebrate the diverse narratives that make us who we are.
 
-## Write in ZeFer, integrate it freely to other platforms with our APIs
+## Write in weaseln, integrate it freely to other platforms with our APIs
 
-We do not limit your blog posts only in our platform, you can freely integrate it to other platforms. We have built an npm package for this. You can check the documentation how to set it up here: <https://zeferapi-documentation.vercel.app/>
+We do not limit your blog posts only in our platform, you can freely integrate it to other platforms. We have built an npm package for this. You can check the documentation how to set it up here: <https://weaselnapi-documentation.vercel.app/>
 
 ## Contributing
 
 Refer to [CONTRIBUTING.md](CONTRIBUTING.md)
+
+Repository: <https://github.com/Dawg-Studio/weaseln>
 
 ## Codebase
 
@@ -43,17 +45,17 @@ We use [ESLint](https://eslint.org/) and [prettier](https://github.com/prettier/
 
 -   Node version 20 or higher
 -   Docker and Docker Compose (for local database)
--   A Socket IO server for ZeFer, clone and fork it here <https://github.com/leindfraust/ZeFerSocketIO>
+-   A Socket.IO server for weaseln; the intended external service repository is <https://github.com/Dawg-Studio/weaseln-socketio>
 
 ### Installation
 
 #### 1. Fork and clone the repository
 ```bash
-# Fork ZeFer repo here: https://github.com/leindfraust/ZeFer/fork
+# Fork weaseln here: https://github.com/Dawg-Studio/weaseln/fork
 
 # Then clone your forked repository
-git clone https://github.com/<your-username>/zefer.git
-cd zefer
+git clone https://github.com/<your-username>/weaseln.git
+cd weaseln
 ```
 
 #### 2. Set up environment variables
@@ -97,7 +99,7 @@ and finally...
 ### Database Management
 
 -   **View logs:** `docker compose logs postgres`
--   **Access PostgreSQL CLI:** `docker compose exec postgres psql -U zefer -d zefer`
+-   **Access PostgreSQL CLI:** `docker compose exec postgres psql -U weaseln -d weaseln`
 -   **Stop database:** `docker compose down`
 -   **Reset database (deletes all data):** `docker compose down -v`
 

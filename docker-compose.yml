@@ -3,21 +3,21 @@ version: '3.8'
 services:
   postgres:
     image: postgres:16-alpine
-    container_name: zefer-db
+    container_name: weaseln-db
     restart: unless-stopped
     environment:
-      POSTGRES_USER: zefer
-      POSTGRES_PASSWORD: zefer_dev_password
-      POSTGRES_DB: zefer
+      POSTGRES_USER: weaseln
+      POSTGRES_PASSWORD: weaseln_dev_password
+      POSTGRES_DB: weaseln
     ports:
       - "5555:5432"
     volumes:
-      - zefer_postgres_data:/var/lib/postgresql/data
+      - weaseln_postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U zefer"]
+      test: ["CMD-SHELL", "pg_isready -U weaseln"]
       interval: 10s
       timeout: 5s
       retries: 5
 
 volumes:
-  zefer_postgres_data:
+  weaseln_postgres_data:

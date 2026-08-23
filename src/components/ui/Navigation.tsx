@@ -127,7 +127,7 @@ export default function Navigation({
                             src={"/icons/weaslnnobg.png"}
                             height={48}
                             width={72}
-                            alt="Weaseln Logo"
+                            alt="weaseln logo"
                             className="h-9 w-auto sm:h-10"
                         />
                     </Link>

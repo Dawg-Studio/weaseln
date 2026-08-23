@@ -6,12 +6,16 @@ import {
 } from "@fortawesome/free-solid-svg-icons";
 import { faShareSquare as faRegShareSquare } from "@fortawesome/free-regular-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { useState } from "react";
+import { useState, useSyncExternalStore } from "react";
 import { cn } from "@/utils/cn";
 
-const SITE_URL = (
-    process.env.NEXT_PUBLIC_BASE_URL ?? "https://zefer.vercel.app"
-).replace(/\/+$/, "");
+const subscribeToLocation = () => () => {};
+
+// Inlined at build time when set; empty string when it is not configured.
+const CONFIGURED_ORIGIN = (process.env.NEXT_PUBLIC_BASE_URL ?? "").replace(
+    /\/+$/,
+    "",
+);
 
 export function PostShareButton({
     userId,
@@ -24,12 +28,22 @@ export function PostShareButton({
     // height of the row it sits in. Purely additive; no behaviour change.
     className?: string;
 }) {
-    // ponytail: the share link must resolve to a real deployed origin. Keep it
-    // derived from configuration rather than hardcoded so it can never drift
-    // from `metadataBase` (src/app/layout.tsx) or robots.ts/sitemap.ts again.
-    // NEXT_PUBLIC_* is inlined at build time, so this renders identically on
-    // the server and the client — no hydration mismatch on the sharer hrefs.
-    const shareLink: string = `${SITE_URL}/${userId}/${titleId}`;
+    // ponytail: the share link must resolve to a real deployed origin. Prefer
+    // the configured origin so it can never drift from `metadataBase`
+    // (src/app/layout.tsx) or robots.ts/sitemap.ts again, and fall back to the
+    // live origin so an unconfigured deployment still copies a working link
+    // instead of a hardcoded one. NEXT_PUBLIC_* is inlined at build time, so
+    // when it is set both snapshots agree — no hydration mismatch on the hrefs.
+    const shareLink = useSyncExternalStore(
+        subscribeToLocation,
+        () =>
+            new URL(
+                `/${userId}/${titleId}`,
+                CONFIGURED_ORIGIN || window.location.origin,
+            ).toString(),
+        () =>
+            CONFIGURED_ORIGIN ? `${CONFIGURED_ORIGIN}/${userId}/${titleId}` : "",
+    );
     const [linkCopyStatus, setLinkCopyStatus] = useState<boolean>(false);
     const [postShareActed, setPostShareActed] = useState<boolean>(false);
     return (

@@ -1,7 +1,11 @@
 import type { MetadataRoute } from "next";
 import prisma from "@/db";
 
-const SITE_URL = process.env.BASE_URL ?? "https://www.zefer.blog";
+const SITE_URL = (
+    process.env.BASE_URL ??
+    process.env.NEXTAUTH_URL ??
+    "http://localhost:3000"
+).replace(/\/+$/, "");
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     const posts = await prisma.post.findMany({

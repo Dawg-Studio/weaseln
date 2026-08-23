@@ -1,4 +1,4 @@
-# ZeFer minimal theme + light/dark toggle — Implementation Plan
+# weaseln minimal theme + light/dark toggle — Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
@@ -482,7 +482,7 @@ git commit -m "feat(theme): add navbar toggle button (sun/moon) with MutationObs
 
 ## Done
 
-After all three tasks land and `npx eslint .` + `npx tsc --noEmit` exit 0, the spec's verification list (`docs/superpowers/specs/2026-08-18-zefer-minimal-theme-design.md` §Verification) is fully covered:
+After all three tasks land and `npx eslint .` + `npx tsc --noEmit` exit 0, the spec's verification list (`docs/superpowers/specs/2026-08-18-weaseln-minimal-theme-design.md` §Verification) is fully covered:
 
 1. ✅ Cold load `/` → white background, black logo text, near-black "Login" — covered by Task 1 + Task 2.
 2. ✅ Cold load with OS in dark preference → still white (explicit `data-theme="light"` wins) — covered by Task 2 step 3.

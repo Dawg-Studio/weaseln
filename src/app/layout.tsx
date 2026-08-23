@@ -13,22 +13,23 @@ config.autoAddCss = false;
 
 const inter = Inter({ subsets: ["latin"] });
 
-const APP_NAME = "Weaseln";
+const APP_NAME = "weaseln";
 const APP_DEFAULT_TITLE =
-    "Weaseln, a publishing platform for developers and creatives alike.";
-const APP_TITLE_TEMPLATE = "%s | Weaseln";
+    "weaseln, a publishing platform for developers and creatives alike.";
+const APP_TITLE_TEMPLATE = "%s | weaseln";
 const APP_DESCRIPTION =
-    "A dynamic publishing platform for developers and creatives to share their content or story to the world.";
+    "weaseln is a dynamic publishing platform for developers and creatives to share their content or story with the world.";
 
 export const viewport: Viewport = {
     themeColor: "#FBF8F0",
 };
 
 export const metadata: Metadata = {
-    metadataBase:
-        process.env.NODE_ENV === "production"
-            ? new URL("https://zefer.blog")
-            : new URL("http://localhost:3000"),
+    metadataBase: new URL(
+        process.env.BASE_URL ??
+            process.env.NEXTAUTH_URL ??
+            "http://localhost:3000",
+    ),
     applicationName: APP_NAME,
     title: {
         default: APP_DEFAULT_TITLE,
@@ -74,14 +75,13 @@ export const metadata: Metadata = {
         telephone: false,
     },
     keywords: [
-        "Weaseln",
+        "weaseln",
         "blog",
         "publishing",
         "developers",
         "creatives",
         "content",
         "story",
-        "weaseln",
         "publishing platform",
         "blog posts",
         "posts",

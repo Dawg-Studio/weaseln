@@ -8,7 +8,7 @@ export default function TermsPage() {
                         Terms and Conditions of Use
                     </h1>
                     <p className="mt-3 text-subhead text-base-content/70">
-                        The terms you agree to when you use Weaseln.
+                        The terms you agree to when you use weaseln.
                     </p>
                 </header>
 
@@ -16,10 +16,10 @@ export default function TermsPage() {
                     <div className="prose prose-lg reading mx-auto">
                         <p>
                             Please read these Terms and Conditions carefully
-                            before using <strong>Weaseln</strong>. Your access
+                            before using <strong>weaseln</strong>. Your access
                             to and use of the platform is conditioned on your
                             acceptance of and compliance with these terms. By
-                            using <strong>Weaseln</strong>, you agree to be
+                            using <strong>weaseln</strong>, you agree to be
                             bound by these Terms and Conditions.
                         </p>
 
@@ -27,7 +27,7 @@ export default function TermsPage() {
                             <strong className="text-primary">
                                 1. Account Registration:
                             </strong>{" "}
-                            To use certain features of <strong>Weaseln</strong>,
+                            To use certain features of <strong>weaseln</strong>,
                             you may be required to create an account. You are
                             responsible for maintaining the confidentiality of
                             your account information and agree to accept
@@ -40,7 +40,7 @@ export default function TermsPage() {
                                 2. User Content:
                             </strong>{" "}
                             By posting, submitting, or sharing content on{" "}
-                            <strong>Weaseln</strong>, you grant us a
+                            <strong>weaseln</strong>, you grant us a
                             non-exclusive, worldwide, royalty-free license to
                             use, reproduce, and distribute the content. You
                             retain ownership rights to your content.
@@ -50,7 +50,7 @@ export default function TermsPage() {
                             <strong className="text-primary">
                                 3. Code of Conduct:
                             </strong>{" "}
-                            Users must adhere to the <strong>Weaseln</strong>{" "}
+                            Users must adhere to the <strong>weaseln</strong>{" "}
                             Code of Conduct. Failure to comply may result in the
                             suspension or termination of your account.
                         </p>
@@ -59,7 +59,7 @@ export default function TermsPage() {
                             <strong className="text-primary">
                                 4. Termination:
                             </strong>{" "}
-                            <strong>Weaseln</strong> reserves the right to
+                            <strong>weaseln</strong> reserves the right to
                             terminate or suspend your account at any time for
                             any reason without notice.
                         </p>
@@ -68,7 +68,7 @@ export default function TermsPage() {
                             <strong className="text-primary">
                                 5. Privacy:
                             </strong>{" "}
-                            Your use of <strong>Weaseln</strong> is subject to
+                            Your use of <strong>weaseln</strong> is subject to
                             our Privacy Policy. By using the platform, you
                             consent to the collection, use, and sharing of your
                             information as described in the Privacy Policy.
@@ -78,7 +78,7 @@ export default function TermsPage() {
                             <strong className="text-primary">
                                 6. Disclaimer:
                             </strong>{" "}
-                            <strong>Weaseln</strong> is provided &quot;as
+                            <strong>weaseln</strong> is provided &quot;as
                             is&quot; without any warranties, express or implied.
                             We do not guarantee the accuracy, reliability, or
                             availability of the platform.
@@ -88,7 +88,7 @@ export default function TermsPage() {
                             <strong className="text-primary">
                                 7. Changes to Terms:
                             </strong>{" "}
-                            <strong>Weaseln</strong> reserves the right to
+                            <strong>weaseln</strong> reserves the right to
                             update or modify these Terms and Conditions at any
                             time. Changes will be effective immediately upon
                             posting to the platform.
@@ -104,7 +104,7 @@ export default function TermsPage() {
                         </p>
 
                         <p>
-                            By using <strong>Weaseln</strong>, you agree to
+                            By using <strong>weaseln</strong>, you agree to
                             these Terms and Conditions. If you do not agree with
                             any part of these terms, you may not use the
                             platform.

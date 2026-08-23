@@ -11,17 +11,17 @@ export default function COCPage() {
                     </h1>
                     <p className="mt-3 text-subhead text-base-content/70">
                         The guidelines everyone agrees to when taking part in
-                        the Weaseln community.
+                        the weaseln community.
                     </p>
                 </header>
 
                 <article className="enter [--enter-delay:80ms] rounded-box border border-hairline bg-surface elev-1 px-6 py-8 sm:px-10 sm:py-12">
                     <div className="prose prose-lg reading mx-auto">
                         <p>
-                            Welcome to <strong>Weaseln</strong>! To ensure a
+                            Welcome to <strong>weaseln</strong>! To ensure a
                             positive and inclusive community, we ask all users
                             to abide by our Code of Conduct. By participating in
-                            the <strong>Weaseln</strong> community, you agree to
+                            the <strong>weaseln</strong> community, you agree to
                             adhere to the following guidelines:
                         </p>
 
@@ -38,7 +38,7 @@ export default function COCPage() {
                             <strong className="text-primary">
                                 2. Inclusivity Matters:
                             </strong>{" "}
-                            <strong>Weaseln</strong> is a diverse community. Be
+                            <strong>weaseln</strong> is a diverse community. Be
                             inclusive and welcoming to all individuals,
                             regardless of their background, identity, or
                             experience level.
@@ -52,7 +52,7 @@ export default function COCPage() {
                             includes but is not limited to offensive comments,
                             discrimination, or unwelcome behavior. If you feel
                             harassed or witness harassment, report it to the{" "}
-                            <strong>Weaseln</strong> team.
+                            <strong>weaseln</strong> team.
                         </p>
 
                         <p>
@@ -86,14 +86,14 @@ export default function COCPage() {
                                 7. Follow the Law:
                             </strong>{" "}
                             Respect and adhere to all applicable laws and
-                            regulations in your use of <strong>Weaseln</strong>.
+                            regulations in your use of <strong>weaseln</strong>.
                         </p>
 
                         <p>
                             <strong className="text-primary">
                                 8. Enforcement:
                             </strong>{" "}
-                            The <strong>Weaseln</strong> team reserves the right
+                            The <strong>weaseln</strong> team reserves the right
                             to enforce these guidelines as needed, including
                             warnings, moderation, or account suspension, to
                             maintain a safe and positive community environment.
@@ -101,7 +101,7 @@ export default function COCPage() {
 
                         <p>
                             Thank you for contributing to the{" "}
-                            <strong>Weaseln</strong> community. Let&apos;s work
+                            <strong>weaseln</strong> community. Let&apos;s work
                             together to create an inclusive and supportive space
                             for everyone.
                         </p>

@@ -76,7 +76,7 @@ const pwaConfig = withPWA(nextConfig);
 const sentryConfig = withSentryConfig(pwaConfig, {
     silent: true,
     org: "romel-jr-zerna",
-    project: "zefer",
+    project: "weaseln",
 }, {
     widenClientFileUpload: true,
     transpileClientSDK: true,

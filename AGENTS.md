@@ -1,6 +1,6 @@
 # AGENTS.md — Project rules
 
-These rules come from the modernization spec (`docs/superpowers/specs/2026-08-04-zefer-modernization-design.md`), the concerns doc (`docs/CONCERNS.md`), and lessons captured during the browser QA pass. Future agents and contributors must follow them.
+These rules come from the concerns doc (`docs/CONCERNS.md`) and lessons captured during the browser QA pass. Future agents and contributors must follow them.
 
 ## Pre-completion checklist
 
@@ -65,8 +65,6 @@ Running only one is **not** sufficient. The 26 pre-existing lint errors in `Tipt
 
 ## Cross-references
 
-- `docs/superpowers/specs/2026-08-04-zefer-modernization-design.md` — target stack and the phased plan.
-- `docs/superpowers/plans/2026-08-04-zefer-modernization.md` — implementation plan.
 - `docs/CONCERNS.md` — known correctness/refactor issues, including the `socials` crash (A3), the `gemini-pro` shutdown (A5), and the load-bearing typo `StautsNotif` (A4).
 - `docs/QA.md` — seeded fixtures and per-user browser smoke checks, including post creation (§5).
 - `README.md` — local dev setup, dev-login flag, and seeded credentials.

@@ -6,7 +6,7 @@ import { auth } from "@/auth";
 import { User } from "@prisma/client";
 import SideMenu from "@/components/menu/SideMenu";
 import TagRankingMenu from "@/components/menu/TagRankingMenu";
-import ZeFerBgHomepage from "@/components/ZeFerBgHompage";
+import WeaselnBgHomepage from "@/components/WeaselnBgHomepage";
 import { Suspense } from "react";
 
 export default async function Home() {
@@ -24,7 +24,7 @@ export default async function Home() {
 
     return (
         <>
-            <ZeFerBgHomepage user={user} />
+            <WeaselnBgHomepage user={user} />
             <main className="mx-auto w-full max-w-[88rem] px-4 py-8 sm:px-6 lg:px-8 lg:py-12">
                 <div className="flex justify-center gap-6 xl:gap-8">
                     <aside className="hidden lg:block w-1/4 sticky top-20 self-start enter-fade">
