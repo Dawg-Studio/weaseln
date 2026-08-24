@@ -14,8 +14,6 @@ import { useRouter } from "next/navigation";
 import { Organization, PostDraft } from "@prisma/client";
 import { cn } from "@/utils/cn";
 import { validateTag } from "@/utils/actions/tag";
-import { autocompleteGemini } from "@/utils/actions/wysiwyg";
-import { AutocompleteGemini } from "./custom_extensions/autocomplete";
 import tiptapExtensions from "@/utils/tiptapExt";
 import { useAutosave } from "./hooks/useAutosave";
 import ImageUploadForm from "./ImageUploadForm";
@@ -85,17 +83,12 @@ export default function Tiptap({
         return result;
     }, [draftTags, tags]);
 
-    const [insertContentState, setInsertContentState] =
-        useState<boolean>(false);
-    const insertContentTimeout = useRef<NodeJS.Timeout>(undefined);
-
     const extensions = tiptapExtensions(["Image", "Link", "Youtube"]);
     const editor = useEditor({
         immediatelyRender: false,
         extensions: [
             ...extensions,
             Placeholder,
-            AutocompleteGemini,
             TiptapImage.configure({
                 HTMLAttributes: { class: "mx-auto" },
             }),
@@ -107,17 +100,6 @@ export default function Tiptap({
         content: (editOrDraft?.content as JSONContent) ?? "",
         editorProps: {
             attributes: { class: prose, "aria-label": "Post body" },
-            handleKeyDown(view, event) {
-                if (event.key === "Tab") {
-                    if (!insertContentState) {
-                        event.preventDefault();
-                        setInsertContentState(true);
-                    }
-                } else {
-                    clearTimeout(insertContentTimeout.current);
-                    setInsertContentState(false);
-                }
-            },
         },
     });
 
@@ -125,40 +107,6 @@ export default function Tiptap({
     useEffect(() => {
         editorRef.current = editor;
     });
-
-    const insertContentRef = useRef<(_words: string) => Promise<void>>(
-        async (_words: string) => {},
-    );
-    useEffect(() => {
-        insertContentRef.current = async (words: string) => {
-            const ed = editorRef.current;
-            if (!ed) return;
-            ed.extensionStorage.AutocompleteExtension.autosuggestion =
-                '<span class="generating"><span>&#x2022;</span><span>&#x2022;</span><span>&#x2022;</span></span>';
-            ed.commands.setMeta("triggerSuggestion", true);
-            const autocomplete = await autocompleteGemini(words);
-            if (autocomplete) {
-                ed.extensionStorage.AutocompleteExtension.autosuggestion =
-                    autocomplete;
-            } else {
-                ed.extensionStorage.AutocompleteExtension.autosuggestion = "";
-            }
-            ed.commands.setMeta("triggerSuggestion", false);
-        };
-    });
-
-    useEffect(() => {
-        if (!insertContentState) return;
-        const ed = editorRef.current;
-        if (!ed) return;
-        const prompt = ed.getText();
-        if (!prompt) return;
-        const timeoutId = setTimeout(async () => {
-            setInsertContentState(false);
-            await insertContentRef.current(prompt);
-        }, 1000);
-        return () => clearTimeout(timeoutId);
-    }, [insertContentState]);
 
     const editorTitle = useEditor({
         immediatelyRender: false,
