@@ -13,6 +13,7 @@ import {
 } from "@/utils/actions/reactions";
 import { UserNotificationInputValidation } from "@/types/notification";
 import useSocket from "@/socket";
+import { cn } from "@/utils/cn";
 
 type Target = { id: string; authorId: string };
 
@@ -76,16 +77,35 @@ export default function ReactionButton({
     }
 
     const onClick = session ? updateReaction : () => signIn();
+    const reacted = reaction !== undefined;
 
     return (
         <>
-            <FontAwesomeIcon
-                icon={reaction !== undefined ? faHeart : FaRegHeart}
-                title="Reactions"
-                className="cursor-pointer"
+            <button
+                type="button"
+                // The glyph and its count are one hit target, so the whole
+                // pair lights up together. Rust is the affirmative colour.
+                className={cn(
+                    "btn btn-ghost h-9 min-h-9 w-auto gap-2 rounded-field px-2 text-base-content/70 press",
+                    "hover:bg-base-200 hover:text-base-content",
+                    reacted && "text-primary hover:text-primary",
+                )}
+                aria-pressed={reacted}
+                aria-label={
+                    reacted
+                        ? `Remove your reaction (${count})`
+                        : `React with a heart (${count})`
+                }
                 onClick={onClick}
-            />
-            <div>{count}</div>
+            >
+                <FontAwesomeIcon
+                    icon={reaction !== undefined ? faHeart : FaRegHeart}
+                    title="Reactions"
+                    aria-hidden="true"
+                    className="cursor-pointer"
+                />
+                <span className="nums text-sm font-medium">{count}</span>
+            </button>
         </>
     );
 }

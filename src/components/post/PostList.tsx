@@ -1,11 +1,17 @@
 "use client";
 
 import { Post } from "@prisma/client";
-import { Fragment, useEffect, useState } from "react";
+import { CSSProperties, Fragment, useEffect, useState } from "react";
+import {
+    faMagnifyingGlass,
+    faNewspaper,
+} from "@fortawesome/free-solid-svg-icons";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import PostContainer from "./PostContainer";
 import { useSearchParams, usePathname, useRouter } from "next/navigation";
 import PostContainerLoader from "./PostContainerLoader";
 import { useInfiniteList } from "@/hooks/useInfiniteList";
+import { cn } from "@/utils/cn";
 
 type PostListItem = Post & {
     _count?: { reactions: number; comments: number };
@@ -16,6 +22,23 @@ type PostListItem = Post & {
         username: string;
     } | null;
 };
+
+// Segmented-control segment. Rest is a quiet muted label on the sunken track;
+// the selected one is lifted onto a `surface` pill and marked with the 2px
+// rust rail the design system uses for every active/selected state.
+const feedTab = (isActive: boolean) =>
+    cn(
+        "relative rounded-field border border-transparent px-3.5 py-1.5 text-sm font-semibold press",
+        isActive
+            ? "border-hairline bg-surface text-base-content elev-1"
+            : "text-muted hover:bg-base-300 hover:text-base-content",
+    );
+
+const feedRail = (isActive: boolean) =>
+    cn(
+        "absolute inset-x-3 bottom-1 h-0.5 rounded-full bg-primary transition-opacity duration-200",
+        isActive ? "opacity-100" : "opacity-0",
+    );
 
 export default function PostList({
     keyword,
@@ -99,60 +122,121 @@ export default function PostList({
         <>
             {items.length > 0 && !isHideFeedOpts && (
                 <div
-                    className={`flex items-center mb-6 ${
-                        keyword ? "justify-end" : "justify-start"
-                    } space-x-4`}
+                    className={cn(
+                        "mb-6 flex items-center",
+                        keyword ? "justify-end" : "justify-start",
+                    )}
                 >
-                    <h3
-                        className={`text-xl cursor-pointer hover:underline ${
-                            feed === "relevance" ? "underline" : ""
-                        }`}
-                        onClick={() => setFeed("relevance")}
+                    <div
+                        role="group"
+                        aria-label="Sort the feed"
+                        className="inline-flex items-center gap-1 rounded-box border border-hairline bg-base-200 p-1"
                     >
-                        Relevant
-                    </h3>
-                    <h3
-                        className={`text-xl cursor-pointer hover:underline ${
-                            feed === "latest" ? "underline" : ""
-                        }`}
-                        onClick={() => setFeed("latest")}
-                    >
-                        Latest
-                    </h3>
-                    <h3
-                        className={`text-xl cursor-pointer hover:underline ${
-                            feed === "most-popular" ? "underline" : ""
-                        }`}
-                        onClick={() => setFeed("most-popular")}
-                    >
-                        Most Popular
-                    </h3>
+                        <button
+                            type="button"
+                            aria-pressed={feed === "relevance"}
+                            className={feedTab(feed === "relevance")}
+                            onClick={() => setFeed("relevance")}
+                        >
+                            Relevant
+                            <span
+                                aria-hidden="true"
+                                className={feedRail(feed === "relevance")}
+                            />
+                        </button>
+                        <button
+                            type="button"
+                            aria-pressed={feed === "latest"}
+                            className={feedTab(feed === "latest")}
+                            onClick={() => setFeed("latest")}
+                        >
+                            Latest
+                            <span
+                                aria-hidden="true"
+                                className={feedRail(feed === "latest")}
+                            />
+                        </button>
+                        <button
+                            type="button"
+                            aria-pressed={feed === "most-popular"}
+                            className={feedTab(feed === "most-popular")}
+                            onClick={() => setFeed("most-popular")}
+                        >
+                            Most Popular
+                            <span
+                                aria-hidden="true"
+                                className={feedRail(feed === "most-popular")}
+                            />
+                        </button>
+                    </div>
                 </div>
             )}
             <div className="space-y-4">
                 {!isLoading && items.length > 0 ? (
-                    items.map((post, index) => (
-                        <Fragment key={post.id}>
-                            {items.length === index + 1 ? (
-                                <div ref={ref}>
-                                    <PostContainer {...post} />
-                                </div>
-                            ) : (
-                                <div>
-                                    <PostContainer {...post} />
-                                </div>
-                            )}
-                        </Fragment>
-                    ))
+                    items.map((post, index) => {
+                        // Stagger the arrival of the first few cards only —
+                        // capped so infinitely-appended pages never sit behind
+                        // a multi-second delay. Neutralised entirely under
+                        // prefers-reduced-motion (see globals.css).
+                        const enterDelay = {
+                            "--enter-delay": `${Math.min(index, 5) * 45}ms`,
+                        } as CSSProperties;
+                        return (
+                            <Fragment key={post.id}>
+                                {items.length === index + 1 ? (
+                                    <div
+                                        ref={ref}
+                                        className="enter"
+                                        style={enterDelay}
+                                    >
+                                        <PostContainer {...post} />
+                                    </div>
+                                ) : (
+                                    <div className="enter" style={enterDelay}>
+                                        <PostContainer {...post} />
+                                    </div>
+                                )}
+                            </Fragment>
+                        );
+                    })
                 ) : (
-                    <PostContainerLoader />
+                    // ponytail: the loader is gated on `isLoading` (mirrors
+                    // PeopleList). Without the guard a settled, empty result
+                    // set renders three shimmering placeholder cards on top of
+                    // the empty state below.
+                    isLoading && <PostContainerLoader />
                 )}
-                {keyword && items.length === 0 && !isLoading && (
-                    <h3 className="text-xl">No results were found.</h3>
+                {items.length === 0 && !isLoading && (
+                    <div className="brand-wash flex flex-col items-center justify-center gap-3 rounded-box border border-dashed border-hairline-strong px-6 py-14 text-center">
+                        <FontAwesomeIcon
+                            icon={keyword ? faMagnifyingGlass : faNewspaper}
+                            className="text-3xl text-primary/55"
+                        />
+                        <h3 className="text-base font-semibold text-base-content">
+                            {keyword
+                                ? "No results were found."
+                                : "Nothing here yet."}
+                        </h3>
+                        <p className="measure text-sm text-muted">
+                            {keyword
+                                ? "Nothing matched that search. Try a shorter keyword or a different tag."
+                                : "There are no posts to show on this feed just yet. Check back soon."}
+                        </p>
+                    </div>
                 )}
                 {items.length > 0 && !hasNextPage && !isLoading && (
-                    <div className=" divider divider-vertical text-sm max-w-md mx-auto">
-                        End of Results
+                    <div className="mx-auto flex max-w-md items-center gap-3 pt-2">
+                        <span
+                            aria-hidden="true"
+                            className="h-px flex-1 bg-hairline"
+                        />
+                        <span className="text-eyebrow uppercase text-muted">
+                            End of Results
+                        </span>
+                        <span
+                            aria-hidden="true"
+                            className="h-px flex-1 bg-hairline"
+                        />
                     </div>
                 )}
             </div>

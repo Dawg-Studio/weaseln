@@ -48,10 +48,10 @@ const RADIUS_CLASS: Record<CardRadius, string> = {
 };
 
 const SHADOW_CLASS: Record<CardShadow, string> = {
-    none: "shadow-none",
-    subtle: "shadow-sm",
-    medium: "shadow-md",
-    large: "shadow-lg",
+    none: "elev-0",
+    subtle: "elev-1",
+    medium: "elev-2",
+    large: "elev-3",
 };
 
 const BORDER_CLASS: Record<BorderStyle, string> = {
@@ -166,7 +166,7 @@ const UserOrgProfile = async ({
             className={`relative container p-4 mt-8 mb-8 mx-auto ${cardClasses} ${alignClasses}`}
         >
             <div className="avatar flex justify-center mb-4">
-                <div className="lg:w-64 w-32 rounded-full">
+                <div className="lg:w-64 w-32 rounded-full ring-2 ring-primary/25 ring-offset-2 ring-offset-base-100">
                     <Image
                         src={user?.image ?? (org?.image as string)}
                         alt={user?.name as string}
@@ -275,11 +275,13 @@ const UserOrgProfile = async ({
         <div className={`p-4 ${cardClasses} ${alignClasses}`}>
             <div className="flex items-center space-x-4">
                 <FontAwesomeIcon width={24} icon={faBlog} size="lg" />
-                <p className="text-lg ">{posts} posts posted</p>
+                <p className="nums text-lg font-semibold text-base-content">
+                    {posts} posts posted
+                </p>
             </div>
             <div className="flex items-center space-x-4">
                 <FontAwesomeIcon width={24} icon={faPeopleGroup} size="lg" />
-                <p className="text-lg ">
+                <p className="nums text-lg font-semibold text-base-content">
                     {user
                         ? `${followers} followers`
                         : `${members} members`}
@@ -288,13 +290,17 @@ const UserOrgProfile = async ({
             {user && (
                 <div className="flex items-center space-x-4">
                     <FontAwesomeIcon width={24} icon={faPeopleGroup} size="lg" />
-                    <p className="text-lg ">{following} following</p>
+                    <p className="nums text-lg font-semibold text-base-content">
+                        {following} following
+                    </p>
                 </div>
             )}
             {user && user.occupation && (
                 <div className="flex items-center space-x-4">
                     <FontAwesomeIcon width={24} icon={faBriefcase} size="lg" />
-                    <p className="text-lg">{user.occupation}</p>
+                    <p className="text-lg font-semibold text-base-content">
+                        {user.occupation}
+                    </p>
                 </div>
             )}
         </div>
@@ -304,7 +310,9 @@ const UserOrgProfile = async ({
         if (!hasSocials) return null;
         return (
             <div className={`p-4 ${cardClasses} ${alignClasses}`}>
-                <p className="text-xl">Social Links: </p>
+                <p className="brand-rule text-headline text-base-content">
+                    Social Links
+                </p>
                 <ul className="list-disc ml-12">
                     {socialsList.map((social) => (
                         <Fragment key={social.name}>
@@ -358,7 +366,9 @@ const UserOrgProfile = async ({
                 className={`p-4 ${cardClasses} ${alignClasses}`}
                 data-testid="user-organizations"
             >
-                <p className="text-xl font-bold mb-4">Organizations</p>
+                <p className="brand-rule mb-4 text-headline text-base-content">
+                    Organizations
+                </p>
                 <ul className="space-y-2">
                     {visible.map((o) => (
                         <li
@@ -390,7 +400,7 @@ const UserOrgProfile = async ({
                     ))}
                     {overflow > 0 && (
                         <li>
-                            <span className="text-sm opacity-70">
+                            <span className="text-meta text-muted nums">
                                 +{overflow} more
                             </span>
                         </li>
@@ -402,11 +412,9 @@ const UserOrgProfile = async ({
 
     const renderPosts = () => (
         <div className="w-full">
-            {posts === 0 && (
-                <div className="flex items-center md:justify-normal justify-center font-bold text-gray-600 w-full h-full md:ml-[400px] md:text-xl text-md">
-                    <span>No post from user yet</span>
-                </div>
-            )}
+            {/* PostList now renders the `empty-state` panel itself when a feed
+                comes back empty, so the ad-hoc "No post from user yet" line
+                that used to sit here would double up underneath it. */}
             <QueryWrapper>
                 <Suspense>
                     <PostList userId={userId} orgId={orgId} />
@@ -425,7 +433,9 @@ const UserOrgProfile = async ({
                 data-testid="org-members"
                 className={`mb-6 p-6 ${cardClasses}`}
             >
-                <p className="text-xl font-bold mb-4">Members</p>
+                <p className="brand-rule mb-4 text-headline text-base-content">
+                    Members
+                </p>
                 <ul className="space-y-2">
                     {orgMembers.map((m) => (
                         <li
@@ -448,7 +458,7 @@ const UserOrgProfile = async ({
                                 </span>
                             </Link>
                             <span
-                                className="text-xs px-2 py-0.5 rounded bg-base-300 uppercase"
+                                className="inline-flex items-center gap-1 rounded-full border border-hairline bg-base-300 px-2.5 py-1 text-eyebrow uppercase text-base-content/80"
                                 data-testid={`org-role-${m.username}`}
                             >
                                 {m.role}
@@ -499,7 +509,7 @@ const UserOrgProfile = async ({
                     minWidth: "100vw",
                 }}
             >
-                <div className="px-4 lg:px-28">
+                <div className="mx-auto w-full max-w-[88rem] px-4 py-8 sm:px-6 lg:px-8 lg:py-12">
                 {/* Sidebar mode intentionally pins hero above the sidebar+main
                     flex wrapper. The two-column layout (sidebar | main) requires
                     hero as a banner row above the columns; reordering hero into
@@ -511,7 +521,9 @@ const UserOrgProfile = async ({
                 )}
                 <div className="flex flex-wrap mx-auto lg:flex-nowrap md:space-x-12 md:space-y-0">
                     <div
-                        className={`lg:w-1/4 mx-auto h-2/4 md:sticky top-24 p-12 mb-12 lg:mb-0 ${SPACING_CLASS[customization.spacingDensity]} ${alignClasses}`}
+                        // top-20 clears the 64px navbar by the same 16px as
+                        // every other sticky rail in the app.
+                        className={`lg:w-1/4 mx-auto h-2/4 md:sticky top-20 p-12 mb-12 lg:mb-0 ${SPACING_CLASS[customization.spacingDensity]} ${alignClasses}`}
                     >
                         {sidebarSections.map((s) => (
                             <Fragment key={s}>{renderers[s]?.()}</Fragment>
@@ -539,7 +551,7 @@ const UserOrgProfile = async ({
                 minWidth: "100vw",
             }}
         >
-            <div className="px-4 lg:px-28">
+            <div className="mx-auto w-full max-w-[88rem] px-4 py-8 sm:px-6 lg:px-8 lg:py-12">
                 {visibleSections.map((s) => (
                     <Fragment key={s}>{renderers[s]?.()}</Fragment>
                 ))}

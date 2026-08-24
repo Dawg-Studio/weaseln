@@ -25,13 +25,13 @@ export default async function Home() {
     return (
         <>
             <WeaselnBgHomepage user={user} />
-            <div className="mx-auto mt-12 mb-12 lg:mr-28 lg:ml-28">
-                <div className="flex justify-center">
-                    <div className="hidden lg:block w-1/4">
+            <main className="mx-auto w-full max-w-[88rem] px-4 py-8 sm:px-6 lg:px-8 lg:py-12">
+                <div className="flex justify-center gap-6 xl:gap-8">
+                    <aside className="hidden lg:block w-1/4 sticky top-20 self-start enter-fade">
                         <SideMenu />
-                    </div>
+                    </aside>
 
-                    <div className="w-full ml-4 mr-4">
+                    <div className="w-full min-w-0 max-w-[46rem]">
                         <QueryWrapper>
                             <Suspense>
                                 <PostList />
@@ -39,11 +39,11 @@ export default async function Home() {
                         </QueryWrapper>
                     </div>
 
-                    <div className="hidden lg:block w-1/4">
+                    <aside className="hidden lg:block w-1/4 sticky top-20 self-start enter-fade [--enter-delay:90ms]">
                         <TagRankingMenu />
-                    </div>
+                    </aside>
                 </div>
-            </div>
+            </main>
         </>
     );
 }

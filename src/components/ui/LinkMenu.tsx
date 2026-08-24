@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import type { MenuLink } from "@/types/menu";
+import { cn } from "@/utils/cn";
 
 export default function LinkMenu({ links }: { links: MenuLink[] }) {
     const router = useRouter();
@@ -26,13 +27,24 @@ export default function LinkMenu({ links }: { links: MenuLink[] }) {
 
     return (
         <>
-            <ul className="hidden lg:block menu menu-lg rounded-box">
+            <ul className="hidden lg:block lg:sticky lg:top-20 menu menu-lg w-full gap-0.5 rounded-box border border-hairline bg-surface elev-1 p-2">
                 {links.map((link) => (
                     <li key={link.href}>
+                        {/* activeLink() still supplies its class, but daisyUI 5
+                            renamed the menu state to .menu-active, so the
+                            visible treatment — rust tint, base-content label,
+                            2px primary rail — comes from the
+                            [aria-current="page"] rule in globals.css. */}
                         <Link
                             href={link.href}
                             onClick={() => setSelectedLink(link.href)}
-                            className={activeLink(link.href)}
+                            className={cn(
+                                "group flex items-center gap-3 rounded-field px-3 py-2.5 text-base font-medium text-base-content/80 transition-colors duration-150 hover:bg-base-200 hover:text-base-content focus-ring",
+                                activeLink(link.href),
+                            )}
+                            aria-current={
+                                activeLink(link.href) ? "page" : undefined
+                            }
                         >
                             {link.label}
                         </Link>
@@ -40,7 +52,8 @@ export default function LinkMenu({ links }: { links: MenuLink[] }) {
                 ))}
             </ul>
             <select
-                className="select select-bordered font-bold text-lg w-full max-w-xs lg:hidden"
+                aria-label="Section"
+                className="select h-11 w-full max-w-xs rounded-field bg-surface text-base font-semibold text-base-content transition-[border-color,box-shadow] duration-150 [--input-color:var(--color-hairline)] hover:[--input-color:var(--color-hairline-strong)] focus:[--input-color:var(--color-primary)] lg:hidden"
                 value={selectedLink}
                 onChange={selectLink}
             >

@@ -21,7 +21,7 @@ const APP_DESCRIPTION =
     "weaseln is a dynamic publishing platform for developers and creatives to share their content or story with the world.";
 
 export const viewport: Viewport = {
-    themeColor: "#FFFFFF",
+    themeColor: "#FBF8F0",
 };
 
 export const metadata: Metadata = {
@@ -112,7 +112,23 @@ export default async function RootLayout({
                 <Suspense>
                     <NextTopLoader showSpinner={false} />
                 </Suspense>
-                <Toaster position="top-center" gutter={24} />
+                {/* react-hot-toast hardcodes `background:#fff; color:#363636`
+                    as an INLINE style, so a className alone cannot reach it —
+                    the inline values have to be neutralised first, then the
+                    token-based surface applied through the class. */}
+                <Toaster
+                    position="top-center"
+                    gutter={24}
+                    toastOptions={{
+                        className:
+                            "rounded-box border border-hairline bg-surface text-base-content elev-3",
+                        style: {
+                            background: "transparent",
+                            boxShadow: "none",
+                            color: "inherit",
+                        },
+                    }}
+                />
                 {children}
                 <Analytics />
                 <SpeedInsights />

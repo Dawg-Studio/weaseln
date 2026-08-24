@@ -30,11 +30,13 @@ const RADIUS_CLASS: Record<CardRadius, string> = {
     full: "rounded-full",
 };
 
+// Mirror of the live profile's ramp (UserOrgProfile.tsx) so the preview and
+// the real page render the same warm elevation, not a cold neutral drop.
 const SHADOW_CLASS: Record<CardShadow, string> = {
-    none: "shadow-none",
-    subtle: "shadow-sm",
-    medium: "shadow-md",
-    large: "shadow-lg",
+    none: "elev-0",
+    subtle: "elev-1",
+    medium: "elev-2",
+    large: "elev-3",
 };
 
 const FONT_CLASS: Record<FontFamily, string> = {
@@ -115,14 +117,16 @@ export default function ProfileCustomizationPreview({
     return (
         <aside
             aria-label="Customization preview"
-            className="shadow-lg rounded-md p-6 sticky top-4"
+            className="sticky top-20 rounded-box border border-hairline bg-surface p-6 elev-3"
             style={bgStyle}
         >
             <div className="flex items-center justify-between mb-4">
-                <h3 className={`text-lg font-bold ${FONT_CLASS[customization.fontFamily]}`}>
+                <h3
+                    className={`text-headline text-base-content ${FONT_CLASS[customization.fontFamily]}`}
+                >
                     Preview
                 </h3>
-                <span className="text-xs opacity-60">live</span>
+                <span className="text-eyebrow uppercase text-muted">live</span>
             </div>
 
             <div className="space-y-4">

@@ -109,7 +109,7 @@ export default function TagInput({
                                     #{tag}
                                 </p>
                                 <p
-                                    className="text-red-400 cursor-pointer"
+                                    className="cursor-pointer text-error"
                                     onClick={() => removeTag(tag)}
                                 >
                                     x

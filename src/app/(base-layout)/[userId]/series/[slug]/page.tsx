@@ -72,18 +72,18 @@ export default async function SeriesUserPage({
 
     return (
         <>
-            <h1 className="text-2xl font-bold text-info">
+            <h1 className="text-title text-base-content lg:text-display">
                 {user.name}&apos;s <strong>{postSeries.title}</strong> Series
             </h1>
-            {user &&
-                postSeries &&
-                postSeries.posts.map((post) => (
-                    <Fragment key={post.id}>
-                        <div className="lg:mr-24 lg:ml-24">
+            {user && postSeries && (
+                <div className="mx-auto mt-6 max-w-[46rem] space-y-4">
+                    {postSeries.posts.map((post) => (
+                        <Fragment key={post.id}>
                             <PostContainer {...post} />
-                        </div>
-                    </Fragment>
-                ))}
+                        </Fragment>
+                    ))}
+                </div>
+            )}
         </>
     );
 }

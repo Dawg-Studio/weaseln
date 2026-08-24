@@ -82,7 +82,7 @@ export default function SeriesManagePostContainer({
                     <input
                         type="text"
                         placeholder="Search…"
-                        className="input input-bordered w-full join-item"
+                        className="input w-full join-item"
                         value={postSearch}
                         onChange={(e) => setPostSearch(e.currentTarget.value)}
                     />
@@ -120,8 +120,8 @@ export default function SeriesManagePostContainer({
                                                 <span
                                                     className={
                                                         post.published
-                                                            ? "badge badge-neutral"
-                                                            : "badge badge-warning"
+                                                            ? "badge badge-sm badge-success font-semibold uppercase tracking-[0.06em]"
+                                                            : "badge badge-sm badge-warning font-semibold uppercase tracking-[0.06em]"
                                                     }
                                                 >
                                                     {post.published
@@ -133,7 +133,7 @@ export default function SeriesManagePostContainer({
                                                 <div className="flex justify-end items-center gap-4">
                                                     {action === "add" ? (
                                                         <button
-                                                            className="btn btn-xs btn-outline btn-info"
+                                                            className="btn btn-xs btn-outline rounded-field border-hairline-strong font-semibold text-base-content press hover:border-primary hover:bg-tint hover:text-base-content"
                                                             onClick={() =>
                                                                 mutationAddPostToSeries.mutate(
                                                                     {

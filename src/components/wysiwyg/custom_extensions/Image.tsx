@@ -22,7 +22,7 @@ function ImageNode(props: NodeViewProps) {
                     <div className="modal-box">
                         <div className="flex justify-center flex-wrap space-y-4 p-4">
                             <label className=' label'>Add Alt Text</label>
-                            <input type="text" placeholder="Describe your image (Optional)" className="input input-bordered w-full max-w-xs" onChange={(e) => setAltImg(e.currentTarget.value)} value={altImg} />
+                            <input type="text" placeholder="Describe your image (Optional)" className="input w-full max-w-xs" onChange={(e) => setAltImg(e.currentTarget.value)} value={altImg} />
                             <br />
                             <button className="btn" onClick={() => {
                                 updateAttributes({ alt: altImg })

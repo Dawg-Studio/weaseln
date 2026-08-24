@@ -98,7 +98,7 @@ export default function CommentContainer({
                             {isCommentDelete || isRemoved ? (
                                 <FontAwesomeIcon
                                     icon={faUserSlash}
-                                    className="rounded-full"
+                                    className="rounded-full text-muted"
                                     width={40}
                                     height={40}
                                 />
@@ -116,7 +116,9 @@ export default function CommentContainer({
                 </div>
 
                 <div className="container">
-                    <div className="shadow-md rounded-box border-solid border-2 focus-within:border-slate-500 p-4 mb-4">
+                    {/* `border-2` with no colour resolved to currentColor - a
+                        2px near-black frame. One warm 1px hairline instead. */}
+                    <div className="mb-4 rounded-box border border-hairline bg-surface p-4 elev-1 focus-within:border-primary">
                         <div className={prose}>
                             {isCommentDelete || isRemoved ? (
                                 <div className="flex items-center gap-4">
@@ -132,7 +134,7 @@ export default function CommentContainer({
                                                 {userName}
                                             </p>
                                         </Link>
-                                        <p className="text-xs">
+                                        <p className="text-meta text-muted nums">
                                             {new Date(createdAt).toDateString()}
                                         </p>
                                     </div>
@@ -144,7 +146,7 @@ export default function CommentContainer({
                     {commentBoxDisplay ||
                     isCommentDelete ||
                     isRemoved ? null : (
-                        <div className="flex justify-start gap-4 mt-4">
+                        <div className="mt-4 flex items-center gap-4 pt-3 hairline-t">
                             <div className="flex items-center gap-2">
                                 <ReactionButton
                                     target={{ id, authorId: userId }}
@@ -155,47 +157,57 @@ export default function CommentContainer({
                                 />
                             </div>
 
-                            <div className="flex items-center gap-2">
+                            <button
+                                type="button"
+                                className="btn btn-ghost h-9 min-h-9 w-auto gap-2 rounded-field px-2 text-base-content/70 press hover:bg-base-200 hover:text-base-content"
+                                aria-label="Reply to this comment"
+                                onClick={() => setCommentBoxDisplay(true)}
+                            >
                                 <FontAwesomeIcon
-                                    className="cursor-pointer"
                                     icon={faComment}
-                                    onClick={() => setCommentBoxDisplay(true)}
+                                    aria-hidden="true"
                                 />
-                                <p className="text-sm">{data?.length}</p>
-                            </div>
+                                <span className="text-meta nums">
+                                    {data?.length}
+                                </span>
+                            </button>
                             {ownComment === userId || ownPost ? (
-                                <div className="flex items-center ml-auto px-4">
+                                <button
+                                    type="button"
+                                    className="btn btn-ghost btn-square ml-auto h-9 min-h-9 w-9 rounded-field text-base-content/70 press hover:bg-base-200 hover:text-error"
+                                    aria-label="Delete this comment"
+                                    onClick={() =>
+                                        modalDeleteRef.current?.show()
+                                    }
+                                >
                                     <FontAwesomeIcon
-                                        className="cursor-pointer"
                                         icon={faTrash}
-                                        onClick={() =>
-                                            modalDeleteRef.current?.show()
-                                        }
+                                        aria-hidden="true"
                                     />
-                                </div>
+                                </button>
                             ) : null}
                         </div>
                     )}
                     <Modal ref={modalDeleteRef}>
                         <div className="flex flex-col space-y-4">
-                            <h1 className="font-bold text-lg tracking-tighter">
+                            <h1 className="text-headline text-base-content">
                                 Delete Comment
                             </h1>
-                            <p className="text-md">
+                            <p className="measure text-sm text-base-content/70">
                                 Are you sure you want to delete this comment?
                                 This action cannot be undone.
                             </p>
-                            <div className="modal-action">
+                            <div className="modal-action mt-6 gap-2 pt-4 hairline-t">
                                 <form method="dialog">
-                                    <div className="flex justify-center gap-4">
+                                    <div className="flex justify-center gap-2">
                                         <button
-                                            className="btn btn-error"
+                                            className="btn btn-error h-11 min-h-11 rounded-field px-5 text-sm font-semibold press"
                                             onClick={() => deleteCommentBtn(id)}
                                         >
                                             Delete
                                         </button>
                                         <button
-                                            className="btn"
+                                            className="btn btn-ghost h-11 min-h-11 rounded-field px-5 text-sm font-semibold press"
                                             onClick={() => {
                                                 modalDeleteRef.current?.close();
                                             }}
@@ -217,7 +229,7 @@ export default function CommentContainer({
                         }`}
                         buttonChildren={
                             <button
-                                className="btn btn-info btn-outline"
+                                className="btn btn-outline h-11 min-h-11 rounded-field border-hairline-strong bg-transparent px-5 text-sm font-semibold text-base-content press hover:border-primary hover:bg-tint hover:text-base-content"
                                 onClick={() => setCommentBoxDisplay(false)}
                             >
                                 Cancel

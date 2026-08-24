@@ -66,7 +66,7 @@ export default async function SeriesUserPage({
 
     return (
         <>
-            <h1 className="text-2xl font-bold text-info mb-4">
+            <h1 className="mb-4 text-title text-base-content lg:text-display">
                 {userPostSeries.name}&apos;s Series
             </h1>
             <div className="flex flex-wrap gap-4">
@@ -74,7 +74,7 @@ export default async function SeriesUserPage({
                     userPostSeries.series.map((series) => (
                         <Fragment key={series.id}>
                             <Link href={`/${userId}/series/${series.id}`}>
-                                <div className="card card-compact w-72 bg-base-100 shadow-lg hover:outline outline-gray-400">
+                                <div className="card card-compact w-72 rounded-box border border-hairline bg-surface elev-1 lift">
                                     <div className="card-body">
                                         <div className="flex">
                                             <h2 className="card-title flex-1">

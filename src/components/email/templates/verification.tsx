@@ -46,8 +46,8 @@ export const VerifyEmailTemplate = ({
                     email.
                 </Text>
                 <Img
-                    src={`${websiteUrl}/weaseln.svg`}
-                    width="32"
+                    src={`${websiteUrl}/icons/weaslnnobg.png`}
+                    width="48"
                     height="32"
                     alt="weaseln logo"
                 />

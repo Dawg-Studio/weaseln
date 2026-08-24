@@ -266,8 +266,8 @@ export default function ProfileSettingsComponent({
         <>
             <div className="mx-auto lg:w-9/12 justify-center space-y-6">
                 <FormProvider {...form}>
-                    <div className="shadow-lg p-12 rounded-md space-y-2">
-                        <h3 className="text-2xl font-bold">
+                    <div className="rounded-box border border-hairline bg-surface p-5 elev-1 sm:p-6 space-y-5">
+                        <h3 className="brand-rule text-headline text-base-content">
                             Profile Information
                         </h3>
                         {!emailVerified && (
@@ -279,7 +279,7 @@ export default function ProfileSettingsComponent({
                                 </span>
                                 <div>
                                     <button
-                                        className="btn btn-sm"
+                                        className="btn btn-sm rounded-field font-semibold press"
                                         onClick={sendVerificationCode}
                                         disabled={
                                             isVerificationCodeSent || isSending
@@ -314,8 +314,8 @@ export default function ProfileSettingsComponent({
                         )}
                         <DisplayImage {...uploadImgProps} />
                     </div>
-                    <div className="shadow-lg p-12 rounded-md space-y-2">
-                        <h3 className="text-2xl font-bold">Social Links</h3>
+                    <div className="rounded-box border border-hairline bg-surface p-5 elev-1 sm:p-6 space-y-5">
+                        <h3 className="brand-rule text-headline text-base-content">Social Links</h3>
                         {socialForms.length !== 0 &&
                             socialForms.map((social) => (
                                 <Fragment key={social.name}>
@@ -324,7 +324,10 @@ export default function ProfileSettingsComponent({
                             ))}
                     </div>
                 </FormProvider>
-                <button className="btn btn-info w-full" onClick={updateDetails}>
+                <button
+                    className="btn btn-primary h-11 min-h-11 rounded-field border-0 px-5 text-sm font-semibold elev-1 press hover:elev-2 w-full"
+                    onClick={updateDetails}
+                >
                     Update Profile Information
                 </button>
             </div>

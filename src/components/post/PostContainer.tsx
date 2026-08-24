@@ -41,26 +41,32 @@ export default function PostContainer({
         return timeDiff(createdAt);
     }, [createdAt]);
     return (
-        <div className="flex flex-wrap justify-end p-2 lg:block border-b pb-6 relative">
+        // ponytail: `enter` must NOT live on this element. `@utility enter`
+        // fills forwards, and its `rise` keyframes animate `transform` — the
+        // Animation cascade origin then pins `transform: none` and outranks
+        // `lift`'s hover translate, killing the card's motion affordance. The
+        // stagger wrapper in PostList.tsx carries `enter` instead.
+        <div className="group relative rounded-box border border-hairline bg-surface p-4 elev-1 lift focus-within:border-primary/45 sm:p-5">
             <Link
                 href={`/${authorUsername ? authorUsername : userId}/${titleId}`}
+                className="block rounded-box"
             >
-                <div className="lg:grid lg:grid-cols-2 mx-auto items-center space-y-2 lg:space-y-0">
-                    <div className="container space-y-1 break-words">
+                <div className="items-center space-y-4 lg:grid lg:grid-cols-2 lg:gap-6 lg:space-y-0">
+                    <div className="min-w-0 break-words">
                         {!published && (
-                            <p className="text-sm font-extrabold text-slate-400">
+                            <p className="mb-3 flex h-5 w-fit items-center rounded-full bg-warning px-2 text-eyebrow uppercase text-warning-content">
                                 UNPUBLISHED
                             </p>
                         )}
-                        <div className="flex gap-2 items-center relative">
-                            <div className="flex flex-row-reverse items-center gap-1 relative">
+                        <div className="relative flex items-center gap-3">
+                            <div className="relative flex flex-row-reverse items-center gap-1">
                                 <div
                                     className={cn("avatar", {
                                         "absolute top-6 left-[25px] z-10":
                                             organizationId,
                                     })}
                                 >
-                                    <div className="w-7 rounded-full">
+                                    <div className="w-7 rounded-full ring-1 ring-hairline-strong">
                                         <Image
                                             src={authorImage}
                                             alt={author}
@@ -82,7 +88,7 @@ export default function PostContainer({
                                     // a few lines down still routes to the
                                     // org page.
                                     <div className="avatar">
-                                        <div className="w-12 rounded">
+                                        <div className="w-12 rounded-field ring-2 ring-surface elev-1">
                                             <Image
                                                 src={
                                                     organization.image as string
@@ -97,62 +103,72 @@ export default function PostContainer({
                                     </div>
                                 )}
                             </div>
-                            <div className="container">
+                            <div className="min-w-0">
                                 {organizationId && organization ? (
                                     // ponytail: was a <Link> nested inside the
                                     // outer post <Link>; nested <a> tags are
                                     // invalid HTML and break React hydration.
                                     // Visit the org page from the org avatar
                                     // badge or its dedicated page instead.
-                                    <p>{`${author} for ${organization.name}`}</p>
+                                    <p className="truncate text-sm font-semibold text-base-content">{`${author} for ${organization.name}`}</p>
                                 ) : (
-                                    <p>{author}</p>
+                                    <p className="truncate text-sm font-semibold text-base-content">
+                                        {author}
+                                    </p>
                                 )}
-                                <p className="text-xs ml-1">
-                                    {formatPostDate(new Date(createdAt))}{" "}
-                                    ({timeDiffCalc})
+                                <p className="text-meta text-muted nums">
+                                    {formatPostDate(new Date(createdAt))}
+                                    <span
+                                        aria-hidden="true"
+                                        className="mx-1.5 opacity-60"
+                                    >
+                                        ·
+                                    </span>
+                                    {timeDiffCalc}
                                 </p>
                             </div>
                         </div>
-                        <h1 className="text-lg lg:text-2xl font-bold">
+                        <h1 className="mt-3 text-headline text-base-content transition-colors duration-150 group-hover:text-primary lg:text-title">
                             {title}
                         </h1>
-                        <p className="text-sm lg:text-md">{description}</p>
-                        <div className="!mt-4 space-y-4">
+                        <p className="mt-2 line-clamp-2 measure text-subhead text-base-content/70">
+                            {description}
+                        </p>
+                        <div className="mt-4 space-y-3">
                             {tags && (
                                 <div className="flex gap-2 flex-wrap">
                                     {tags.map((tag) => (
                                         <Fragment key={tag}>
-                                            <p className="badge badge-sm badge-neutral">
+                                            <p className="inline-flex items-center gap-1 rounded-full border border-hairline bg-base-300 px-2.5 py-1 text-meta font-medium text-base-content/80 transition-colors duration-150 group-hover:border-primary/30">
                                                 {tag}
                                             </p>
                                         </Fragment>
                                     ))}
                                 </div>
                             )}
-                            <p className="text-sm text-slate-500">
+                            <p className="text-meta text-muted nums">
                                 {readPerMinute} min read
                             </p>
                         </div>
                     </div>
-                    <figure className="lg:w-9/12 ml-auto float-right rounded-lg overflow-hidden">
+                    <figure className="relative ml-auto overflow-hidden rounded-box border border-hairline bg-base-200 elev-1 lg:float-right lg:w-9/12">
                         {coverImage ? (
                             <Image
                                 src={coverImage as string}
                                 alt="cover_image"
                                 width={1920}
                                 height={1080}
-                                className="rounded-lg"
+                                className="cover-crop transition-transform duration-500 ease-out-quint group-hover:scale-[1.03]"
                             />
                         ) : (
                             // ponytail: post has no cover image. Render a
                             // gradient + title watermark so the feed keeps
                             // its visual rhythm instead of a blank column.
                             <div
-                                className="w-full aspect-video bg-gradient-to-br from-base-300 via-base-200 to-base-300 flex items-center justify-center p-6"
+                                className="cover-crop brand-wash brand-dots flex items-center justify-center p-6"
                                 aria-hidden="true"
                             >
-                                <p className="text-base-content/40 text-xl lg:text-3xl font-bold text-center line-clamp-3 max-w-md">
+                                <p className="line-clamp-3 text-balance text-center text-headline text-base-content/30 lg:text-title">
                                     {title}
                                 </p>
                             </div>
@@ -170,14 +186,16 @@ export default function PostContainer({
                     href={`/organization/${
                         organization.username ?? organization.id
                     }`}
-                    className="absolute z-20"
-                    style={{ top: 8, left: 8, width: 48, height: 48 }}
+                    className={cn(
+                        "absolute left-4 z-20 size-12 rounded-field transition-shadow duration-200 hover:ring-2 hover:ring-primary/55 sm:left-5",
+                        published ? "top-4 sm:top-5" : "top-12 sm:top-13",
+                    )}
                     aria-label={`Visit ${organization.name}`}
                 >
                     <span className="sr-only">{`Visit ${organization.name}`}</span>
                 </Link>
             )}
-            <div className="flex items-center mt-2 container">
+            <div className="mt-4 flex items-center gap-4 pt-3 hairline-t">
                 <div className="flex-1">
                     <div className="flex items-center gap-2">
                         <div className="flex items-center gap-2">
@@ -185,26 +203,42 @@ export default function PostContainer({
                                 href={`/${
                                     authorUsername ? authorUsername : userId
                                 }/${titleId}`}
+                                className="inline-flex h-9 items-center gap-2 rounded-field px-2 text-base-content/70 press hover:bg-base-200 hover:text-primary"
+                                aria-label={`${
+                                    _count?.reactions ?? 0
+                                } reactions`}
                             >
                                 <FontAwesomeIcon
                                     icon={faHeart}
                                     size="lg"
                                     title="Reactions"
                                 />
+                                <div className="text-meta nums">
+                                    {_count?.reactions}
+                                </div>
                             </Link>
-                            <div>{_count?.reactions}</div>
                         </div>
-                        <div className="flex items-center gap-2">
+                        <div className="flex h-9 items-center gap-2 px-2 text-base-content/70">
                             <FontAwesomeIcon
                                 icon={faComment}
                                 size="lg"
                                 title="Comments"
                             />
-                            <div>{_count?.comments}</div>
+                            <div className="text-meta nums">
+                                {_count?.comments}
+                            </div>
                         </div>
                     </div>
                 </div>
-                <PostBookmark titleId={titleId} faSize={"lg"} />
+                {/* No wrapper: the button IS the control. A wrapping span
+                    painted its own hover fill under the button's, and boxed a
+                    40px control inside a 36px row. Sized to h-9 so it sits on
+                    the same baseline as the reaction and comment controls. */}
+                <PostBookmark
+                    titleId={titleId}
+                    faSize={"lg"}
+                    className="h-9 min-h-9 w-9"
+                />
             </div>
         </div>
     );

@@ -5,6 +5,8 @@ import { postContainerInclude } from "@/utils/prismaQuery";
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import { Fragment } from "react";
+import { faBookmark } from "@fortawesome/free-solid-svg-icons";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 
 export default async function ReadingList() {
     const session = await auth();
@@ -21,21 +23,34 @@ export default async function ReadingList() {
 
     return (
         <>
-            <div className="mt-12 mb-12 ml-4 mr-4 lg:mr-28 lg:ml-28 mx-auto">
-                <h1 className="text-2xl font-bold text-info">Reading List</h1>
-                <div className="mt-4">
+            <div className="mx-auto w-full max-w-[88rem] px-4 py-8 sm:px-6 lg:px-8 lg:py-12">
+                <h1 className="text-title text-base-content lg:text-display">Reading List</h1>
+                <div className="mt-6">
                     {session && readingList?.bookMarks.length !== 0 ? (
-                        readingList?.bookMarks.map((post) => (
-                            <Fragment key={post.id}>
-                                <div className="lg:mr-24 lg:ml-24">
+                        // PostContainer is now a bordered, elevated card with
+                        // no outer margin, so the list owns the gutter — without
+                        // it adjacent hairlines touch and read as a 2px rule.
+                        <div className="mx-auto max-w-[46rem] space-y-4">
+                            {readingList?.bookMarks.map((post) => (
+                                <Fragment key={post.id}>
                                     <PostContainer {...post} />
-                                </div>
-                            </Fragment>
-                        ))
+                                </Fragment>
+                            ))}
+                        </div>
                     ) : (
-                        <p className="text-md">
-                            You do not have any reading lists yet.
-                        </p>
+                        <div className="brand-wash mx-auto flex max-w-[46rem] flex-col items-center justify-center gap-3 rounded-box border border-dashed border-hairline-strong px-6 py-14 text-center">
+                            <FontAwesomeIcon
+                                icon={faBookmark}
+                                className="text-3xl text-primary/55"
+                            />
+                            <h3 className="text-base font-semibold text-base-content">
+                                You do not have any reading lists yet.
+                            </h3>
+                            <p className="measure text-sm text-muted">
+                                Bookmark a post and it will be waiting for you
+                                right here.
+                            </p>
+                        </div>
                     )}
                 </div>
             </div>
