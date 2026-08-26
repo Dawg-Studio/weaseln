@@ -188,16 +188,20 @@ export default async function PostPage({
                         </div>
                     )}
                 </figure>
-                <div className="lg:-space-y-6 -space-y-4">
+                {/* flex-col + gap-5, NOT -space-y: a negative margin-top on the
+                    tag chips pulled them up into the <br /> above and on top of
+                    the author meta row (tags bottom y=793 overlapped author meta
+                    top y=773). gap-5 gives every row its own 1.25rem without
+                    fighting prose margins or the inline <br />. */}
+                <div className="mt-6 flex flex-col gap-5">
                     <h1 className="text-title text-base-content lg:text-display">
                         {post?.title}
                     </h1>
                     <h4 className="text-subhead text-muted">
                         {post?.description}
                     </h4>
-                    <br />
                     {post.tags.length !== 0 && (
-                        <div className="not-prose flex gap-2 flex-wrap">
+                        <div className="not-prose flex flex-wrap gap-2">
                             {post.tags.map((tag: string, index: number) => (
                                 <Fragment key={index}>
                                     <Link
@@ -211,7 +215,7 @@ export default async function PostPage({
                         </div>
                     )}
 
-                    <div className="flex gap-2 items-center not-prose !mt-1 !mb-2 pb-4 hairline-b">
+                    <div className="not-prose flex items-center gap-2 pb-4 hairline-b">
                         {/* <div className="avatar">
                             <div className="rounded-full">
                                 <Image
