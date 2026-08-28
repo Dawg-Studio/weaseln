@@ -1,9 +1,14 @@
 name: Playwright Tests
 on:
+    pull_request:
+        branches: [main]
     deployment_status:
 jobs:
     run-e2es:
-        if: github.event_name == 'deployment_status' && github.event.deployment_status.state == 'success'
+        if: |
+            github.event_name == 'deployment_status' &&
+            github.event.deployment_status.state == 'success' &&
+            github.event.deployment_status.environment == 'Preview'
         runs-on: ubuntu-latest
         steps:
             - uses: actions/checkout@v4
