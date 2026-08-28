@@ -5,8 +5,10 @@ test("able to search", async ({ page }) => {
         /\/+$/,
         "",
     );
-    await page.goto(`${baseUrl}/search/posts?q=test&feed=relevance`);
-    await expect(page.getByText("RelevantLatestMost Popular")).toBeVisible();
+    await page.goto(`${baseUrl}/search/posts?q=weaseln&feed=relevance`);
+    await expect(
+        page.getByRole("group", { name: "Sort the feed" }),
+    ).toBeVisible();
     await expect(page.getByRole("link", { name: "People" })).toBeVisible();
-    await expect(page.getByRole("link", { name: "Tags" }).nth(1)).toBeVisible();
+    await expect(page.getByRole("link", { name: "Tags" })).toBeVisible();
 });
