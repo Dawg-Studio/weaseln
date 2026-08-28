@@ -1,6 +1,5 @@
 const SOCKET = {
-    prod: "https://melted-patience-leindfraust.koyeb.app/",
-    preview: "https://weaseln-socket.onrender.com/",
+    prod: "https://weaseln-realtime.onrender.com/",
     dev: "http://localhost:5000",
 };
 

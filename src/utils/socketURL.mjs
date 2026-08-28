@@ -5,6 +5,5 @@ const env =
     process.env.NODE_ENV;
 let URL = SOCKET.dev;
 if (env === "production") URL = SOCKET.prod;
-if (env === "preview") URL = SOCKET.preview;
 
 export default URL;
