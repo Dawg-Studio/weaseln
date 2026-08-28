@@ -10,7 +10,14 @@ import {
     faTrash,
     faUserSlash,
 } from "@fortawesome/free-solid-svg-icons";
-import { Fragment, useEffect, useState, useRef } from "react";
+import {
+    Fragment,
+    useEffect,
+    useOptimistic,
+    useState,
+    useRef,
+    useTransition,
+} from "react";
 import CommentBox from "./CommentBox";
 import useSocket from "@/socket";
 import Link from "next/link";
@@ -42,6 +49,13 @@ export default function CommentContainer({
     const socket = useSocket();
     const [commentBoxDisplay, setCommentBoxDisplay] = useState<boolean>(false);
     const [isCommentDelete, setCommentDelete] = useState<boolean>(false);
+    // Optimistic view over the committed delete flag. deleteComments has no
+    // try/catch of its own and its only non-throwing result is `true`, so a
+    // throw IS the failure signal - it is caught below so the transition
+    // settles and React reverts to the untouched `isCommentDelete`.
+    const [optimisticCommentDelete, applyOptimisticCommentDelete] =
+        useOptimistic(isCommentDelete, (_base, next: boolean) => next);
+    const [, startTransition] = useTransition();
     const modalDeleteRef = useRef<HTMLDialogElement>(null);
     const [ownComment, setOwnComment] = useState<string>();
     const [ownPost, setOwnPost] = useState<string>();
@@ -85,9 +99,21 @@ export default function CommentContainer({
         };
     }, [id, refetch, socket, session, session?.user.id, titleId]);
 
-    const deleteCommentBtn = async (id: string) => {
-        const data = await deleteComments(id);
-        setCommentDelete(data);
+    const deleteCommentBtn = (id: string) => {
+        startTransition(async () => {
+            applyOptimisticCommentDelete(true);
+            try {
+                const data = await deleteComments(id);
+                setCommentDelete(data);
+            } catch (error) {
+                // Prisma throws P2025 when the row is already gone.
+                // Leaving `isCommentDelete` at false brings the comment
+                // back once the transition settles; letting the
+                // rejection escape would replace the whole page with
+                // global-error.tsx instead.
+                console.error(error);
+            }
+        });
     };
     return (
         <div className="container space-x-6">
@@ -95,7 +121,7 @@ export default function CommentContainer({
                 <div className="avatar">
                     <div className="rounded-full prose-img:w-full !overflow-visible">
                         <Link href={`/${userUsername ?? userId}`}>
-                            {isCommentDelete || isRemoved ? (
+                            {optimisticCommentDelete || isRemoved ? (
                                 <FontAwesomeIcon
                                     icon={faUserSlash}
                                     className="rounded-full text-muted"
@@ -120,7 +146,7 @@ export default function CommentContainer({
                         2px near-black frame. One warm 1px hairline instead. */}
                     <div className="mb-4 rounded-box border border-hairline bg-surface p-4 elev-1 focus-within:border-primary">
                         <div className={prose}>
-                            {isCommentDelete || isRemoved ? (
+                            {optimisticCommentDelete || isRemoved ? (
                                 <div className="flex items-center gap-4">
                                     <p>Comment deleted by user</p>
                                 </div>
@@ -144,7 +170,7 @@ export default function CommentContainer({
                         </div>
                     </div>
                     {commentBoxDisplay ||
-                    isCommentDelete ||
+                    optimisticCommentDelete ||
                     isRemoved ? null : (
                         <div className="mt-4 flex items-center gap-4 pt-3 hairline-t">
                             <div className="flex items-center gap-2">
