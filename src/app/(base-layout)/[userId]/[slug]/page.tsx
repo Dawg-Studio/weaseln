@@ -163,8 +163,8 @@ export default async function PostPage({
                         ))}
                     </p>
                 )}
-                <figure className="not-prose relative my-8 overflow-hidden rounded-box border border-hairline bg-base-200 elev-1">
-                    {post?.coverImage ? (
+                {post?.coverImage && (
+                    <figure className="not-prose relative my-8 overflow-hidden rounded-box border border-hairline bg-base-200 elev-1">
                         <Image
                             src={post.coverImage as string}
                             height={1920}
@@ -172,22 +172,8 @@ export default async function PostPage({
                             alt={`cover image for ${post.title} `}
                             className="cover-crop"
                         />
-                    ) : (
-                        // ponytail: post has no cover image. Brand wash + title
-                        // watermark so the post page keeps its visual rhythm.
-                        // Identical treatment to the feed card placeholder in
-                        // PostContainer.tsx, so a post looks the same branded
-                        // in the feed and when opened.
-                        <div
-                            className="cover-crop brand-wash brand-dots flex items-center justify-center p-6"
-                            aria-hidden="true"
-                        >
-                            <p className="line-clamp-3 max-w-2xl text-balance text-center text-headline text-base-content/30 lg:text-title">
-                                {post.title}
-                            </p>
-                        </div>
-                    )}
-                </figure>
+                    </figure>
+                )}
                 {/* flex-col + gap-5, NOT -space-y: a negative margin-top on the
                     tag chips pulled them up into the <br /> above and on top of
                     the author meta row (tags bottom y=793 overlapped author meta

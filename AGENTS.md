@@ -38,7 +38,7 @@ Running only one is **not** sufficient. The 26 pre-existing lint errors in `Tipt
 
 ## Cloudinary / cover images
 
-- The cover image is required for publishing. The composer uploads the picked file to Cloudinary and stores the resulting URL on the `Post.coverImage` field.
+- **Cover image is optional.** `Post.coverImage` is `String?` in the schema, the `/api/post` route accepts no cover, and the renderers (`PostCard`, `PostContainer`, the post page) skip the cover `<figure>` entirely when null — no placeholder, no watermark. The composer still uploads a picked file to Cloudinary and stores the resulting URL on `Post.coverImage` when one is provided.
 - **QA bypass:** when `NEXT_PUBLIC_QA_NO_COVER=1`, the editor seeds `/covers/cover-1.svg` as the cover, sends it as a string in the FormData, and `/api/post` (and `/api/post/draft`) detect the URL prefix and store it directly without a Cloudinary round trip. This lets a QA run exercise the full publish path without external credentials.
 - The detection heuristic in both routes is:
   ```ts
