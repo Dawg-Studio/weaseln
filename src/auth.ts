@@ -67,6 +67,13 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         logo: "/icons/weaslnnobg.png",
     },
     pages: {
+        // Replaces the stock Auth.js sign-in screen with the branded page in
+        // src/app/login. `error` points at the same route on purpose: the page
+        // renders the ?error= code inline, so a failed provider round trip
+        // lands the reader back on the form instead of a bare error screen.
+        signIn: "/login",
+        error: "/login",
+        verifyRequest: "/login/verify",
         newUser: "/settings/profile",
     },
 });
