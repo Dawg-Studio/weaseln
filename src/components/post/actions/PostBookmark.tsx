@@ -6,7 +6,7 @@ import { signIn } from "next-auth/react";
 import { faBookmark } from "@fortawesome/free-solid-svg-icons";
 import { faBookmark as FaRegBookmark } from "@fortawesome/free-regular-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { useEffect, useState } from "react";
+import { useEffect, useOptimistic, useState, useTransition } from "react";
 import type { SizeProp } from "@fortawesome/fontawesome-svg-core";
 import { cn } from "@/utils/cn";
 
@@ -22,6 +22,15 @@ export default function PostBookmark({
     className?: string;
 }) {
     const [bookmarkStatus, setBookmarkStatus] = useState<boolean>();
+    // The optimistic layer reverts to `bookmarkStatus` when the transition
+    // settles, so "don't commit on failure" IS the rollback. setBookmarkPost
+    // returns the caught error rather than throwing, so success is checked by
+    // sentinel, not by try/catch.
+    const [optimisticStatus, applyOptimisticStatus] = useOptimistic(
+        bookmarkStatus,
+        (_base, next: boolean) => next,
+    );
+    const [, startTransition] = useTransition();
     const [isLoggedIn, setIsLoggedIn] = useState<boolean>(false);
 
     //get initial bookmark status
@@ -33,26 +42,39 @@ export default function PostBookmark({
 
     useEffect(() => {
         if (isLoggedIn) {
-            checkBookmarkPostStatus(titleId).then((response) => {
-                const value = response?.valueOf();
-                if (value === "bookmarked") {
-                    setBookmarkStatus(true);
-                }
-                if (value === "unbookmarked") {
-                    setBookmarkStatus(false);
-                }
-            });
+            checkBookmarkPostStatus(titleId)
+                .then((response) => setBookmarkStatus(response?.valueOf() === "bookmarked"))
+                // This action returns its caught error instead of a sentinel,
+                // and its `await auth()` can reject outright. Either way settle
+                // on `false` rather than leaving the status undefined, which
+                // would keep the button disabled for good.
+                .catch(() => setBookmarkStatus(false));
         }
     }, [isLoggedIn, titleId]);
 
-    async function updateBookmarkStatus() {
-        const response = await setBookmarkPost(titleId);
-        if (response === "bookmarked") {
-            setBookmarkStatus(true);
-        }
-        if (response === "unbookmarked") {
-            setBookmarkStatus(false);
-        }
+    function updateBookmarkStatus() {
+        // Toggle against what is on screen, so a fast double-click ends up
+        // where the user expects rather than replaying the committed value.
+        const next = !optimisticStatus;
+        startTransition(async () => {
+            applyOptimisticStatus(next);
+            try {
+                const response = await setBookmarkPost(titleId);
+                if (response === "bookmarked") {
+                    setBookmarkStatus(true);
+                }
+                if (response === "unbookmarked") {
+                    setBookmarkStatus(false);
+                }
+            } catch (error) {
+                // Keep the rejection inside the transition. Letting it
+                // escape would have React rethrow it at render and
+                // replace the page with global-error.tsx instead of
+                // reverting the icon. setBookmarkPost catches its DB
+                // work, but its `await auth()` sits outside that try.
+                console.error(error);
+            }
+        });
     }
 
     // Tan is the "set aside for later" colour, but it only clears AA as a
@@ -64,7 +86,7 @@ export default function PostBookmark({
     const buttonClasses = cn(
         "btn btn-ghost btn-square h-10 min-h-10 w-10 rounded-field text-base-content/70 press",
         "hover:bg-base-200 hover:text-base-content",
-        bookmarkStatus &&
+        optimisticStatus &&
             "bg-tint-warm text-base-content hover:bg-tint-warm hover:text-base-content",
         className,
     );
@@ -75,17 +97,23 @@ export default function PostBookmark({
                 <button
                     type="button"
                     className={buttonClasses}
-                    aria-pressed={Boolean(bookmarkStatus)}
+                    // Until checkBookmarkPostStatus answers we do not
+                    // know which way the toggle goes, and guessing
+                    // would show the opposite of the truth. Gate on the
+                    // COMMITTED value so a pending transition does not
+                    // re-enable it mid-flight.
+                    disabled={bookmarkStatus === undefined}
+                    aria-pressed={Boolean(optimisticStatus)}
                     aria-label={
-                        bookmarkStatus
+                        optimisticStatus
                             ? "Remove from bookmarks"
                             : "Save to bookmarks"
                     }
-                    title={bookmarkStatus ? "Bookmarked" : "Bookmark"}
+                    title={optimisticStatus ? "Bookmarked" : "Bookmark"}
                     onClick={updateBookmarkStatus}
                 >
                     <FontAwesomeIcon
-                        icon={!bookmarkStatus ? FaRegBookmark : faBookmark}
+                        icon={!optimisticStatus ? FaRegBookmark : faBookmark}
                         size={faSize}
                         width={20}
                         aria-hidden="true"
@@ -101,7 +129,7 @@ export default function PostBookmark({
                     onClick={() => signIn()}
                 >
                     <FontAwesomeIcon
-                        icon={!bookmarkStatus ? FaRegBookmark : faBookmark}
+                        icon={!optimisticStatus ? FaRegBookmark : faBookmark}
                         width={20}
                         size={faSize}
                         aria-hidden="true"

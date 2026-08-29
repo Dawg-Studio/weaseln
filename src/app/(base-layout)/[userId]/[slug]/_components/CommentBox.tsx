@@ -40,8 +40,10 @@ export default function CommentBox({
 }) {
     const pathname = usePathname();
     const { data: session, status } = useSession();
-    const [submitState, setSubmitState] = useState<boolean>(false);
     const socket = useSocket();
+    // Set only when a submit was refused because the socket was down. Purely
+    // a notice - it never gates the button, so there is no blocking spinner.
+    const [offline, setOffline] = useState<boolean>(false);
     const extensions = tiptapExtensions(["Image", "Link", "Youtube"]);
     const editor = useEditor({
         immediatelyRender: false,
@@ -72,10 +74,11 @@ export default function CommentBox({
         },
     });
 
+    // The editor is already cleared optimistically on submit; this stays as
+    // the belt-and-braces path for a clear the client did not initiate.
     useEffect(() => {
         socket.on("clearContentCommentBox", () => {
             editor?.commands.clearContent();
-            setSubmitState(false);
         });
 
         return () => {
@@ -83,44 +86,68 @@ export default function CommentBox({
         };
     }, [editor?.commands, socket, titleId]);
 
+    // Drop the notice as soon as the connection is back, so a stale warning
+    // does not sit over a box that can now send. Passing the handler to off()
+    // matters here: socket is a shared singleton across every CommentBox.
+    useEffect(() => {
+        const onConnect = () => setOffline(false);
+        socket.on("connect", onConnect);
+
+        return () => {
+            socket.off("connect", onConnect);
+        };
+    }, [socket]);
+
     function submitComment() {
         if (!session) return;
+        if (!editor || !editor.getText() || editor.isEmpty) return;
 
-        if (editor?.getText() && !editor.isEmpty) {
-            const content = editor.getJSON();
-            const comment = {
-                titleId: titleId,
-                userId: session.user.id,
-                content: JSON.stringify(content),
-                commentReplyPostId: commentReplyPostId,
-            };
-            if (commentReplyPostId && commentReplyUserId) {
-                const commentReplyNotification: UserNotificationInputValidation =
-                    {
-                        userId: commentReplyUserId,
-                        fromUserId: session.user.id,
-                        from: session.user.name,
-                        fromImage: session.user.image,
-                        message: `has replied to your comment on ${commentReplyPostTitle}`,
-                        actionUrl: pathname,
-                    };
-                socket.emit("submitNotification", commentReplyNotification);
-            }
-            if (authorId && title) {
-                const commentNotification: UserNotificationInputValidation = {
-                    userId: authorId,
-                    fromUserId: session.user.id,
-                    from: session.user.name,
-                    fromImage: session.user.image,
-                    message: `has commented on your post`,
-                    postId,
-                    actionUrl: pathname,
-                };
-                socket.emit("submitNotification", commentNotification);
-            }
-            setSubmitState(true);
-            socket.emit("submitComment", comment);
+        // socket.io buffers emits while the connection is down and replays
+        // them verbatim on reconnect. Emitting here would leave the draft on
+        // screen with nothing to show for it, so every retry click would
+        // persist another identical comment. Refuse to send, keep the draft,
+        // and say so.
+        if (!socket.connected) {
+            setOffline(true);
+            return;
         }
+        setOffline(false);
+
+        const content = editor.getJSON();
+        const comment = {
+            titleId: titleId,
+            userId: session.user.id,
+            content: JSON.stringify(content),
+            commentReplyPostId: commentReplyPostId,
+        };
+        if (commentReplyPostId && commentReplyUserId) {
+            const commentReplyNotification: UserNotificationInputValidation = {
+                userId: commentReplyUserId,
+                fromUserId: session.user.id,
+                from: session.user.name,
+                fromImage: session.user.image,
+                message: `has replied to your comment on ${commentReplyPostTitle}`,
+                actionUrl: pathname,
+            };
+            socket.emit("submitNotification", commentReplyNotification);
+        }
+        if (authorId && title) {
+            const commentNotification: UserNotificationInputValidation = {
+                userId: authorId,
+                fromUserId: session.user.id,
+                from: session.user.name,
+                fromImage: session.user.image,
+                message: `has commented on your post`,
+                postId,
+                actionUrl: pathname,
+            };
+            socket.emit("submitNotification", commentNotification);
+        }
+        socket.emit("submitComment", comment);
+        // Clear immediately rather than waiting for the socket to echo back:
+        // the payload is already captured in `comment`, and we only get here
+        // while connected, so there is nothing left for the draft to protect.
+        editor.commands.clearContent();
     }
 
     return (
@@ -162,15 +189,21 @@ export default function CommentBox({
                                 <button
                                     className="btn btn-primary h-11 min-h-11 rounded-field border-0 px-5 text-sm font-semibold elev-1 press hover:elev-2"
                                     onClick={submitComment}
-                                    disabled={submitState}
                                 >
-                                    {submitState && (
-                                        <span className="loading loading-spinner"></span>
-                                    )}
-                                    {submitState ? "Submitting" : "Submit"}
+                                    Submit
                                 </button>
                                 {buttonChildren && <>{buttonChildren}</>}
                             </div>
+                            {offline && (
+                                <p
+                                    role="status"
+                                    className="mt-2 text-sm text-error"
+                                >
+                                    Not connected, so your comment was not
+                                    sent. It is still here, try again in a
+                                    moment.
+                                </p>
+                            )}
                         </div>
                     </div>
                 </div>
