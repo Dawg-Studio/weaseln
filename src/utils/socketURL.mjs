@@ -1,9 +1,6 @@
-import { SOCKET } from "../constants.js";
-const env =
-    process.env.NEXT_PUBLIC_VERCEL_ENV ||
-    process.env.VERCEL_ENV ||
-    process.env.NODE_ENV;
-let URL = SOCKET.dev;
-if (env === "production") URL = SOCKET.prod;
+// ponytail: one env var, one dev default. Set NEXT_PUBLIC_SOCKET_SERVER_URL
+// per environment (e.g. the Render URL in production).
+const URL =
+    process.env.NEXT_PUBLIC_SOCKET_SERVER_URL || "http://localhost:5000";
 
 export default URL;
