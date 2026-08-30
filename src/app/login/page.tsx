@@ -8,7 +8,8 @@ import {
     faFeather,
     faUsers,
 } from "@fortawesome/free-solid-svg-icons";
-import { auth } from "@/auth";
+import { auth, enabledProviders } from "@/auth";
+import { safeCallback } from "@/utils/safeCallback";
 import LoginForm from "./_components/LoginForm";
 import Wordmark from "./_components/Wordmark";
 
@@ -17,26 +18,6 @@ export const metadata: Metadata = {
     description:
         "Sign in to weaseln to publish your writing, follow the people you care about, and build your reading list.",
 };
-
-/* callbackUrl arrives on the query string, so it is attacker-controlled. Auth.js
-   validates it again before redirecting, but this page dereferences it first for
-   the already-signed-in shortcut below — so keep only same-site relative paths.
-   "//evil.com" is protocol-relative and would leave the origin, hence the
-   second character check. */
-function safeCallback(raw?: string) {
-    if (!raw) return "/";
-    if (raw.startsWith("/") && !raw.startsWith("//")) return raw;
-    try {
-        const url = new URL(raw);
-        const base = process.env.NEXTAUTH_URL;
-        if (base && url.origin === new URL(base).origin) {
-            return url.pathname + url.search;
-        }
-    } catch {
-        /* not a parseable absolute URL — fall through to the safe default */
-    }
-    return "/";
-}
 
 const HIGHLIGHTS = [
     {
@@ -144,7 +125,11 @@ export default async function LoginPage({
                     </div>
 
                     <div className="mt-8 rounded-box border border-hairline bg-surface p-6 elev-2 enter-fade [--enter-delay:90ms] sm:p-7">
-                        <LoginForm callbackUrl={callbackUrl} error={error} />
+                        <LoginForm
+                            callbackUrl={callbackUrl}
+                            error={error}
+                            providers={enabledProviders}
+                        />
                     </div>
 
                     <p className="mt-6 text-meta text-muted">

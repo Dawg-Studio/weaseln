@@ -43,21 +43,17 @@ and the cover watermarks (which reference `/icons/weasln.png` directly):
 Keep the source file safe; it is the editable master for any future redraw.
 Do not scale it below a 24px height in UI chrome.
 
-### `public/weaseln.svg` — simplified vector mark (derivative)
+### Retired vector marks
 
-A rounded-square badge (512×512 viewBox, `rx=116`) containing a stylized
-front-facing weasel. This is a vector simplification derived from the brand
-palette; use it where a crisp vector is preferred (OG image composition,
-prints, or when the raster logo is too heavy). It is not a ground-truth copy of
-the source artwork — treat `/icons/weasln.png` as the source of truth.
+`public/weaseln.svg` (badge), `public/weaseln-text-with-logo.svg` (lockup) and
+`public/weaseln-bg.svg` (OG canvas) were removed with the login redesign — they
+were hand-drawn simplifications that had drifted from `/icons/weasln.png`, and
+nothing referenced them any more. Use the rasters below instead. The wordmark
+`public/weaseln-text.svg` is unaffected and still ships.
 
-Rules for the vector mark:
-
-- **Clear space:** keep at least 20% of the badge width free on all sides when
-  compositing (the badge already carries 24px of breathing room).
-- **Minimum size:** never render below 24px in UI chrome.
-- Do not recolor the fur; the fur gradient is part of the mark. Monochrome
-  versions are allowed for watermarks at low opacity.
+Clear-space and minimum-size rules still apply to the raster mark: keep at least
+20% of the mark's width free on all sides, and never render below 24px in UI
+chrome. Do not recolor the fur; monochrome is allowed for low-opacity watermarks.
 
 ### Wordmark
 
@@ -65,17 +61,13 @@ Rules for the vector mark:
 sans stack (`Inter` → `Segoe UI` → system-ui), weight 800, tight tracking. The
 full-stop is rendered in `--rust` — it is the one permitted accent.
 
-### Lockup
-
-`public/weaseln-text-with-logo.svg` — the mark followed by the wordmark. Use the
-lockup for headers, footers, and promotional material wider than 320px. Below
-320px use the mark alone.
-
 ### Social / Open Graph image
 
-`public/weaseln-bg.svg` — 1200×630 canvas. Cream gradient field, the mark overlaid
-with the wordmark + tagline ("Tell your story to the world.") and a rust accent
-bar. Points to from `src/app/layout.tsx` `metadata.openGraph.images`.
+`public/weaseln.png` — 1024×1024 opaque square, referenced by
+`src/app/layout.tsx` `metadata.openGraph.images` with explicit width/height/alt.
+A square is the right shape here because the Twitter card is `summary`, and a
+raster is required at all: most social scrapers will not render an SVG, which is
+one reason the old 1200×630 `weaseln-bg.svg` was retired.
 
 ## Favicon and PWA icons
 
@@ -117,5 +109,5 @@ The favicon `.ico` is the 32×32 PNG wrapped in a single-entry ICO container
 ## Checking in new art
 
 Run `npx eslint .` and `npx tsc --noEmit` and confirm both are clean, then do a
-dev-server smoke check that `/weaseln.svg`, `/weaseln-bg.svg`, the icons, and all
-four covers return 200 with no console 404s.
+dev-server smoke check that `/weaseln.png`, `/weaseln-text.svg`, the icons, and
+all four covers return 200 with no console 404s.
