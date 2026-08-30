@@ -16,7 +16,9 @@
     "db:studio": "prisma studio",
     "build": "prisma generate && prisma db push && next build",
     "start": "next start",
-    "lint": "eslint . && npx tsc --noemit"
+    "lint": "eslint . && npx tsc --noemit",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.11.3",
@@ -75,7 +77,6 @@
     "typescript": "5.8.3"
   },
   "devDependencies": {
-    "@playwright/test": "^1.56.1",
     "@tailwindcss/postcss": "^4.3.3",
     "@tailwindcss/typography": "^0.5.16",
     "@testing-library/dom": "^10.4.1",

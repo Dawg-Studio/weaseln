@@ -17,7 +17,7 @@ export default async function CreatePost() {
         },
     });
 
-    const tags = await import("../api/tag/route");
+    const tags = await import("@/app/api/tag/route");
 
     return (
         <PostTypeSelector

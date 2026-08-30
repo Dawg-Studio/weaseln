@@ -178,21 +178,23 @@ The post composer lives at `/new`. Auth is gated; anonymous visits redirect to `
 ### Required fields (gated by the composer before publish)
 - Title (non-blank)
 - Description (non-blank)
-- Cover image (must be uploaded)
 - Body: at least 50 words (the publish button refuses otherwise with an "Insufficient words" toast)
 - Tags (the editor accepts any tag; an arbitrary new tag may be added by typing)
+
+### Optional fields
+- **Cover image** — the composer uploads it to Cloudinary and stores the resulting URL on `Post.coverImage`. The field is **nullable** in the schema; publishing without one is allowed. When a post has no cover, the feed card (`PostContainer` / `PostCard`) and the post page (`/[userId]/[slug]`) skip the cover `<figure>` entirely — no placeholder, no watermark.
 
 ### 5.1 Happy-path publish as alice
 1. Log in as alice.
 2. Navigate to `/new`. The Tiptap editor renders with title and description fields, a cover-image button, a tags input, and a body editor.
 3. Set title to `qa-hello-world-<timestamp>`.
 4. Set description to `A short description for QA.`
-5. Upload a cover image (any local image ≥ a few KB).
+5. Upload a cover image (any local image ≥ a few KB) — or skip; cover is optional.
 6. Type ≥ 50 words in the body editor (e.g., a couple of paragraphs of lorem-style text).
 7. Add a tag `qa`.
 8. Leave the organization selector as "None" (or pick `Weaseln Test Org`; both are valid).
 9. Click **Publish**.
-10. **Expected:** redirected to `/alice/qa-hello-world-<timestamp>` (the post page). Title, description, cover image, and body render.
+10. **Expected:** redirected to `/alice/qa-hello-world-<timestamp>` (the post page). Title, description, body, and (if uploaded) cover image render.
 
 ### 5.2 Happy-path publish as bob (no org)
 1. Log in as bob (fresh context).
@@ -212,8 +214,20 @@ The post composer lives at `/new`. Auth is gated; anonymous visits redirect to `
 For each of the following, attempt to publish from a fresh `/new` session as alice:
 - Missing title → must show "Required Fields" with `title` listed.
 - Missing description → must show `description` listed.
-- Missing cover image → must show `coverImage` listed.
 - Body under 50 words → must show "Insufficient words, need a minimum of 50 words to publish."
+
+Cover image is NOT in the gating list — it is optional. Publishing without a cover must succeed (covered by §5.1a).
+
+### 5.1a Happy-path publish without a cover image
+1. Log in as alice.
+2. Navigate to `/new`.
+3. Set title to `qa-nocover-<timestamp>`.
+4. Set description to `A no-cover QA post.`
+5. Skip the cover upload (cover is optional).
+6. Type ≥ 50 words in the body editor.
+7. Add a tag `qa`.
+8. Click **Publish**.
+9. **Expected:** redirected to `/alice/qa-nocover-<timestamp>`. The post page renders title, description, and body — the cover `<figure>` is **not** rendered (no placeholder, no watermark). The feed card on `/` and `/alice` likewise omits the cover region.
 
 ### 5.5 Verify the new post in the home feed
 After publishing `qa-hello-world-<timestamp>` as alice:

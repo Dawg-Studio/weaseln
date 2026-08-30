@@ -52,7 +52,12 @@ export default function PostContainer({
                 className="block rounded-box"
             >
                 <div className="items-center space-y-4 lg:grid lg:grid-cols-2 lg:gap-6 lg:space-y-0">
-                    <div className="min-w-0 break-words">
+                    <div
+                        className={cn(
+                            "min-w-0 break-words",
+                            !coverImage && "lg:col-span-2",
+                        )}
+                    >
                         {!published && (
                             <p className="mb-3 flex h-5 w-fit items-center rounded-full bg-warning px-2 text-eyebrow uppercase text-warning-content">
                                 UNPUBLISHED
@@ -151,8 +156,8 @@ export default function PostContainer({
                             </p>
                         </div>
                     </div>
-                    <figure className="relative ml-auto overflow-hidden rounded-box border border-hairline bg-base-200 elev-1 lg:float-right lg:w-9/12">
-                        {coverImage ? (
+                    {coverImage && (
+                        <figure className="relative ml-auto overflow-hidden rounded-box border border-hairline bg-base-200 elev-1 lg:float-right lg:w-9/12">
                             <Image
                                 src={coverImage as string}
                                 alt="cover_image"
@@ -160,20 +165,8 @@ export default function PostContainer({
                                 height={1080}
                                 className="cover-crop transition-transform duration-500 ease-out-quint group-hover:scale-[1.03]"
                             />
-                        ) : (
-                            // ponytail: post has no cover image. Render a
-                            // gradient + title watermark so the feed keeps
-                            // its visual rhythm instead of a blank column.
-                            <div
-                                className="cover-crop brand-wash brand-dots flex items-center justify-center p-6"
-                                aria-hidden="true"
-                            >
-                                <p className="line-clamp-3 text-balance text-center text-headline text-base-content/30 lg:text-title">
-                                    {title}
-                                </p>
-                            </div>
-                        )}
-                    </figure>
+                        </figure>
+                    )}
                 </div>
             </Link>
             {/* ponytail: org-link overlay — sibling of the post <Link>, not

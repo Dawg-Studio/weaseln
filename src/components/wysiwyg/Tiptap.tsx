@@ -315,10 +315,10 @@ export default function Tiptap({
 
     async function checkPostRequirements() {
         const wordsRequired = (editor?.storage.characterCount.words() ?? 0) >= 50;
+        // ponytail: cover is optional — see AGENTS.md.
         const required: { [key: string]: boolean } = {
             title: !!editorTitle?.getText(),
             description: !!editorDescription?.getText(),
-            coverImage: !!coverImage,
             wordsRequired: !!wordsRequired,
         };
 

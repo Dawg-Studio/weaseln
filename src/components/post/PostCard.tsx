@@ -17,8 +17,8 @@ export default function PostCard({
             className="group block w-full max-w-sm rounded-box"
         >
             <div className="card card-compact h-full w-full overflow-hidden rounded-box border border-hairline bg-surface elev-1 lift">
-                <figure className="relative overflow-hidden bg-base-200">
-                    {coverImage ? (
+                {coverImage && (
+                    <figure className="relative overflow-hidden bg-base-200">
                         <Image
                             src={coverImage as string}
                             alt="cover_image"
@@ -26,19 +26,8 @@ export default function PostCard({
                             height={1080}
                             className="cover-crop transition-transform duration-500 ease-out-quint group-hover:scale-[1.03]"
                         />
-                    ) : (
-                        // ponytail: no cover — gradient placeholder so the card
-                        // keeps its layout. See PostContainer.tsx for the feed.
-                        <div
-                            className="cover-crop brand-wash brand-dots flex items-center justify-center p-4"
-                            aria-hidden="true"
-                        >
-                            <p className="line-clamp-2 text-balance text-center text-headline text-base-content/35">
-                                {title}
-                            </p>
-                        </div>
-                    )}
-                </figure>
+                    </figure>
+                )}
                 <div className="card-body gap-2 p-4">
                     <h2 className="card-title line-clamp-2 text-headline text-base-content transition-colors duration-150 group-hover:text-primary">
                         {title}
