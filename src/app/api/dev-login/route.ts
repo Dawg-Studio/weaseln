@@ -49,7 +49,7 @@ export async function POST(req: Request) {
     });
 
     const origin = new URL(req.url).origin;
-    const url = `${origin}/api/auth/callback/nodemailer?${new URLSearchParams({
+    const url = `${origin}/api/auth/callback/resend?${new URLSearchParams({
         callbackUrl: `${origin}/`,
         token: rawToken,
         email,
