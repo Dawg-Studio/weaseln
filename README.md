@@ -132,7 +132,7 @@ Seeded logins:
     curl -X POST http://localhost:3000/api/dev-login \
          -H 'content-type: application/json' \
          -d '{"email":"alice@test.com"}'
-    # → {"url":"http://localhost:3000/api/auth/callback/nodemailer?..."}
+    # → {"url":"http://localhost:3000/api/auth/callback/resend?..."}
     ```
     Each hit logs a `[dev-login] issued token for <email>` warning on the server, so dev-login traffic is visible in logs.
 
