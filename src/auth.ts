@@ -1,7 +1,7 @@
 import NextAuth from "next-auth";
 import Google from "next-auth/providers/google";
 import GitHub from "next-auth/providers/github";
-import Nodemailer from "next-auth/providers/nodemailer";
+import Resend from "next-auth/providers/resend";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import { randomInt } from "crypto";
 import prisma from "@/db";
@@ -28,15 +28,8 @@ const providers = isProd
     ? [google]
     : [
           google,
-          Nodemailer({
-              server: {
-                  host: process.env.EMAIL_SERVER_HOST!,
-                  port: Number(process.env.EMAIL_SERVER_PORT) || 587,
-                  auth: {
-                      user: process.env.EMAIL_SERVER_USER!,
-                      pass: process.env.RESEND_API_KEY!,
-                  },
-              },
+          Resend({
+              apiKey: process.env.RESEND_API_KEY!,
               from: "no-reply@weaseln.blog",
           }),
           GitHub({
