@@ -1,4 +1,4 @@
-# Migrate sign-in magic-link from SMTP/Nodemailer to Resend SDK
+# Migrate sign-in magic-link from SMTP/Nodemailer to Resend (HTTP API)
 
 **Issue:** https://github.com/Dawg-Studio/weaseln/issues/12
 **Branch:** `chore/issue-12-magic-link-to-resend`
