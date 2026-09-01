@@ -15,10 +15,10 @@ const inter = Inter({ subsets: ["latin"] });
 
 const APP_NAME = "weaseln";
 const APP_DEFAULT_TITLE =
-    "weaseln, a publishing platform for developers and creatives alike.";
+    "weaseln — Content for humans, by humans.";
 const APP_TITLE_TEMPLATE = "%s | weaseln";
 const APP_DESCRIPTION =
-    "weaseln is a dynamic publishing platform for developers and creatives to share their content or story with the world.";
+    "Content for humans, by humans. Publish and share stories, ideas, and original content on weaseln.";
 
 export const viewport: Viewport = {
     themeColor: "#FBF8F0",
