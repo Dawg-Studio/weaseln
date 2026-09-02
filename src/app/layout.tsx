@@ -78,8 +78,6 @@ export const metadata: Metadata = {
         "weaseln",
         "blog",
         "publishing",
-        "developers",
-        "creatives",
         "content",
         "story",
         "publishing platform",
