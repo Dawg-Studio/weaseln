@@ -123,13 +123,28 @@ export default function Navigation({
                         href={"/"}
                         className="-m-1 flex shrink-0 items-center rounded-field p-1 press"
                     >
-                        <Image
-                            src={"/icons/weaslnnobg.png"}
-                            height={48}
-                            width={72}
-                            alt="weaseln logo"
-                            className="h-9 w-auto sm:h-10"
-                        />
+                        {/* The mark alone, never the full lockup: the lockup
+                            bakes the "Weasln" wordmark and its tagline into the
+                            raster, and at the 36-40px the bar allows they render
+                            as an unreadable smear. Sizing the lockup to fit
+                            instead would eat the width the search bar needs.
+
+                            The cream plate is the same fix Wordmark.tsx makes
+                            for the same reason: the W is inked near-black in
+                            the raster and all but disappears on the dark nav
+                            (--wsl-nav-bg is oklch 19%). The padding is set in
+                            both themes so only the plate colour changes and the
+                            bar keeps one height. See docs/ASSETS.md. */}
+                        <span className="inline-flex rounded-field p-1.5 dark:bg-[#FBF8F0]">
+                            <Image
+                                src={"/icons/weasln-mark.png"}
+                                height={524}
+                                width={684}
+                                priority
+                                alt="weaseln"
+                                className="h-9 w-auto sm:h-10"
+                            />
+                        </span>
                     </Link>
                     <div className="hidden lg:block w-full max-w-sm xl:max-w-md">
                         <SearchBar />

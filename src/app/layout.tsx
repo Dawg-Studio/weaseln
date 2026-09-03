@@ -79,7 +79,10 @@ export const metadata: Metadata = {
         capable: true,
         statusBarStyle: "default",
         title: APP_DEFAULT_TITLE,
-        startupImage: "/icons/512.png",
+        // The full lockup, not /icons/512.png: that file is the app icon (the
+        // mark alone, sized for a home screen), while a splash has room for the
+        // wordmark and tagline.
+        startupImage: "/weaseln.png",
     },
     category: "",
     formatDetection: {

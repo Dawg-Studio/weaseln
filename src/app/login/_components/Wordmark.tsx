@@ -8,7 +8,9 @@ import { cn } from "@/utils/cn";
    Because the wordmark is already inside the artwork, nothing is set beside it
    here — a CSS "weaseln." next to this would print the name twice. It is also
    why it is sized by width rather than dropped to nav height: at ~36px the
-   baked-in tagline collapses into mush, so the lockup gets room to read.
+   baked-in tagline collapses into mush, so the lockup gets room to read. The
+   login page is the only slot with that room; every smaller one takes
+   /icons/weasln-mark.png, the emblem cut on its own (see Navigation.tsx).
 
    Dark theme: the wordmark and tagline are inked near-black in the raster and
    all but vanish on the dark canvas (base-100 is oklch 19%). The artwork cannot
