@@ -9,7 +9,7 @@ import {
     faUsers,
 } from "@fortawesome/free-solid-svg-icons";
 import { auth, enabledProviders } from "@/auth";
-import { safeCallback } from "@/utils/safeCallback";
+import { loginDestination } from "@/utils/loginDestination";
 import LoginForm from "./_components/LoginForm";
 import Wordmark from "./_components/Wordmark";
 
@@ -43,7 +43,7 @@ export default async function LoginPage({
     searchParams: Promise<{ callbackUrl?: string; error?: string }>;
 }) {
     const { callbackUrl: rawCallback, error } = await searchParams;
-    const callbackUrl = safeCallback(rawCallback);
+    const callbackUrl = loginDestination(rawCallback);
 
     // Nothing to sign in to if there is already a session — send them on.
     const session = await auth();
@@ -132,6 +132,11 @@ export default async function LoginPage({
                         />
                     </div>
 
+                    {/* Both routes are served from the (base-layout) group —
+                        src/app/(base-layout)/terms and .../privacy. The group
+                        parentheses contribute no URL segment, so there is no
+                        src/app/terms to find; look there before concluding
+                        these links are dead. */}
                     <p className="mt-6 text-meta text-muted">
                         By continuing you agree to our{" "}
                         <Link

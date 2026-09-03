@@ -60,7 +60,7 @@ Running only one is **not** sufficient. The 26 pre-existing lint errors in `Tipt
 - The QA doc (`docs/QA.md`) is the source of truth for what "passing" looks like. Update it whenever you add or change a user-facing flow.
 - The dev server must be started with `ENABLE_DEV_LOGIN=true` for automated QA. Without it, `/api/dev-login` returns 404 and the test agent cannot authenticate.
 - One browser context per seeded user (Alice, Bob, Carol). The seeded emails and usernames live in `prisma/seed.ts` and are referenced in `docs/QA.md` §1.
-- Anonymous routes that need a session must return **HTTP 307 → `/api/auth/signin`**, not 200 with the page rendered. If a route returns 500 for anonymous, you almost certainly forgot the auth gate (see `src/app/new/page.tsx` history).
+- Anonymous routes that need a session must return **HTTP 307 → `/api/auth/signin`**, not 200 with the page rendered. Since `pages.signIn` was set, that endpoint then 302s to `/login?callbackUrl=<origin>`, so assert the 307 with redirects disabled or expect a final URL of `/login` (see `docs/QA.md` §2). If a route returns 500 for anonymous, you almost certainly forgot the auth gate (see `src/app/new/page.tsx` history).
 - The standalone Socket.IO server on `ws://localhost:5000` is **not** required for the static-render checks in `docs/QA.md`. Browser console errors about `ws://localhost:5000` are expected if the Socket.IO server isn't running and do not block a "passing" run.
 
 ## Cross-references

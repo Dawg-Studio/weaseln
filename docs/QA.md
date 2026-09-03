@@ -117,6 +117,19 @@ await alicePage.goto("http://localhost:3000/api/auth/signout");
 // Click "Sign out" if a confirmation page appears.
 ```
 
+### Where the anonymous bounce lands
+
+`src/auth.ts` sets `pages.signIn = "/login"`, so a gated route now costs two hops instead of one:
+
+1. `GET /settings/profile` (anonymous) → **307** → `/api/auth/signin` — from the page-level `redirect()` guard, not from `proxy.ts`.
+2. `GET /api/auth/signin` → **302** → `/login?callbackUrl=<origin>` → 200, the branded page in `src/app/login`.
+
+Following redirects, an anonymous `page.goto()` therefore finishes on `/login?...`, **not** on `/api/auth/signin`. Assert the 307 with redirects disabled, or assert that the final URL starts with `/login`.
+
+Note the `callbackUrl` on that bounce is the site origin, not the route you were turned away from — every guard redirects to a bare `/api/auth/signin` with no parameter, and Auth.js defaults the callback to `url.origin` — so signing in afterwards returns you to `/` rather than to `/settings/profile`.
+
+The magic-link form on `/login` parks the reader at `/login/verify` (`pages.verifyRequest`). The `/api/dev-login` recipe above touches neither page: it goes straight to `/api/auth/callback/nodemailer`, so everything earlier in this section is unchanged.
+
 ---
 
 ## 3. Per-user browser smoke tests
@@ -143,8 +156,8 @@ For each user, log in fresh and walk through these checks.
 
 ### Anonymous (no session)
 1. **`/alice`** — visible (profiles are public).
-2. **`/settings/profile`** — redirects to `/api/auth/signin` (HTTP 307). The Profile form must not be rendered.
-3. **`/readinglist`** — redirects to `/api/auth/signin` (HTTP 307). The "Reading List" heading must not be rendered.
+2. **`/settings/profile`** — redirects to `/api/auth/signin` (HTTP 307, then **302** → `/login`). The Profile form must not be rendered.
+3. **`/readinglist`** — redirects to `/api/auth/signin` (HTTP 307, then **302** → `/login`). The "Reading List" heading must not be rendered.
 
 ---
 
@@ -173,7 +186,7 @@ Tests that require two browser contexts at once.
 
 ## 5. Post creation
 
-The post composer lives at `/new`. Auth is gated; anonymous visits redirect to `/api/auth/signin`. After login the user is offered `Tiptap` editor with title, description, body, cover image, tags, and (optionally) an organization selector.
+The post composer lives at `/new`. Auth is gated; anonymous visits redirect to `/api/auth/signin` (then **302** → `/login`; see §2). After login the user is offered `Tiptap` editor with title, description, body, cover image, tags, and (optionally) an organization selector.
 
 ### Required fields (gated by the composer before publish)
 - Title (non-blank)
@@ -241,13 +254,13 @@ After publishing `qa-bob-<timestamp>` as bob:
 
 ### 5.7 Anonymous /new redirects
 1. In an unauthenticated browser context, navigate to `/new`.
-2. **Expected:** redirect to `/api/auth/signin` (HTTP 307). The Tiptap editor must not render.
+2. **Expected:** redirect to `/api/auth/signin` (HTTP 307, then **302** → `/login`). The Tiptap editor must not render.
 
 ---
 
 ## 6. Profile customization
 
-The profile customization editor lives at `/settings/profile/customization`. Auth is gated; anonymous visits redirect to `/api/auth/signin`. After login the user gets a `ProfileCustomization` editor with preset/layout/sections/colors/background/cards/typography controls, all debounced-saved (≈800ms) to `/api/user/profile-customization` (PATCH). The settings affect how the author appears on `/<username>` for everyone, including anonymous viewers.
+The profile customization editor lives at `/settings/profile/customization`. Auth is gated; anonymous visits redirect to `/api/auth/signin` (then **302** → `/login`; see §2). After login the user gets a `ProfileCustomization` editor with preset/layout/sections/colors/background/cards/typography controls, all debounced-saved (≈800ms) to `/api/user/profile-customization` (PATCH). The settings affect how the author appears on `/<username>` for everyone, including anonymous viewers.
 
 ### Default state (no prior customization)
 A fresh user who has never saved a customization sees the editor pre-filled with:
@@ -259,7 +272,7 @@ A fresh user who has never saved a customization sees the editor pre-filled with
 
 ### 6.1 Anonymous redirect
 1. In an unauthenticated browser context, navigate to `/settings/profile/customization`.
-2. **Expected:** redirect to `/api/auth/signin` (HTTP 307). The editor must not render. No request to `/api/user/profile-customization` succeeds.
+2. **Expected:** redirect to `/api/auth/signin` (HTTP 307, then **302** → `/login`). The editor must not render. No request to `/api/user/profile-customization` succeeds.
 
 ### 6.2 Editor loads with defaults (alice)
 1. Log in as alice (fresh context).
