@@ -47,6 +47,7 @@ describe("safeCallback", () => {
         ["backslash slash", `${BS}/evil.com`],
         ["triple slash", "///evil.com"],
         ["absolute cross-origin", "https://evil.com/x"],
+        ["same-origin absolute with a double-slash path", `${ORIGIN}//evil.com`],
         ["userinfo trick", "https://weaseln.blog@evil.com/"],
         ["scheme case", "HtTpS://evil.com"],
         ["javascript scheme", "javascript:alert(1)"],
