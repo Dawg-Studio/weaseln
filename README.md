@@ -43,7 +43,7 @@ We use [ESLint](https://eslint.org/) and [prettier](https://github.com/prettier/
 
 ### Prerequisites
 
--   Node version 20 or higher
+-   Node version 20.19+, 22.12+, or 24+
 -   Docker and Docker Compose (for local database)
 -   A Socket.IO server for weaseln; the intended external service repository is <https://github.com/Dawg-Studio/weaseln-socketio>
 

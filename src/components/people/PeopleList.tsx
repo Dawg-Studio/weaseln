@@ -4,7 +4,7 @@ import { Fragment } from "react";
 import PeopleContainer from "./PeopleContainer";
 import PeopleContainerLoader from "./PeopleContainerLoader";
 import { useInfiniteList } from "@/hooks/useInfiniteList";
-import type { User } from "@prisma/client";
+import type { User } from "@/generated/prisma/client";
 import { faUserGroup } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { cn } from "@/utils/cn";

@@ -3,7 +3,7 @@ import Navigation from "@/components/ui/Navigation";
 
 import { auth } from "@/auth";
 import prisma from "@/db";
-import { User } from "@prisma/client";
+import { User } from "@/generated/prisma/client";
 import QueryWrapper from "@/components/provider/QueryWrapper";
 import NextAuthProvider from "@/components/provider/NextAuthProvider";
 

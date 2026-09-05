@@ -1,6 +1,6 @@
 "use client";
 
-import type { Post, UserNotifications } from "@prisma/client";
+import type { Post, UserNotifications } from "@/generated/prisma/client";
 import Image from "next/image";
 import Link from "next/link";
 import timeDiff from "@/utils/timeDiffCalc";

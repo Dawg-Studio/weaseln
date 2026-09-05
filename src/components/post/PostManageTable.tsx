@@ -5,7 +5,7 @@ import {
     faFeatherPointed,
 } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { Post } from "@prisma/client";
+import { Post } from "@/generated/prisma/client";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";

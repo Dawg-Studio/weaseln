@@ -1,6 +1,10 @@
-import { PrismaClient, Prisma } from "@prisma/client";
+import "dotenv/config";
+import { PrismaPg } from "@prisma/adapter-pg";
+import { PrismaClient, Prisma } from "../src/generated/prisma/client";
 
-const prisma = new PrismaClient();
+const prisma = new PrismaClient({
+    adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL }),
+});
 
 const SEEDED_EMAILS = ["alice@test.com", "bob@test.com", "carol@test.com"] as const;
 const SEEDED_ORG_USERNAME = "weaseln-test-org";

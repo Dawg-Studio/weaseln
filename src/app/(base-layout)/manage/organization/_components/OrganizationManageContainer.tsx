@@ -1,6 +1,6 @@
 "use client";
 
-import type { Organization, User } from "@prisma/client";
+import type { Organization, User } from "@/generated/prisma/client";
 import { Fragment, useCallback, useMemo, useState } from "react";
 import OrganizationManageCreateContainer from "./OrganizationManageCreateContainer";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";

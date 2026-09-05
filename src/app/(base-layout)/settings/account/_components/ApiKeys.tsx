@@ -7,7 +7,7 @@ import { generateApiKey, revokeApiKey } from "@/utils/actions/account";
 import { faTrash } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faClipboard } from "@fortawesome/free-regular-svg-icons";
-import { ApiKey } from "@prisma/client";
+import { ApiKey } from "@/generated/prisma/client";
 import { useRef, useState } from "react";
 import { FormProvider, useForm } from "react-hook-form";
 import { toast } from "react-hot-toast";
