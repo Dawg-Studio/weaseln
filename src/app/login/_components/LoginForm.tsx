@@ -12,6 +12,7 @@ import {
 } from "@fortawesome/free-solid-svg-icons";
 import type { IconDefinition } from "@fortawesome/fontawesome-svg-core";
 import type { EnabledProvider } from "@/auth";
+import { FIELD_SKIN } from "@/components/ui/Input";
 import { cn } from "@/utils/cn";
 
 /* Presentation only — which providers exist is decided in src/auth.ts and handed
@@ -44,14 +45,6 @@ const ERROR_COPY: Record<string, string> = {
     AccessDenied: "That account does not have access to weaseln.",
     Configuration: "Sign-in is not configured correctly. Please contact support.",
 };
-
-/* The shared skin for the email field and the OAuth tiles: a raised sheet on
-   the cream canvas, warm hairline at rest, rust on focus. Lifted from
-   components/ui/Input.tsx so the auth page and the app forms stay one system. */
-const FIELD_SKIN =
-    "w-full rounded-field border border-hairline bg-surface text-base-content " +
-    "transition-[border-color,box-shadow,background-color] duration-150 ease-burrow " +
-    "placeholder:text-muted hover:border-hairline-strong focus:border-primary";
 
 export default function LoginForm({
     callbackUrl,
@@ -118,10 +111,9 @@ export default function LoginForm({
                                 disabled={busy}
                                 onClick={() => onOAuth(id)}
                                 className={cn(
-                                    "group flex h-12 w-full items-center justify-center gap-3 px-4",
+                                    "group flex h-12 w-full items-center justify-center gap-3 border px-4",
                                     FIELD_SKIN,
                                     "font-semibold elev-1 press hover:elev-2",
-                                    "disabled:pointer-events-none disabled:opacity-45",
                                 )}
                             >
                                 <FontAwesomeIcon
@@ -176,7 +168,7 @@ export default function LoginForm({
                             placeholder="you@example.com"
                             className={cn(
                                 FIELD_SKIN,
-                                "input h-12 disabled:pointer-events-none disabled:opacity-45",
+                                "input h-12",
                             )}
                         />
                         <button

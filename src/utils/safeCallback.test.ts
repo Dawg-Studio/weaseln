@@ -15,7 +15,10 @@ const landsOn = (loc: string) => new URL(loc, ORIGIN).origin;
 describe("safeCallback", () => {
     afterEach(() => vi.unstubAllEnvs());
 
-    const withOrigin = () => vi.stubEnv("NEXTAUTH_URL", ORIGIN);
+    const withOrigin = () => {
+        vi.stubEnv("AUTH_URL", ORIGIN);
+        vi.stubEnv("NEXTAUTH_URL", undefined);
+    };
 
     it("keeps ordinary same-site paths", () => {
         withOrigin();
@@ -27,6 +30,34 @@ describe("safeCallback", () => {
     it("reduces an absolute same-origin URL to its path", () => {
         withOrigin();
         expect(safeCallback(`${ORIGIN}/feed?x=1`)).toBe("/feed?x=1");
+    });
+
+    it("prefers AUTH_URL over the legacy NEXTAUTH_URL", () => {
+        vi.stubEnv("AUTH_URL", ORIGIN);
+        vi.stubEnv("NEXTAUTH_URL", "https://legacy.example");
+        expect(safeCallback(`${ORIGIN}/feed`)).toBe("/feed");
+        expect(safeCallback("https://legacy.example/feed")).toBe("/");
+    });
+
+    it.each([
+        ["missing", undefined],
+        ["empty", ""],
+    ])("falls back to NEXTAUTH_URL when AUTH_URL is %s", (_case, authUrl) => {
+        vi.stubEnv("AUTH_URL", authUrl);
+        vi.stubEnv("NEXTAUTH_URL", ORIGIN);
+        expect(safeCallback(`${ORIGIN}/feed`)).toBe("/feed");
+    });
+
+    it("fails closed when the preferred configured URL is malformed", () => {
+        vi.stubEnv("AUTH_URL", "https://[");
+        vi.stubEnv("NEXTAUTH_URL", ORIGIN);
+        expect(safeCallback("/feed")).toBe("/");
+    });
+
+    it("fails closed when the legacy configured URL is malformed", () => {
+        vi.stubEnv("AUTH_URL", undefined);
+        vi.stubEnv("NEXTAUTH_URL", "https://[");
+        expect(safeCallback("/feed")).toBe("/");
     });
 
     it("defaults to / when there is no callback", () => {
@@ -71,9 +102,11 @@ describe("safeCallback", () => {
         expect(safeCallback("/a/../b")).toBe("/b");
     });
 
-    it("still accepts relative paths when NEXTAUTH_URL is unset", () => {
-        vi.stubEnv("NEXTAUTH_URL", "");
+    it("still accepts relative paths when both configured URLs are unset", () => {
+        vi.stubEnv("AUTH_URL", undefined);
+        vi.stubEnv("NEXTAUTH_URL", undefined);
         expect(safeCallback("/feed")).toBe("/feed");
+        expect(safeCallback("http://localhost:3000/feed")).toBe("/feed");
         // ...and an absolute URL to some other host is still refused.
         expect(safeCallback("https://evil.com/x")).toBe("/");
     });

@@ -8,10 +8,13 @@ import {
     normalizeProfileCustomization,
 } from "@/modules/profile-customization/validation";
 import { type ProfileCustomization } from "@/modules/profile-customization/types";
+import { signInUrl } from "@/utils/signInUrl";
 
 export default async function ProfileCustomizationSettings() {
     const session = await auth();
-    if (!session?.user) redirect("/api/auth/signin");
+    if (!session?.user) {
+        redirect(signInUrl("/settings/profile/customization"));
+    }
 
     let customization: ProfileCustomization = DEFAULT_PROFILE_CUSTOMIZATION;
     const row = await prisma.userProfileCustomization.findUnique({

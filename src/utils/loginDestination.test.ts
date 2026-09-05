@@ -6,7 +6,10 @@ const ORIGIN = "https://weaseln.blog";
 describe("loginDestination", () => {
     afterEach(() => vi.unstubAllEnvs());
 
-    const withOrigin = () => vi.stubEnv("NEXTAUTH_URL", ORIGIN);
+    const withOrigin = () => {
+        vi.stubEnv("AUTH_URL", ORIGIN);
+        vi.stubEnv("NEXTAUTH_URL", undefined);
+    };
 
     it("passes ordinary destinations through untouched", () => {
         withOrigin();
