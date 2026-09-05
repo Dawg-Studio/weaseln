@@ -3,7 +3,7 @@ import nextVitals from "eslint-config-next/core-web-vitals";
 
 export default defineConfig([
     ...nextVitals,
-    globalIgnores(["public/**", ".next/**", "node_modules/**"]),
+    globalIgnores(["public/**", ".next/**", "node_modules/**", "src/generated/prisma/**"]),
     {
         rules: {
             "no-unused-vars": [

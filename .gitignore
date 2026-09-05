@@ -48,3 +48,6 @@ next-env.d.ts
 
 # Browser QA scratch (screenshots/dumps captured during dev QA passes).
 /.tmp/
+
+# Prisma v7 generated client (built by `prisma generate`, never committed)
+src/generated/prisma/
