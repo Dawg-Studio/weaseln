@@ -47,6 +47,16 @@ const providers = isProd
           }),
       ];
 
+/* The login page renders one control per sign-in method, so it needs to know what
+   `providers` actually resolved to — in production that is Google alone. Exporting
+   the resolved shape keeps src/app/login from re-deriving the isProd branch above
+   and drifting out of sync with it, which is how the page came to advertise GitHub
+   and email buttons that could only ever fail in prod. `type` is Auth.js's own
+   discriminator; "email" marks the magic-link provider. */
+export const enabledProviders = providers.map(({ id, type }) => ({ id, type }));
+
+export type EnabledProvider = (typeof enabledProviders)[number];
+
 export const { handlers, auth, signIn, signOut } = NextAuth({
     adapter: PrismaAdapter(prisma),
     session: { strategy: "jwt" },
@@ -67,6 +77,13 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         logo: "/icons/weaslnnobg.png",
     },
     pages: {
+        // Replaces the stock Auth.js sign-in screen with the branded page in
+        // src/app/login. `error` points at the same route on purpose: the page
+        // renders the ?error= code inline, so a failed provider round trip
+        // lands the reader back on the form instead of a bare error screen.
+        signIn: "/login",
+        error: "/login",
+        verifyRequest: "/login/verify",
         newUser: "/settings/profile",
     },
 });

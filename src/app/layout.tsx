@@ -44,7 +44,18 @@ export const metadata: Metadata = {
             template: APP_TITLE_TEMPLATE,
         },
         description: APP_DESCRIPTION,
-        images: "/weaseln-bg.svg",
+        /* Square opaque PNG. The 1200x630 SVG this replaced was deleted with
+           the login redesign, and most social scrapers will not render an SVG
+           regardless; docs/ASSETS.md lists this file as the social fallback.
+           A square suits the "summary" twitter card declared just below. */
+        images: [
+            {
+                url: "/weaseln.png",
+                width: 1024,
+                height: 1024,
+                alt: "weaseln",
+            },
+        ],
     },
     twitter: {
         card: "summary",
