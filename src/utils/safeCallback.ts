@@ -17,7 +17,10 @@ export function safeCallback(raw?: string) {
             process.env.NEXTAUTH_URL || "http://localhost:3000",
         ).origin;
         const url = new URL(raw, origin);
-        if (url.origin === origin) return url.pathname + url.search + url.hash;
+        // Removing the origin must not turn the path into a network-path URL.
+        if (url.origin === origin && !url.pathname.startsWith("//")) {
+            return url.pathname + url.search + url.hash;
+        }
     } catch {
         /* unparseable base or callback — fall through to the safe default */
     }
