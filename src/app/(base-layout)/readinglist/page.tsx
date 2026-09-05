@@ -7,10 +7,11 @@ import { redirect } from "next/navigation";
 import { Fragment } from "react";
 import { faBookmark } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { signInUrl } from "@/utils/signInUrl";
 
 export default async function ReadingList() {
     const session = await auth();
-    if (!session?.user) redirect("/api/auth/signin");
+    if (!session?.user) redirect(signInUrl("/readinglist"));
 
     const readingList = await prisma.user.findUnique({
         where: { id: session.user.id },

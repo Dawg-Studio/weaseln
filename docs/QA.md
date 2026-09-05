@@ -117,6 +117,30 @@ await alicePage.goto("http://localhost:3000/api/auth/signout");
 // Click "Sign out" if a confirmation page appears.
 ```
 
+### Where the anonymous bounce lands
+
+`src/auth.ts` sets `pages.signIn = "/login"`, so a gated route costs two hops while preserving the protected destination:
+
+1. `GET /settings/profile` (anonymous) → **307** → `/api/auth/signin?callbackUrl=%2Fsettings%2Fprofile` — from the page-level `redirect()` guard, not from `proxy.ts`.
+2. `GET /api/auth/signin?callbackUrl=%2Fsettings%2Fprofile` → **302** → `/login?callbackUrl=<same-origin /settings/profile URL>` → 200, the branded page in `src/app/login`.
+
+Following redirects, an anonymous `page.goto()` therefore finishes on `/login?...`, **not** on `/api/auth/signin`. Assert the 307 with redirects disabled, or assert that the final URL starts with `/login`.
+
+Each static page guard supplies its canonical path through `signInUrl()`. Auth.js validates it, stores the resulting same-origin URL for the provider flow, and forwards it to `/login`, so returning readers are sent back to the canonical page they requested. A first-time account still follows `pages.newUser` to `/settings/profile` for onboarding.
+
+| Protected route | First 307 `Location` |
+| --- | --- |
+| `/new` | `/api/auth/signin?callbackUrl=%2Fnew` |
+| `/readinglist` | `/api/auth/signin?callbackUrl=%2Freadinglist` |
+| `/manage/posts` | `/api/auth/signin?callbackUrl=%2Fmanage%2Fposts` |
+| `/manage/series` | `/api/auth/signin?callbackUrl=%2Fmanage%2Fseries` |
+| `/manage/following` | `/api/auth/signin?callbackUrl=%2Fmanage%2Ffollowing` |
+| `/manage/organization` | `/api/auth/signin?callbackUrl=%2Fmanage%2Forganization` |
+| `/settings/profile` | `/api/auth/signin?callbackUrl=%2Fsettings%2Fprofile` |
+| `/settings/profile/customization` | `/api/auth/signin?callbackUrl=%2Fsettings%2Fprofile%2Fcustomization` |
+
+The magic-link form on `/login` parks the reader at `/login/verify` (`pages.verifyRequest`). The `/api/dev-login` recipe above touches neither page: it goes straight to `/api/auth/callback/nodemailer`, so the callback-preserving guards do not change that shortcut.
+
 ---
 
 ## 3. Per-user browser smoke tests
@@ -143,8 +167,8 @@ For each user, log in fresh and walk through these checks.
 
 ### Anonymous (no session)
 1. **`/alice`** — visible (profiles are public).
-2. **`/settings/profile`** — redirects to `/api/auth/signin` (HTTP 307). The Profile form must not be rendered.
-3. **`/readinglist`** — redirects to `/api/auth/signin` (HTTP 307). The "Reading List" heading must not be rendered.
+2. **`/settings/profile`** — redirects to `/api/auth/signin?callbackUrl=%2Fsettings%2Fprofile` (HTTP 307, then **302** → `/login`). The Profile form must not be rendered; a returning-user sign-in returns to `/settings/profile`.
+3. **`/readinglist`** — redirects to `/api/auth/signin?callbackUrl=%2Freadinglist` (HTTP 307, then **302** → `/login`). The "Reading List" heading must not be rendered; a returning-user sign-in returns to `/readinglist`.
 
 ---
 
@@ -173,7 +197,7 @@ Tests that require two browser contexts at once.
 
 ## 5. Post creation
 
-The post composer lives at `/new`. Auth is gated; anonymous visits redirect to `/api/auth/signin`. After login the user is offered `Tiptap` editor with title, description, body, cover image, tags, and (optionally) an organization selector.
+The post composer lives at `/new`. Auth is gated; anonymous visits redirect to `/api/auth/signin?callbackUrl=%2Fnew` (then **302** → `/login`; see §2), and a returning-user sign-in returns to `/new`. The user is then offered the `Tiptap` editor with title, description, body, cover image, tags, and (optionally) an organization selector.
 
 ### Required fields (gated by the composer before publish)
 - Title (non-blank)
@@ -241,13 +265,13 @@ After publishing `qa-bob-<timestamp>` as bob:
 
 ### 5.7 Anonymous /new redirects
 1. In an unauthenticated browser context, navigate to `/new`.
-2. **Expected:** redirect to `/api/auth/signin` (HTTP 307). The Tiptap editor must not render.
+2. **Expected:** redirect to `/api/auth/signin?callbackUrl=%2Fnew` (HTTP 307, then **302** → `/login`). The Tiptap editor must not render; a returning-user sign-in returns to `/new`.
 
 ---
 
 ## 6. Profile customization
 
-The profile customization editor lives at `/settings/profile/customization`. Auth is gated; anonymous visits redirect to `/api/auth/signin`. After login the user gets a `ProfileCustomization` editor with preset/layout/sections/colors/background/cards/typography controls, all debounced-saved (≈800ms) to `/api/user/profile-customization` (PATCH). The settings affect how the author appears on `/<username>` for everyone, including anonymous viewers.
+The profile customization editor lives at `/settings/profile/customization`. Auth is gated; anonymous visits redirect to `/api/auth/signin?callbackUrl=%2Fsettings%2Fprofile%2Fcustomization` (then **302** → `/login`; see §2), and a returning-user sign-in returns to the editor. The user gets preset/layout/sections/colors/background/cards/typography controls, all debounced-saved (≈800ms) to `/api/user/profile-customization` (PATCH). The settings affect how the author appears on `/<username>` for everyone, including anonymous viewers.
 
 ### Default state (no prior customization)
 A fresh user who has never saved a customization sees the editor pre-filled with:
@@ -259,7 +283,7 @@ A fresh user who has never saved a customization sees the editor pre-filled with
 
 ### 6.1 Anonymous redirect
 1. In an unauthenticated browser context, navigate to `/settings/profile/customization`.
-2. **Expected:** redirect to `/api/auth/signin` (HTTP 307). The editor must not render. No request to `/api/user/profile-customization` succeeds.
+2. **Expected:** redirect to `/api/auth/signin?callbackUrl=%2Fsettings%2Fprofile%2Fcustomization` (HTTP 307, then **302** → `/login`). The editor must not render. No request to `/api/user/profile-customization` succeeds; a returning-user sign-in returns to `/settings/profile/customization`.
 
 ### 6.2 Editor loads with defaults (alice)
 1. Log in as alice (fresh context).

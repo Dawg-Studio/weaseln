@@ -45,11 +45,15 @@ export const VerifyEmailTemplate = ({
                     If you didn&apos;t initiate this, you can safely ignore this
                     email.
                 </Text>
+                {/* The mark on its own — at footer size the full lockup's
+                    baked-in wordmark and tagline turn to mush. Transparent PNG
+                    over the white `main` background; absolute URL because mail
+                    clients have no site origin to resolve against. */}
                 <Img
-                    src={`${websiteUrl}/icons/weaslnnobg.png`}
-                    width="48"
-                    height="32"
-                    alt="weaseln logo"
+                    src={`${websiteUrl}/icons/weasln-mark.png`}
+                    width="44"
+                    height="34"
+                    alt="weaseln"
                 />
                 <Text style={footer}>
                     <Link
