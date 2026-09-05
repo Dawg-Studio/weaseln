@@ -17,7 +17,7 @@ import Image from "next/image";
 import QueryWrapper from "@/components/provider/QueryWrapper";
 import { auth } from "@/auth";
 import UserFollowButton from "@/components/user/actions/UserFollowButton";
-import { Organization, User } from "@prisma/client";
+import { Organization, User } from "@/generated/prisma/client";
 import {
     normalizeProfileCustomization,
 } from "@/modules/profile-customization/validation";

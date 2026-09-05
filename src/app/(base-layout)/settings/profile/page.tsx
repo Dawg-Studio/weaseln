@@ -1,7 +1,7 @@
 import prisma from "@/db";
 
 import ProfileSettingsComponent from "@/app/(base-layout)/settings/profile/_components/Profile";
-import { User } from "@prisma/client";
+import { User } from "@/generated/prisma/client";
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import Link from "next/link";

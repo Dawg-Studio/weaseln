@@ -4,7 +4,7 @@ import QueryWrapper from "@/components/provider/QueryWrapper";
 import PeopleContainer from "@/components/people/PeopleContainer";
 import TagFollowButton from "@/components/tag/actions/TagFollowButton";
 import prisma from "@/db";
-import { User } from "@prisma/client";
+import { User } from "@/generated/prisma/client";
 import { auth } from "@/auth";
 import { notFound } from "next/navigation";
 import { Fragment, Suspense } from "react";

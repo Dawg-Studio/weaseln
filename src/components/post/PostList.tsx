@@ -1,6 +1,6 @@
 "use client";
 
-import { Post } from "@prisma/client";
+import { Post } from "@/generated/prisma/client";
 import { CSSProperties, Fragment, useEffect, useState } from "react";
 import {
     faMagnifyingGlass,

@@ -2,7 +2,7 @@
 
 import { faSearch } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { Post, PostSeries } from "@prisma/client";
+import { Post, PostSeries } from "@/generated/prisma/client";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import Link from "next/link";
 import { Fragment, useEffect, useState } from "react";

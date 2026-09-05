@@ -1,6 +1,6 @@
 "use client";
 
-import { CommentReaction, PostComment } from "@prisma/client";
+import { CommentReaction, PostComment } from "@/generated/prisma/client";
 import { generateHTML, JSONContent } from "@tiptap/react";
 import Image from "next/image";
 import parse from "html-react-parser";

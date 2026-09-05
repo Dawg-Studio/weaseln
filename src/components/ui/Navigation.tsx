@@ -10,7 +10,7 @@ import {
     faSun,
     faMoon,
 } from "@fortawesome/free-solid-svg-icons";
-import { User } from "@prisma/client";
+import { User } from "@/generated/prisma/client";
 import SideMenu from "../menu/SideMenu";
 import SearchBar from "./SearchBar";
 import { cn } from "@/utils/cn";
