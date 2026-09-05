@@ -5,10 +5,11 @@ import { User } from "@prisma/client";
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import Link from "next/link";
+import { signInUrl } from "@/utils/signInUrl";
 
 export default async function ProfileSettings() {
     const session = await auth();
-    if (!session?.user) redirect("/api/auth/signin");
+    if (!session?.user) redirect(signInUrl("/settings/profile"));
 
     const user = (await prisma.user.findUnique({
         where: { id: session.user.id },

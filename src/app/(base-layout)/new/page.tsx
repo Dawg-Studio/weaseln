@@ -3,9 +3,11 @@ import { redirect } from "next/navigation";
 
 import prisma from "@/db";
 import PostTypeSelector from "@/components/post/PostTypeSelector";
+import { signInUrl } from "@/utils/signInUrl";
+
 export default async function CreatePost() {
     const session = await auth();
-    if (!session?.user) redirect("/api/auth/signin");
+    if (!session?.user) redirect(signInUrl("/new"));
     const user = await prisma.user.findUnique({
         where: { id: session.user.id },
         select: {

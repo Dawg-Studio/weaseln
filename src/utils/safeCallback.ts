@@ -14,7 +14,9 @@ export function safeCallback(raw?: string) {
     if (!raw) return "/";
     try {
         const origin = new URL(
-            process.env.NEXTAUTH_URL || "http://localhost:3000",
+            process.env.AUTH_URL ||
+                process.env.NEXTAUTH_URL ||
+                "http://localhost:3000",
         ).origin;
         const url = new URL(raw, origin);
         // Removing the origin must not turn the path into a network-path URL.
