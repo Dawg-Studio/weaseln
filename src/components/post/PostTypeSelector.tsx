@@ -1,6 +1,6 @@
 "use client";
-import { PostDraft } from "@prisma/client";
-import { Organization } from "@prisma/client";
+import { PostDraft } from "@/generated/prisma/client";
+import { Organization } from "@/generated/prisma/client";
 import React, { useState } from "react";
 import {
     faBuilding,

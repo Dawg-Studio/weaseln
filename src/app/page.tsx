@@ -3,7 +3,7 @@ import QueryWrapper from "@/components/provider/QueryWrapper";
 import prisma from "@/db";
 import { auth } from "@/auth";
 
-import { User } from "@prisma/client";
+import { User } from "@/generated/prisma/client";
 import SideMenu from "@/components/menu/SideMenu";
 import TagRankingMenu from "@/components/menu/TagRankingMenu";
 import WeaselnBgHomepage from "@/components/WeaselnBgHomepage";

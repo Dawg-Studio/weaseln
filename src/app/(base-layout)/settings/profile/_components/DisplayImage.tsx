@@ -3,7 +3,7 @@
 import Image from "next/image";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import type { User } from "@prisma/client";
+import type { User } from "@/generated/prisma/client";
 
 export default function DisplayImage({ image, name }: User) {
     const router = useRouter();

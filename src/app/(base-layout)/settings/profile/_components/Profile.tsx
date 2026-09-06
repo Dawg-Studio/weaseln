@@ -6,7 +6,7 @@ import { FormContext } from "@/types/formContext";
 import { FormProvider, RegisterOptions, useForm } from "react-hook-form";
 import Input from "@/components/ui/Input";
 import { Fragment, useEffect, useState } from "react";
-import { User } from "@prisma/client";
+import { User } from "@/generated/prisma/client";
 import DisplayImage from "./DisplayImage";
 import { toast } from "react-hot-toast";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";

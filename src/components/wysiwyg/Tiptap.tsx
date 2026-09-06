@@ -11,7 +11,7 @@ import MenuBar from "./menu/MenuBar";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { StatusResponse } from "@/types/status";
 import { useRouter } from "next/navigation";
-import { Organization, PostDraft } from "@prisma/client";
+import { Organization, PostDraft } from "@/generated/prisma/client";
 import { cn } from "@/utils/cn";
 import { validateTag } from "@/utils/actions/tag";
 import tiptapExtensions from "@/utils/tiptapExt";

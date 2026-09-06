@@ -1,4 +1,4 @@
-import { Post, Prisma } from "@prisma/client";
+import { Post, Prisma } from "@/generated/prisma/client";
 import prisma from "@/db";
 
 export interface ListPostsParams {

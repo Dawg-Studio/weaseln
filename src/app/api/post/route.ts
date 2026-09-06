@@ -5,7 +5,7 @@ import { auth } from "@/auth";
 
 import prisma from "@/db";
 import { JSONContent } from "@tiptap/react";
-import { Prisma } from "@prisma/client";
+import { Prisma } from "@/generated/prisma/client";
 import { getCloudinaryImage, uploadCloudinary } from "@/lib/cloudinary";
 import { revalidatePath } from "next/cache";
 import { postContainerInclude } from "@/utils/prismaQuery";

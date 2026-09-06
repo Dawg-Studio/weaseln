@@ -4,7 +4,7 @@ import useSocket from "@/socket";
 import { useQuery } from "@tanstack/react-query";
 import { Fragment, useEffect } from "react";
 import NotificationContainer from "./NotificationContainer";
-import { Post, UserNotifications } from "@prisma/client";
+import { Post, UserNotifications } from "@/generated/prisma/client";
 import { usePathname } from "next/navigation";
 import { faBell } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";

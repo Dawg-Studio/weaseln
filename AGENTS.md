@@ -31,7 +31,7 @@ Running only one is **not** sufficient. The 26 pre-existing lint errors in `Tipt
 
 ## Database / Prisma
 
-- **Prisma 6.8.2.** Generate with `npx prisma generate`, push schema with `npx prisma db push`, seed with `npm run db:seed`. `predev`, `db:setup`, and `build` scripts already wire these.
+- **Prisma 7.10.0 (driver adapters).** Never write `new PrismaClient()` without an adapter — construct via `PrismaPg({ connectionString: process.env.DATABASE_URL })` (see `src/db.ts`), and import the client from `@/generated/prisma/client`, never from `@prisma/client`. Generate with `npx prisma generate`, push schema with `npx prisma db push`, seed with `npm run db:seed`. CLI database commands connect through `DIRECT_URL` (see `prisma.config.ts`); `predev`, `db:setup`, and `build` scripts already wire generate/push.
 - **`socials Json[]` may be `null` in the database** even when the seed sets `[]`. Always default to `[]` before spreading on the client: `const socialData = [...(socials ?? [])] as FormSocials[]`. Spreading `null` throws `socials is not iterable` and crashes the page with HTTP 500 — see `docs/CONCERNS.md` A3 and the QA history.
 - **Implicit M2M `following.connect(...)` is unreliable for seeding.** Prisma silently drops some pairs. Write follow rows directly via `prisma.$executeRaw` into `users._UserFollows` with `ON CONFLICT ("A", "B") DO NOTHING`. See `prisma/seed.ts` `SEEDED_FOLLOWS`.
 - **Posts: `_count.post` should count drafts too** when shown on profile pages, not only published. Use `{ _count: { select: { post: true } } }` and add `_count.following` for the following count. See `src/app/(base-layout)/[userId]/page.tsx`.

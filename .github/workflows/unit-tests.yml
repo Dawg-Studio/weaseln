@@ -7,6 +7,10 @@ on:
 jobs:
     unit:
         runs-on: ubuntu-latest
+        # `prisma generate` never opens a connection — the URL is only read
+        # by the strict env() resolver in prisma.config.ts.
+        env:
+            DIRECT_URL: "postgresql://ci:ci@localhost:5432/ci"
         steps:
             - uses: actions/checkout@v4
             - uses: actions/setup-node@v4

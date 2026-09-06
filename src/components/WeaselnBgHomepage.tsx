@@ -1,6 +1,6 @@
 "use client";
 
-import { User } from "@prisma/client";
+import { User } from "@/generated/prisma/client";
 import Navigation from "./ui/Navigation";
 import QueryWrapper from "./provider/QueryWrapper";
 import NextAuthProvider from "./provider/NextAuthProvider";

@@ -1,7 +1,7 @@
 "use client";
 
 import { FormContext } from "@/types/formContext";
-import { Post, PostSeries } from "@prisma/client";
+import { Post, PostSeries } from "@/generated/prisma/client";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { Fragment, useEffect, useRef, useState } from "react";
 import Input from "@/components/ui/Input";

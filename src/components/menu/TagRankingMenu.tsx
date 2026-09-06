@@ -4,8 +4,9 @@ import { TagRank } from "@/types/tag";
 import { getTagRankings } from "@/utils/actions/tag";
 import { faFire } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { TagsRanking } from "@prisma/client";
-import { JsonValue } from "@prisma/client/runtime/library";
+import type { Prisma, TagsRanking } from "@/generated/prisma/client";
+
+type JsonValue = Prisma.JsonValue;
 import Link from "next/link";
 import { Fragment, useEffect, useState } from "react";
 import { cn } from "@/utils/cn";

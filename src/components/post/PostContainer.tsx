@@ -1,4 +1,4 @@
-import { Post } from "@prisma/client";
+import { Post } from "@/generated/prisma/client";
 import Link from "next/link";
 import Image from "next/image";
 import { faHeart, faComment } from "@fortawesome/free-solid-svg-icons";

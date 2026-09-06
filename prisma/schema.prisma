@@ -2,15 +2,14 @@
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
 generator client {
-  provider        = "prisma-client-js"
-  previewFeatures = ["fullTextSearchPostgres", "multiSchema"]
+  provider        = "prisma-client"
+  output          = "../src/generated/prisma"
+  previewFeatures = ["fullTextSearchPostgres"]
 }
 
 datasource db {
-  provider          = "postgresql"
-  url               = env("DATABASE_URL")
-  shadowDatabaseUrl = env("SHADOW_DATABASE_URL")
-  schemas           = ["users", "organizations", "sessions", "posts", "tags", "apikey", "verification"]
+  provider = "postgresql"
+  schemas  = ["users", "organizations", "sessions", "posts", "tags", "apikey", "verification"]
 }
 
 model Account {

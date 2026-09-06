@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 
 import prisma from "@/db";
 import { auth } from "@/auth";
-import { User } from "@prisma/client";
+import { User } from "@/generated/prisma/client";
 //Promise<any> is a temporary fix
 export async function GET(req: Request) {
     const url = new URL(req.url);

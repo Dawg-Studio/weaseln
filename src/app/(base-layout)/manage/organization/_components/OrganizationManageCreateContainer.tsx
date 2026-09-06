@@ -6,7 +6,7 @@ import { FormProvider } from "react-hook-form";
 import Input from "@/components/ui/Input";
 import { FormSocials } from "@/types/user";
 import React, { Fragment, useState } from "react";
-import type { Organization, User } from "@prisma/client";
+import type { Organization, User } from "@/generated/prisma/client";
 import Image from "next/image";
 import toast from "react-hot-toast";
 import { useRouter } from "next/navigation";
