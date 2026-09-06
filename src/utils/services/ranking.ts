@@ -151,37 +151,29 @@ export async function computeTagRankings(): Promise<TagRank[]> {
     return getTagUsageAndFollowers();
 }
 
-async function rankFromUserData(userId: string): Promise<RankedTag[]> {
-    const user = await prisma.user.findUnique({
+async function loadUserSignals(userId: string) {
+    return prisma.user.findUnique({
         where: { id: userId },
         include: {
             readingHistory: {
                 take: 100,
-                include: {
-                    post: true,
-                },
+                include: { post: true },
                 orderBy: [
-                    {
-                        readingLength: {
-                            readingLength: "desc",
-                        },
-                    },
-                    {
-                        updatedAt: "desc",
-                    },
+                    { readingLength: { readingLength: "desc" } },
+                    { updatedAt: "desc" },
                 ],
             },
             postReactions: {
                 take: 100,
-                include: {
-                    post: true,
-                },
-                orderBy: {
-                    updatedAt: "desc",
-                },
+                include: { post: true },
+                orderBy: { updatedAt: "desc" },
             },
         },
     });
+}
+
+async function rankFromUserData(userId: string): Promise<RankedTag[]> {
+    const user = await loadUserSignals(userId);
 
     const tagCounts = new Map<string, number>();
     const bump = (tag: string) =>
@@ -220,36 +212,7 @@ async function collectContentFromUser(
 
     await appendPostTerms(postId, tagsRaw, titles, authors);
 
-    const user = await prisma.user.findUnique({
-        where: { id: userId },
-        include: {
-            readingHistory: {
-                take: 100,
-                include: {
-                    post: true,
-                },
-                orderBy: [
-                    {
-                        readingLength: {
-                            readingLength: "desc",
-                        },
-                    },
-                    {
-                        updatedAt: "desc",
-                    },
-                ],
-            },
-            postReactions: {
-                take: 100,
-                include: {
-                    post: true,
-                },
-                orderBy: {
-                    updatedAt: "desc",
-                },
-            },
-        },
-    });
+    const user = await loadUserSignals(userId);
 
     tagsRaw.push(...(user?.interests ?? []));
 
@@ -278,46 +241,15 @@ async function collectContentFromGlobal(
 
     await appendPostTerms(postId, tagsRaw, titles, authors);
 
-    const tagsRanking = await prisma.tagsRanking.findFirst({
-        orderBy: {
-            createdAt: "desc",
-        },
-    });
-    const tagRanks = ((tagsRanking?.data as TagRank[] | undefined) ?? []).map(
-        (tagRank) => tagRank.tag,
-    );
+    const tagsRanking = await readTagsRanking();
+    const tagRanks = tagsRanking.map((tagRank) => tagRank.tag);
 
     const topPosts = await prisma.post.findMany({
         take: 100,
         orderBy: [
-            {
-                views: {
-                    _count: "desc",
-                },
-            },
-            {
-                postReadingHistories: {
-                    _count: "desc",
-                },
-            },
-            {
-                postReadingLength: {
-                    _count: "desc",
-                },
-            },
-            {
-                reactions: {
-                    _count: "desc",
-                },
-            },
-            {
-                activities: {
-                    _count: "desc",
-                },
-            },
-            {
-                updatedAt: "desc",
-            },
+            { views: { _count: "desc" } },
+            { reactions: { _count: "desc" } },
+            { updatedAt: "desc" },
         ],
     });
 
