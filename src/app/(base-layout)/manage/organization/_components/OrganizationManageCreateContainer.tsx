@@ -46,11 +46,11 @@ export default function OrganizationManageCreateContainer({
     const joinOrganization = joinOrgForm.handleSubmit(async (data) => {
         const secret = data["Secret key"];
         try {
-            await joinOrganizationWithSK(secret);
+            const returned = await joinOrganizationWithSK(secret);
             joinOrgForm.reset();
-            toast.success("Joined organization. Reload to refresh your list.", {
-                id: "join",
-            });
+            // ponytail: returned is a partial select; the container re-renders full data via router.refresh.
+            setSelectedOrganization(returned as unknown as Parameters<typeof setSelectedOrganization>[0]);
+            router.refresh();
         } catch (e) {
             toast.error(
                 e instanceof Error ? e.message : "Could not join organization.",

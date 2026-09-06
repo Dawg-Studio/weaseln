@@ -38,10 +38,15 @@ export async function joinOrganizationWithSK(secret: string) {
     const session = await auth();
     if (!session?.user) throw new Error("Not authenticated");
     try {
-        await prisma.organization.update({
+        return await prisma.organization.update({
             where: { secret },
             data: { members: { connect: { id: session.user.id } } },
-            select: { id: true },
+            select: {
+                id: true,
+                owner: { select: { id: true, name: true, image: true } },
+                admins: { select: { id: true } },
+                members: { select: { id: true } },
+            },
         });
     } catch (e) {
         if (
