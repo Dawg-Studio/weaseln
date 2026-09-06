@@ -44,9 +44,11 @@ export function buildWhere(params: ListPostsParams): Prisma.PostWhereInput {
     };
 
     if (params.keyword) {
-        where.title = { search: params.keyword };
-        where.description = { search: params.keyword };
-        where.author = { search: params.keyword };
+        where.OR = [
+            { title:       { search: params.keyword } },
+            { description: { search: params.keyword } },
+            { author:      { search: params.keyword } },
+        ];
     }
 
     if (params.tag) {
@@ -93,13 +95,15 @@ export interface PostListResult {
 }
 
 /**
- * Cursor-paginated post fetch + hasNextPage probe.
+ * Cursor-paginated post fetch with `hasNextPost` detected in a single query
+ * by requesting `take: perPage + 1`. The pre-refactor version issued a
+ * separate probe query per page (2 round-trips); this rewrite keeps the
+ * existing cursor-based contract intact (`lastCursor` + `hasNextPost`)
+ * while halving the DB hit count.
  *
- * Decision (Task 11 brief): the brief lists `paginate(..., page: number,
- * perPage: number)` — i.e. offset-based. The pre-refactor route (and PostList
- * consumer) use cursor-based pagination via `lastCursor`. Switching to offset
- * would break the consumer. We preserve cursor semantics here; if the team
- * wants offset-based later, refactor PostList first.
+ * Decision: we keep cursor pagination, not offset. The pre-refactor route
+ * (and PostList consumer) use cursor-based pagination via `lastCursor`;
+ * switching to offset would break the consumer.
  */
 export async function paginate(
     where: Prisma.PostWhereInput,
@@ -113,43 +117,20 @@ export async function paginate(
     const findArgs: Prisma.PostFindManyArgs = {
         where,
         orderBy,
-        take: perPage,
+        take: perPage + 1,
         ...(include && { include }),
     };
 
     const posts = cursor
-        ? await prisma.post.findMany({
-              ...findArgs,
-              skip: 1,
-              cursor: { id: cursor },
-          })
+        ? await prisma.post.findMany({ ...findArgs, skip: 1, cursor: { id: cursor } })
         : await prisma.post.findMany(findArgs);
 
     if (posts.length === 0) {
-        return {
-            data: [],
-            metaData: {
-                lastCursor: null,
-                hasNextPost: false,
-            },
-        };
+        return { data: [], metaData: { lastCursor: null, hasNextPost: false } };
     }
 
-    const lastPost: Post = posts[posts.length - 1];
-    const lastCursor = lastPost.id;
-
-    const nextPost = await prisma.post.findMany({
-        ...findArgs,
-        take: perPage,
-        skip: 1,
-        cursor: { id: lastCursor },
-    });
-
-    return {
-        data: posts,
-        metaData: {
-            lastCursor,
-            hasNextPost: nextPost.length > 0,
-        },
-    };
+    const hasNextPost = posts.length > perPage;
+    const page = hasNextPost ? posts.slice(0, perPage) : posts;
+    const lastCursor = page[page.length - 1].id;
+    return { data: page, metaData: { lastCursor, hasNextPost } };
 }
