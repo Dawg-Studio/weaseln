@@ -7,6 +7,59 @@ import { TagRank } from "@/types/tag";
 //   - utils/actions/tag.ts getTagRankings -> rankTagsForUser(null, {limit})
 //   - api/cron/route.ts tagRanks()        -> computeTagRankings (write side)
 
+// ponytail: readTagsRanking is hoisted forward from Task 5 so the brief's
+// Step 1 tests have something to import. 60s module-level TTL — same shape as
+// the plan's Task 5.
+let tagsRankingCache: { data: TagRank[]; expiresAt: number } | null = null;
+const TAGS_RANKING_TTL_MS = 60_000;
+
+export async function readTagsRanking(): Promise<TagRank[]> {
+    if (tagsRankingCache && tagsRankingCache.expiresAt > Date.now()) {
+        return tagsRankingCache.data;
+    }
+    const row = await prisma.tagsRanking.findFirst({
+        orderBy: { createdAt: "desc" },
+    });
+    const data = ((row?.data as TagRank[] | undefined) ?? []).slice();
+    tagsRankingCache = { data, expiresAt: Date.now() + TAGS_RANKING_TTL_MS };
+    return data;
+}
+
+// ponytail: test-only escape hatch — the module-level cache leaks across
+// vitest tests otherwise (brief's test order has readTagsRanking tests run
+// after each other, and the cache from a prior test would mask the next).
+export function __resetTagsRankingCacheForTest(): void {
+    tagsRankingCache = null;
+}
+
+export interface TagUsageAndFollowers {
+    tag: string;
+    usage: number;
+    followers: number;
+}
+
+export async function getTagUsageAndFollowers(): Promise<TagUsageAndFollowers[]> {
+    const usageRows = await prisma.$queryRaw<{ tag: string; usage: bigint }[]>`
+        SELECT tag, COUNT(*)::bigint AS usage
+        FROM posts."Post", unnest(tags) AS tag
+        GROUP BY tag`;
+    const followersRows = await prisma.$queryRaw<{ tag: string; followers: bigint }[]>`
+        SELECT tag, COUNT(*)::bigint AS followers
+        FROM users."User", unnest(interests) AS tag
+        GROUP BY tag`;
+    // ponytail: only return tags that appear in posts (usage > 0). A tag with
+    // interests but no posts is not a trending tag — preserve the pre-refactor
+    // semantics from the old per-tag loop, which only iterated unique post tags.
+    const followersByTag = new Map<string, number>(
+        followersRows.map((f) => [f.tag, Number(f.followers)]),
+    );
+    return usageRows.map((u) => ({
+        tag: u.tag,
+        usage: Number(u.usage),
+        followers: followersByTag.get(u.tag) ?? 0,
+    }));
+}
+
 export type RankedTag = {
     tag: string;
     score: number;
@@ -95,27 +148,7 @@ function rankTagsTop10(tagsRaw: string[]): string[] {
 }
 
 export async function computeTagRankings(): Promise<TagRank[]> {
-    const posts = await prisma.post.findMany();
-    const tags: string[] = [];
-    posts.forEach((post) => post.tags.forEach((tag) => tags.push(tag)));
-
-    const setTags = [...new Set(tags)];
-    const tagRanking: TagRank[] = [];
-    for (const setTag of setTags) {
-        const tagFollowers = await prisma.user.count({
-            where: {
-                interests: {
-                    has: setTag,
-                },
-            },
-        });
-        tagRanking.push({
-            tag: setTag,
-            usage: tags.filter((tag) => tag === setTag).length,
-            followers: tagFollowers,
-        });
-    }
-    return tagRanking;
+    return getTagUsageAndFollowers();
 }
 
 async function rankFromUserData(userId: string): Promise<RankedTag[]> {
@@ -168,12 +201,7 @@ async function rankFromUserData(userId: string): Promise<RankedTag[]> {
 }
 
 async function rankFromTagsRanking(): Promise<RankedTag[]> {
-    const tagsRanking = await prisma.tagsRanking.findFirst({
-        orderBy: {
-            createdAt: "desc",
-        },
-    });
-    const data = (tagsRanking?.data as TagRank[] | undefined) ?? [];
+    const data = await readTagsRanking();
     return data.map((t) => ({
         tag: t.tag,
         score: t.usage,

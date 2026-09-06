@@ -3,6 +3,7 @@
 import { auth } from "@/auth";
 import prisma from "@/db";
 import { GoogleGenAI } from "@google/genai";
+import { getTagUsageAndFollowers } from "@/utils/services/ranking";
 import type { TagRank } from "@/types/tag";
 
 // ponytail: previous implementation read `tagsRanking` (a cron-populated
@@ -13,24 +14,7 @@ import type { TagRank } from "@/types/tag";
 // snapshot is still populated by the cron if you want cheaper reads; this
 // path is the source of truth.
 export async function getTagRankings(): Promise<TagRank[]> {
-    const posts = await prisma.post.findMany({
-        select: { tags: true },
-    });
-    const usageByTag = new Map<string, number>();
-    for (const post of posts) {
-        for (const tag of post.tags) {
-            usageByTag.set(tag, (usageByTag.get(tag) ?? 0) + 1);
-        }
-    }
-
-    const ranks: TagRank[] = [];
-    for (const [tag, usage] of usageByTag.entries()) {
-        const followers = await prisma.user.count({
-            where: { interests: { has: tag } },
-        });
-        ranks.push({ tag, usage, followers });
-    }
-
+    const ranks = await getTagUsageAndFollowers();
     ranks.sort((a, b) => b.usage - a.usage);
     return ranks.slice(0, 10);
 }
