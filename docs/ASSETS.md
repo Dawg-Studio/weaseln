@@ -6,7 +6,7 @@ palette, the logo mark, and the rules that keep future artwork consistent.
 ## Brand concept
 
 **Weaseln** (a portmanteau of "weasel" + "wide web") — a cheeky, quick, low-to-the
-ground publishing platform for developers and creatives. The identity leans into
+ground publishing platform — content for humans, by humans. The identity leans into
 warm, earthy tones inspired by a weasel's coat: cream, amber, and burnt sienna.
 
 ## Palette (design tokens)
