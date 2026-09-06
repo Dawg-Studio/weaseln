@@ -25,7 +25,7 @@ export async function POST(req: NextRequest) {
         });
         if (user?.email) {
             const data = await resend.emails.send({
-                from: "weaseln <verification@weaseln.blog>",
+                from: process.env.FROM_EMAIL!,
                 to: [user?.email],
                 subject: "Verify your email.",
                 react: VerifyEmailTemplate({
