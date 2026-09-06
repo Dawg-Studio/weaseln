@@ -30,7 +30,7 @@ const providers = isProd
           google,
           Resend({
               apiKey: process.env.RESEND_API_KEY!,
-              from: "no-reply@weaseln.blog",
+              from: process.env.FROM_EMAIL!,
           }),
           GitHub({
               clientId: process.env.GITHUB_CLIENT_ID!,
