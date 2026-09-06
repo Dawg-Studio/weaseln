@@ -4,6 +4,7 @@ import {
     addOrUpdateUserPostReadingHistory,
     addPostView,
 } from "@/utils/actions/post";
+import { useSession } from "next-auth/react";
 import { useEffect, useRef } from "react";
 
 export default function PostSlugWatcher({
@@ -13,6 +14,7 @@ export default function PostSlugWatcher({
     children: React.ReactNode;
     postId: string;
 }) {
+    const { data: session } = useSession();
     const readTime = 1000;
     const isViewCounted = useRef<boolean>(false);
     const isActivelyReading = useRef<boolean>(false);
@@ -29,7 +31,9 @@ export default function PostSlugWatcher({
         }, 15000);
 
         const addPostReadingLength = async () => {
+            if (!session?.user?.id) return;
             const response = await addOrUpdateUserPostReadingHistory(
+                session.user.id,
                 postId,
                 readTime,
             );
@@ -85,7 +89,7 @@ export default function PostSlugWatcher({
                 readingTimeInterval.current = undefined;
             }
         };
-    }, [postId]);
+    }, [postId, session?.user?.id]);
 
     return <>{children}</>;
 }

@@ -60,3 +60,30 @@ describe("setBookmarkPost", () => {
         expect(out).toBe("bookmarked");
     });
 });
+
+describe("addOrUpdateUserPostReadingHistory", () => {
+    it("issues exactly one upsert against prisma.postReadingHistory", async () => {
+        const upsertMock = vi.fn().mockResolvedValueOnce({});
+        vi.doMock("@/db", () => ({
+            default: {
+                postReadingHistory: { upsert: upsertMock },
+            },
+        }));
+        vi.resetModules();
+        const { addOrUpdateUserPostReadingHistory } = await import(
+            "@/utils/actions/post"
+        );
+        await addOrUpdateUserPostReadingHistory("u1", "p1", 500);
+        expect(upsertMock).toHaveBeenCalledTimes(1);
+        expect(upsertMock).toHaveBeenCalledWith(
+            expect.objectContaining({
+                where: { userId_postId: { userId: "u1", postId: "p1" } },
+                update: {
+                    readingLength: {
+                        update: { readingLength: { increment: 500 } },
+                    },
+                },
+            }),
+        );
+    });
+});
