@@ -7,17 +7,16 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
     faBars,
     faBell,
-    faSun,
-    faMoon,
 } from "@fortawesome/free-solid-svg-icons";
 import { User } from "@prisma/client";
 import SideMenu from "../menu/SideMenu";
 import SearchBar from "./SearchBar";
 import { cn } from "@/utils/cn";
 import useSocket from "@/socket";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "react-hot-toast";
+import ThemeToggleButton from "./ThemeToggleButton";
 
 /* One recipe for every icon-only control in the bar (drawer, bell, theme
    toggle) so they finally share a size, a radius and a hover. */
@@ -123,23 +122,20 @@ export default function Navigation({
                         href={"/"}
                         className="-m-1 flex shrink-0 items-center rounded-field p-1 press"
                     >
-                        {/* The mark alone, never the full lockup: the lockup
-                            bakes the "Weasln" wordmark and its tagline into the
-                            raster, and at the 36-40px the bar allows they render
-                            as an unreadable smear. Sizing the lockup to fit
-                            instead would eat the width the search bar needs.
+                        {/* The mark alone, never the full logo: its wordmark and
+                            tagline would be unreadable at the 36-40px the bar
+                            allows. Sizing the full logo to fit instead would eat
+                            the width the search bar needs.
 
-                            The cream plate is the same fix Wordmark.tsx makes
-                            for the same reason: the W is inked near-black in
-                            the raster and all but disappears on the dark nav
-                            (--wsl-nav-bg is oklch 19%). The padding is set in
-                            both themes so only the plate colour changes and the
-                            bar keeps one height. See docs/ASSETS.md. */}
+                            The cream plate keeps the near-black W visible on
+                            the dark nav (--wsl-nav-bg is oklch 19%). Padding is
+                            set in both themes so only the plate colour changes
+                            and the bar keeps one height. See docs/ASSETS.md. */}
                         <span className="inline-flex rounded-field p-1.5 dark:bg-[#FBF8F0]">
                             <Image
-                                src={"/icons/weasln-mark.png"}
-                                height={524}
-                                width={684}
+                                src={"/icons/weaseln-mark.png"}
+                                height={427}
+                                width={512}
                                 priority
                                 alt="weaseln"
                                 className="h-9 w-auto sm:h-10"
@@ -152,7 +148,7 @@ export default function Navigation({
                 </div>
                 {name && image && id ? (
                     <div className="flex-none flex items-center gap-1 sm:gap-1.5">
-                        <ThemeToggleButton />
+                        <ThemeToggleButton className={ICON_BUTTON} />
                         <div className="indicator">
                             <Link
                                 href={"/notifications"}
@@ -260,7 +256,7 @@ export default function Navigation({
                     </div>
                 ) : (
                     <div className="flex-none flex items-center gap-1 sm:gap-1.5">
-                        <ThemeToggleButton />
+                        <ThemeToggleButton className={ICON_BUTTON} />
                         <div className="dropdown dropdown-end">
                             <button
                                 className={CTA_BUTTON}
@@ -273,47 +269,5 @@ export default function Navigation({
                 )}
             </div>
         </>
-    );
-}
-
-export function ThemeToggleButton() {
-    const [theme, setTheme] = useState<"light" | "dark">(() =>
-        typeof document !== "undefined" &&
-        document.documentElement.dataset.theme === "dark"
-            ? "dark"
-            : "light",
-    );
-
-    useEffect(() => {
-        const read = () => {
-            const current = document.documentElement.dataset.theme;
-            if (current === "light" || current === "dark") setTheme(current);
-        };
-        read();
-        const obs = new MutationObserver(read);
-        obs.observe(document.documentElement, {
-            attributes: true,
-            attributeFilter: ["data-theme"],
-        });
-        return () => obs.disconnect();
-    }, []);
-
-    const next = theme === "dark" ? "light" : "dark";
-    const label =
-        theme === "dark" ? "Switch to light theme" : "Switch to dark theme";
-
-    return (
-        <button
-            type="button"
-            aria-label={label}
-            data-set-theme={next}
-            className={cn("group", ICON_BUTTON)}
-        >
-            <FontAwesomeIcon
-                icon={theme === "dark" ? faSun : faMoon}
-                size="lg"
-                className="transition-transform duration-300 ease-burrow group-hover:rotate-[18deg]"
-            />
-        </button>
     );
 }
