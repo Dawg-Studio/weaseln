@@ -17,9 +17,9 @@ Running only one is **not** sufficient. The 26 pre-existing lint errors in `Tipt
 - **Pages and route handlers must guard on `session?.user`** before using `session.user.id`. The explicit pattern is:
   ```ts
   const session = await auth();
-  if (!session?.user) redirect("/api/auth/signin");
+  if (!session?.user) redirect(signInUrl("/protected-route"));
   ```
-  Each route that needs an authenticated user is responsible for this guard. Do not rely on `proxy.ts`/middleware alone — it is the second line of defense, not the only one.
+  Import `signInUrl` from `@/utils/signInUrl` and pass the page's canonical path so Auth.js sends returning readers back there after sign-in. First-time accounts still follow the configured `pages.newUser` onboarding route. Each route that needs an authenticated user is responsible for this guard. Do not rely on `proxy.ts`/middleware alone — it is the second line of defense, not the only one.
 - **No non-null assertions on session fields.** Do not write `session!.user.id` or `token.sub!`. If a required field is missing, throw or return an explicit failure so the bug is loud, not silent. See `docs/CONCERNS.md` A2.
 - **Per-user browser sessions must use isolated contexts.** NextAuth sessions live in cookies; logging in as a second user in the same browser context overwrites the first. Use `browser.newContext()` per user, or `context.clearCookies()` between switches.
 
@@ -60,7 +60,7 @@ Running only one is **not** sufficient. The 26 pre-existing lint errors in `Tipt
 - The QA doc (`docs/QA.md`) is the source of truth for what "passing" looks like. Update it whenever you add or change a user-facing flow.
 - The dev server must be started with `ENABLE_DEV_LOGIN=true` for automated QA. Without it, `/api/dev-login` returns 404 and the test agent cannot authenticate.
 - One browser context per seeded user (Alice, Bob, Carol). The seeded emails and usernames live in `prisma/seed.ts` and are referenced in `docs/QA.md` §1.
-- Anonymous routes that need a session must return **HTTP 307 → `/api/auth/signin`**, not 200 with the page rendered. If a route returns 500 for anonymous, you almost certainly forgot the auth gate (see `src/app/new/page.tsx` history).
+- Anonymous routes that need a session must return **HTTP 307 → `/api/auth/signin?callbackUrl=<encoded protected path>`**, not 200 with the page rendered. Since `pages.signIn` is set, that endpoint then 302s to `/login?callbackUrl=<same-origin protected URL>`, so assert the 307 with redirects disabled or expect a final URL of `/login` (see `docs/QA.md` §2). If a route returns 500 for anonymous, you almost certainly forgot the auth gate (see `src/app/new/page.tsx` history).
 - The standalone Socket.IO server on `ws://localhost:5000` is **not** required for the static-render checks in `docs/QA.md`. Browser console errors about `ws://localhost:5000` are expected if the Socket.IO server isn't running and do not block a "passing" run.
 
 ## Cross-references

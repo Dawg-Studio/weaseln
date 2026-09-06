@@ -1,12 +1,13 @@
 import prisma from "@/db";
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
+import { signInUrl } from "@/utils/signInUrl";
 
 import OrganizationManageContainer from "./_components/OrganizationManageContainer";
 
 export default async function ManageOrganizations() {
     const session = await auth();
-    if (!session?.user) redirect("/api/auth/signin");
+    if (!session?.user) redirect(signInUrl("/manage/organization"));
 
     const organizations = await prisma.organization.findMany({
         where: {

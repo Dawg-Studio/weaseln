@@ -7,10 +7,11 @@ import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { Fragment } from "react";
+import { signInUrl } from "@/utils/signInUrl";
 
 export default async function ManageFollowing() {
     const session = await auth();
-    if (!session?.user) redirect("/api/auth/signin");
+    if (!session?.user) redirect(signInUrl("/manage/following"));
 
     const user = await prisma.user.findUnique({
         where: { id: session.user.id },

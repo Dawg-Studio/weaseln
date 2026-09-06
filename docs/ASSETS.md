@@ -27,37 +27,55 @@ Use these hex values directly in SVG; do not re-derive them from screenshots.
 
 ## Brand marks
 
-### `/icons/weaslnnobg.png` — transparent variant
+The artwork is one drawing: a serif **W** with a pen nib for its middle stroke,
+a rust brush ring around it, an amber sun dot, and an olive branch to the right;
+below it the "Weasln" wordmark and the tagline *Content for humans, by humans*.
 
-1536×1024 export of the same artwork on a transparent (alpha) field. Use this
-version anywhere the cream background of the opaque logo would box badly:
-navbar, Auth.js sign-in page (`src/auth.ts` theme logo), and email templates
-(48×32 at its natural 3:2 aspect). All references in code point here.
+It ships in three cuts. Which one a slot gets is decided by **how much height
+the slot has**, because the wordmark and tagline are baked into the raster and
+stop being legible below roughly 90px of lockup height:
 
-### `/icons/weasln.png` — the source logo (opaque)
+| File | What it is | Use it when |
+| ---- | ---------- | ----------- |
+| `/icons/weasln-mark.png` | 684x524, transparent, 18KB — the emblem alone, no type | Anything under ~90px tall: nav bar, favicon, PWA icons, email footer, Auth.js `theme.logo`, cover watermarks |
+| `/icons/weaslnnobg.png` | 1536x1024, transparent — the full lockup | Slots with room for the type: the login page (`login/_components/Wordmark`) sets it 160-176px wide |
+| `/icons/weasln.png` | 1448x1086, opaque cream field — the master | Never referenced at runtime. It is the editable original; keep it safe |
 
-The real logo ships as a 1448×1086 PNG (opaque cream field, weasel artwork
-centered in the middle ~55% of the frame). It backs the PWA icons, favicon,
-and the cover watermarks (which reference `/icons/weasln.png` directly):
+`weasln-mark.png` is cut from `weaslnnobg.png` at `left 474, top 51, 684x524` —
+the emblem's alpha bounding box, measured down to y=574 where the ink count
+bottoms out before the wordmark's cap-heights start. It is not redrawn art, so
+it stays in register with the lockup.
 
-Keep the source file safe; it is the editable master for any future redraw.
-Do not scale it below a 24px height in UI chrome.
+It is a **delivery** cut, not a master: it ships as a 128-colour palette PNG
+(18KB, down from 538KB lossless) because it never renders above ~120px, and two
+of its consumers — the email footer and Auth.js `theme.logo` — link it raw with
+no `next/image` optimisation in front. Re-derive from `weaslnnobg.png`, which
+stays lossless, rather than upscaling this file.
 
-### `public/weaseln.svg` — simplified vector mark (derivative)
+### Never do this
 
-A rounded-square badge (512×512 viewBox, `rx=116`) containing a stylized
-front-facing weasel. This is a vector simplification derived from the brand
-palette; use it where a crisp vector is preferred (OG image composition,
-prints, or when the raster logo is too heavy). It is not a ground-truth copy of
-the source artwork — treat `/icons/weasln.png` as the source of truth.
+- **Do not put the lockup in small chrome.** At 36px the tagline is a grey
+  smear and "Weasln" is unreadable. This was the bug behind issue #16.
+- **Do not put the opaque cut anywhere it overlaps other artwork** — the cream
+  field paints a rectangle. Watermarks and any transparent surface want
+  `weasln-mark.png`.
+- **Do not recolour the artwork.** The W and the wordmark are inked near-black
+  and vanish on dark surfaces; the fix is a cream plate behind the mark
+  (`dark:bg-[#FBF8F0]`), as `Navigation.tsx` and `Wordmark.tsx` both do. A
+  filter-based invert/brightness fix destroys the rust ring, the amber dot and
+  the green branch. Flat monochrome is allowed only for low-opacity watermarks.
 
-Rules for the vector mark:
+Clear-space and minimum-size rules apply to every cut: keep at least 20% of the
+mark's width free on all sides, and never render below 24px in UI chrome.
 
-- **Clear space:** keep at least 20% of the badge width free on all sides when
-  compositing (the badge already carries 24px of breathing room).
-- **Minimum size:** never render below 24px in UI chrome.
-- Do not recolor the fur; the fur gradient is part of the mark. Monochrome
-  versions are allowed for watermarks at low opacity.
+### Retired vector marks
+
+`public/weaseln.svg` (badge), `public/weaseln-text-with-logo.svg` (lockup) and
+`public/weaseln-bg.svg` (OG canvas) were removed with the login redesign — they
+were hand-drawn simplifications that had drifted from the raster artwork, and
+nothing referenced them any more. `public/weasln.png` was a byte-identical
+duplicate of `/icons/weasln.png` and went the same way. The wordmark
+`public/weaseln-text.svg` is unaffected and still ships.
 
 ### Wordmark
 
@@ -65,26 +83,28 @@ Rules for the vector mark:
 sans stack (`Inter` → `Segoe UI` → system-ui), weight 800, tight tracking. The
 full-stop is rendered in `--rust` — it is the one permitted accent.
 
-### Lockup
-
-`public/weaseln-text-with-logo.svg` — the mark followed by the wordmark. Use the
-lockup for headers, footers, and promotional material wider than 320px. Below
-320px use the mark alone.
-
 ### Social / Open Graph image
 
-`public/weaseln-bg.svg` — 1200×630 canvas. Cream gradient field, the mark overlaid
-with the wordmark + tagline ("Tell your story to the world.") and a rust accent
-bar. Points to from `src/app/layout.tsx` `metadata.openGraph.images`.
+`public/weaseln.png` — 1024×1024 opaque square, referenced by
+`src/app/layout.tsx` `metadata.openGraph.images` with explicit width/height/alt.
+A square is the right shape here because the Twitter card is `summary`, and a
+raster is required at all: most social scrapers will not render an SVG, which is
+one reason the old 1200×630 `weaseln-bg.svg` was retired.
 
 ## Favicon and PWA icons
 
-- `src/app/favicon.ico` — 32×32, center-cropped from the logo.
-- `public/icons/192.png`, `384.png`, `512.png` — center-square crops of the
-  logo filling the maskable safe zone; referenced by `src/app/manifest.json`
-  (`purpose: "any maskable"` for 192).
-- `public/weaseln.png` — 1024×1024 square crop of the logo (print/social fallback).
-- `public/weasln.png` — the original 1448×1086 source shipped by the brand owner.
+All of these are the **mark** centred on the cream field — not the lockup. A
+square crop of the lockup, which is what shipped before, cuts the wordmark in
+half and is illegible at icon sizes.
+
+- `src/app/favicon.ico` — 16/32/48 PNG entries in one ICO container, mark at
+  88% of each canvas.
+- `public/icons/192.png` — mark at 62%, the maskable safe zone; referenced by
+  `src/app/manifest.json` as `purpose: "any maskable"`.
+- `public/icons/384.png`, `512.png` — mark at 72%, `purpose: "any"`.
+- `public/weaseln.png` — 1024x1024 opaque square crop of the **lockup**, kept
+  for social/print. It is the `metadata.openGraph.images` entry and the
+  `appleWebApp.startupImage`, both of which have room for the type.
 
 PWA `theme_color` and `background_color` are `#FBF8F0`.
 
@@ -97,25 +117,36 @@ PWA `theme_color` and `background_color` are `#FBF8F0`.
 3. **Amber Grid** — tan field, faint on-brand grid, cream diagonal band.
 4. **Ridge Run** — stacked earth layers with a horizon sweep.
 
-Shared language across the set: the badge watermark (bottom-right, scale ≈ .52,
-opacity ≈ .16), the palette-only gradients, and a sparse field of cream/tan dots.
-Keep these invariants when adding `cover-5`.
+Shared language across the set: the mark as a watermark (bottom-right, at
+`x 1500 y 785 / 300x230`, opacity `.16`), the palette-only gradients, and a
+sparse field of cream/tan dots. Keep these invariants when adding `cover-5`.
+
+The watermark is **inlined as a `data:` URI**, not an `/icons/...` path. These
+covers are served to `next/image` as an `<img>` src, and an SVG rendered as an
+image cannot load external resources — a path here renders nothing at all. The
+inlined copy is the mark resized to 300px and quantised to a 64-colour palette,
+which costs ~10KB per cover and is invisible at 16% opacity.
 
 ## Deriving rasters from source
 
-PWA icons, favicon, and the master raster are cropped from the source PNG
-(`/icons/weasln.png`), never from screenshots:
+Every cut is produced from `/icons/weaslnnobg.png` by cropping and compositing —
+never from screenshots, and never by redrawing. The scripts that generate the
+mark, the PWA icons, the favicon container and the cover watermarks are small
+enough to keep inline; run them from the repo root with sharp resolvable:
 
 ```powershell
-$env:NODE_PATH="G:\weaseln\node_modules"
-node -e "const sharp=require('sharp'); const p='public/icons/weasln.png'; sharp(p).metadata().then(m=>{const s=Math.min(m.width,m.height); const l=Math.floor((m.width-s)/2),t=Math.floor((m.height-s)/2); sharp(p).extract({left:l,top:t,width:s,height:s}).resize(512,512).png().toFile('public/icons/512.png')})"
+$env:NODE_PATH="$PWD\node_modules"
+node -e "const sharp=require('sharp'); sharp('public/icons/weaslnnobg.png').extract({left:474,top:51,width:684,height:524}).png({compressionLevel:9,effort:10,palette:true,colours:128}).toFile('public/icons/weasln-mark.png')"
 ```
 
-The favicon `.ico` is the 32×32 PNG wrapped in a single-entry ICO container
-(width/height bytes must equal the actual size, not 0).
+Icons and the favicon then composite `weasln-mark.png` onto `#FBF8F0` at the
+percentages listed above. The `.ico` is a hand-built container: a 6-byte
+`ICONDIR`, one 16-byte `ICONDIRENTRY` per size, then the PNG payloads. The
+width/height bytes in each entry must equal the actual size, not the 0 sentinel.
 
 ## Checking in new art
 
 Run `npx eslint .` and `npx tsc --noEmit` and confirm both are clean, then do a
-dev-server smoke check that `/weaseln.svg`, `/weaseln-bg.svg`, the icons, and all
-four covers return 200 with no console 404s.
+dev-server smoke check that `/weaseln.png`, `/weaseln-text.svg`,
+`/icons/weasln-mark.png`, the PWA icons and all four covers return 200 with no
+console 404s — and look at the nav logo in **both** themes, not just light.

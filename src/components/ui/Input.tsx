@@ -6,6 +6,14 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { cn } from "@/utils/cn";
 import { RegisterOptions, useFormContext } from "react-hook-form";
 
+// Shared by the app's form controls and the auth form. Keep control-specific
+// sizing, border widths, and validation states at each call site.
+export const FIELD_SKIN =
+    "w-full rounded-field border-hairline bg-surface text-base-content " +
+    "transition-[border-color,box-shadow,background-color] duration-150 ease-burrow " +
+    "placeholder:text-muted hover:border-hairline-strong focus:border-primary " +
+    "disabled:pointer-events-none disabled:opacity-45";
+
 export default function Input({
     name,
     type,
@@ -39,10 +47,7 @@ export default function Input({
     // One field skin for every control type: a fresh sheet on the cream
     // canvas, a warm hairline at rest, rust on focus, error red when invalid.
     const fieldSkin = cn(
-        "w-full rounded-field border-hairline bg-surface text-base-content",
-        "transition-[border-color,box-shadow,background-color] duration-150 ease-burrow",
-        "placeholder:text-muted hover:border-hairline-strong",
-        "focus:border-primary disabled:opacity-45 disabled:pointer-events-none",
+        FIELD_SKIN,
         !hasError && "focus:[--input-color:var(--color-primary)]",
     );
 
