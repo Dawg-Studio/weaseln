@@ -45,11 +45,17 @@ export default function OrganizationManageCreateContainer({
 
     const joinOrganization = joinOrgForm.handleSubmit(async (data) => {
         const secret = data["Secret key"];
-        const join = await joinOrganizationWithSK(secret);
-        if (join.status) {
-            setSelectedOrganization(join.organization!);
-        } else {
-            toast.error(join.message);
+        try {
+            await joinOrganizationWithSK(secret);
+            joinOrgForm.reset();
+            toast.success("Joined organization. Reload to refresh your list.", {
+                id: "join",
+            });
+        } catch (e) {
+            toast.error(
+                e instanceof Error ? e.message : "Could not join organization.",
+                { id: "join" },
+            );
         }
     });
 

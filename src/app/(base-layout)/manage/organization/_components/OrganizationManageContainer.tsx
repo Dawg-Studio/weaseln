@@ -70,8 +70,8 @@ export default function OrganizationManageContainer({
 
     async function rerollSk() {
         if (!selectedOrganization || !sessionUserId) return;
-        const secret = await rerollSecretKey(selectedOrganization.id);
-        if (secret) {
+        try {
+            const secret = await rerollSecretKey(selectedOrganization.id);
             setSelectedOrganization({
                 ...selectedOrganization,
                 secret,
@@ -79,107 +79,113 @@ export default function OrganizationManageContainer({
             toast.success("Successfully generated a new secret key!", {
                 id: "org",
             });
+        } catch {
+            toast.error("Could not generate a new secret key.", { id: "org" });
         }
     }
-    async function promoteToAdmin({ id, name }: User) {
-        if (!selectedOrganization || !sessionUserId || !id) return;
-        const isUserAdmin = selectedOrganization?.admins?.find(
-            (admin) => admin.id === id,
+    async function promoteToAdmin(user: User) {
+        if (!selectedOrganization || !sessionUserId || !user.id) return;
+        const isUserAdmin = selectedOrganization.admins?.find(
+            (admin) => admin.id === user.id,
         );
-        if (isUserAdmin)
-            toast.error("Already an Admin", {
-                id: "org",
-            });
-        if (!isUserAdmin) {
-            const newMembers = await removeMember(selectedOrganization?.id, id);
-            if (newMembers) {
-                const newAdmins = await addAdmin(selectedOrganization.id, id);
-                if (newAdmins) {
-                    setSelectedOrganization({
-                        ...selectedOrganization,
-                        admins: newAdmins.admins,
-                        members: newMembers.members,
-                    });
-                    toast.success(
-                        <span>
-                            Successfully added <b>{name}</b> as an Admin.
-                        </span>,
-                        {
-                            id: "org",
-                        },
-                    );
-                }
-            }
+        if (isUserAdmin) {
+            toast.error("Already an Admin", { id: "org" });
+            return;
         }
-    }
-
-    async function demoteToMember({ id, name }: User) {
-        if (!selectedOrganization || !sessionUserId || !id) return;
-        const isUserMember = selectedOrganization?.members.find(
-            (member) => member.id === id,
-        );
-        if (isUserMember)
-            toast.error("Already a Member", {
-                id: "org",
-            });
-        if (!isUserMember) {
-            const newAdmins = await removeAdmin(selectedOrganization?.id, id);
-            if (newAdmins) {
-                const newMembers = await addMember(selectedOrganization.id, id);
-                if (newMembers) {
-                    setSelectedOrganization({
-                        ...selectedOrganization,
-                        admins: newAdmins.admins,
-                        members: newMembers.members,
-                    });
-                    toast.success(
-                        <span>
-                            Successfully demoted <b>{name}</b> as a Member.
-                        </span>,
-                        {
-                            id: "org",
-                        },
-                    );
-                }
-            }
-        }
-    }
-
-    async function removeOrgAdmin({ id, name }: User) {
-        if (!selectedOrganization || !sessionUserId || id) return;
-        const newAdmins = await removeAdmin(selectedOrganization?.id, id);
-        if (newAdmins) {
-            setSelectedOrganization({
-                ...selectedOrganization,
-                admins: newAdmins.admins,
+        try {
+            await removeMember(selectedOrganization.id, user.id);
+            await addAdmin(selectedOrganization.id, user.id);
+            setSelectedOrganization((prev) => {
+                if (!prev) return prev;
+                return {
+                    ...prev,
+                    members: prev.members.filter((m) => m.id !== user.id),
+                    admins: [...prev.admins, user],
+                };
             });
             toast.success(
                 <span>
-                    Successfully removed <b>{name}</b> as an Admin.
+                    Successfully added <b>{user.name}</b> as an Admin.
                 </span>,
-                {
-                    id: "org",
-                },
+                { id: "org" },
             );
+        } catch {
+            toast.error("Could not promote user.", { id: "org" });
         }
     }
 
-    async function removeOrgMember({ id, name }: User) {
-        if (!selectedOrganization || !sessionUserId || id) return;
-        const newMembers = await removeMember(selectedOrganization?.id, id);
-        if (newMembers) {
-            setSelectedOrganization({
-                ...selectedOrganization,
-                members: newMembers.members,
+    async function demoteToMember(user: User) {
+        if (!selectedOrganization || !sessionUserId || !user.id) return;
+        const isUserMember = selectedOrganization.members.find(
+            (member) => member.id === user.id,
+        );
+        if (isUserMember) {
+            toast.error("Already a Member", { id: "org" });
+            return;
+        }
+        try {
+            await removeAdmin(selectedOrganization.id, user.id);
+            await addMember(selectedOrganization.id, user.id);
+            setSelectedOrganization((prev) => {
+                if (!prev) return prev;
+                return {
+                    ...prev,
+                    admins: prev.admins.filter((a) => a.id !== user.id),
+                    members: [...prev.members, user],
+                };
             });
             toast.success(
                 <span>
-                    Successfully removed <b>{name}</b> as a Member.
+                    Successfully demoted <b>{user.name}</b> as a Member.
                 </span>,
-                {
-                    id: "org",
-                },
+                { id: "org" },
             );
+        } catch {
+            toast.error("Could not demote user.", { id: "org" });
+        }
+    }
+
+    async function removeOrgAdmin(user: User) {
+        if (!selectedOrganization || !sessionUserId || !user.id) return;
+        try {
+            await removeAdmin(selectedOrganization.id, user.id);
+            setSelectedOrganization((prev) => {
+                if (!prev) return prev;
+                return {
+                    ...prev,
+                    admins: prev.admins.filter((a) => a.id !== user.id),
+                };
+            });
+            toast.success(
+                <span>
+                    Successfully removed <b>{user.name}</b> as an Admin.
+                </span>,
+                { id: "org" },
+            );
+        } catch {
+            toast.error("Could not remove admin.", { id: "org" });
+        }
+    }
+
+    async function removeOrgMember(user: User) {
+        if (!selectedOrganization || !sessionUserId || !user.id) return;
+        try {
+            await removeMember(selectedOrganization.id, user.id);
+            setSelectedOrganization((prev) => {
+                if (!prev) return prev;
+                return {
+                    ...prev,
+                    members: prev.members.filter((m) => m.id !== user.id),
+                };
+            });
+            toast.success(
+                <span>
+                    Successfully removed <b>{user.name}</b> as a Member.
+                </span>,
+                { id: "org" },
+            );
+        } catch {
+            toast.error("Could not remove member.", { id: "org" });
         }
     }
 
