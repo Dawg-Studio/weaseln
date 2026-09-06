@@ -61,6 +61,8 @@ export async function toggleReaction(
                 update: { type },
                 create: {
                     type,
+                    userName: session.user.name ?? "",
+                    userImage: session.user.image ?? "",
                     post: { connect: { id: key.postId } },
                     user: { connect: { id: session.user.id } },
                 },
@@ -77,6 +79,8 @@ export async function toggleReaction(
                 update: { type },
                 create: {
                     type,
+                    userName: session.user.name ?? "",
+                    userImage: session.user.image ?? "",
                     comment: { connect: { id: key.commentId } },
                     user: { connect: { id: session.user.id } },
                 },
