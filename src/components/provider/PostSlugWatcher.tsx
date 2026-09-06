@@ -23,6 +23,10 @@ export default function PostSlugWatcher({
     const readTimeCountdown = useRef<NodeJS.Timeout | undefined>(undefined);
     const viewCountTimer =
         useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+    const sessionUserId = useRef<string | undefined>(undefined);
+    useEffect(() => {
+        sessionUserId.current = session?.user?.id;
+    }, [session?.user?.id]);
 
     useEffect(() => {
         viewCountTimer.current = setTimeout(async () => {
@@ -31,13 +35,12 @@ export default function PostSlugWatcher({
         }, 15000);
 
         const addPostReadingLength = async () => {
-            if (!session?.user?.id) return;
-            const response = await addOrUpdateUserPostReadingHistory(
-                session.user.id,
+            if (!sessionUserId.current) return;
+            await addOrUpdateUserPostReadingHistory(
+                sessionUserId.current,
                 postId,
                 readTime,
             );
-            if (!response) return;
         };
         const userInactivityCountdown = () => {
             readTimeCountdown.current = setTimeout(() => {
@@ -89,7 +92,7 @@ export default function PostSlugWatcher({
                 readingTimeInterval.current = undefined;
             }
         };
-    }, [postId, session?.user?.id]);
+    }, [postId]);
 
     return <>{children}</>;
 }

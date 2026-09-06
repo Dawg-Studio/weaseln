@@ -19,7 +19,7 @@ export async function addOrUpdateUserPostReadingHistory(
     postId: string,
     readingLengthMs: number,
 ) {
-    return prisma.postReadingHistory.upsert({
+    await prisma.postReadingHistory.upsert({
         where: { userId_postId: { userId, postId } },
         update: {
             readingLength: {
@@ -32,6 +32,7 @@ export async function addOrUpdateUserPostReadingHistory(
             readingLength: { create: { postId, readingLength: readingLengthMs } },
         },
     });
+    return true;
 }
 
 export async function checkBookmarkPostStatus(titleId: string) {

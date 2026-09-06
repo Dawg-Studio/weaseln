@@ -3,30 +3,40 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 // ponytail: Vitest 4.x hoists vi.mock() factories above top-level consts; bare
 // `const mockX = vi.fn()` crashes with ReferenceError. vi.hoisted() lifts the
 // declaration so the mock factory can close over it (plan defect PD3).
-const { transactionMock, findUniqueMock, updateMock, authMock } = vi.hoisted(
-    () => ({
-        transactionMock: vi.fn(),
-        findUniqueMock: vi.fn(),
-        updateMock: vi.fn(),
-        authMock: vi.fn(),
-    }),
-);
+const {
+    transactionMock,
+    findUniqueMock,
+    updateMock,
+    upsertMock,
+    authMock,
+} = vi.hoisted(() => ({
+    transactionMock: vi.fn(),
+    findUniqueMock: vi.fn(),
+    updateMock: vi.fn(),
+    upsertMock: vi.fn(),
+    authMock: vi.fn(),
+}));
 
 vi.mock("@/db", () => ({
     default: {
         $transaction: transactionMock,
         user: { findUnique: findUniqueMock, update: updateMock },
+        postReadingHistory: { upsert: upsertMock },
     },
 }));
 vi.mock("@/auth", () => ({ auth: authMock }));
 vi.mock("@/generated/prisma/client", () => ({ Prisma: {} }));
 
-import { setBookmarkPost } from "@/utils/actions/post";
+import {
+    addOrUpdateUserPostReadingHistory,
+    setBookmarkPost,
+} from "@/utils/actions/post";
 
 beforeEach(() => {
     transactionMock.mockReset();
     findUniqueMock.mockReset();
     updateMock.mockReset();
+    upsertMock.mockReset();
     authMock.mockReset();
     authMock.mockResolvedValue({ user: { id: "user1" } });
 });
@@ -63,16 +73,7 @@ describe("setBookmarkPost", () => {
 
 describe("addOrUpdateUserPostReadingHistory", () => {
     it("issues exactly one upsert against prisma.postReadingHistory", async () => {
-        const upsertMock = vi.fn().mockResolvedValueOnce({});
-        vi.doMock("@/db", () => ({
-            default: {
-                postReadingHistory: { upsert: upsertMock },
-            },
-        }));
-        vi.resetModules();
-        const { addOrUpdateUserPostReadingHistory } = await import(
-            "@/utils/actions/post"
-        );
+        upsertMock.mockResolvedValueOnce({});
         await addOrUpdateUserPostReadingHistory("u1", "p1", 500);
         expect(upsertMock).toHaveBeenCalledTimes(1);
         expect(upsertMock).toHaveBeenCalledWith(
