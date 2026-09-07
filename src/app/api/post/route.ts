@@ -10,6 +10,8 @@ import { getCloudinaryImage, uploadCloudinary } from "@/lib/cloudinary";
 import { revalidatePath } from "next/cache";
 import { postContainerInclude } from "@/utils/prismaQuery";
 import { rankContentForUser } from "@/utils/services/ranking";
+import type { PostCustomization } from "@/modules/post-customization/types";
+import { validatePostCustomizationInput } from "@/modules/post-customization/validation";
 import { buildWhere, buildOrderBy, paginate, ListPostsParams } from "./_query";
 //Promise<any> is a temporary fix
 
@@ -91,7 +93,61 @@ export async function GET(req: NextRequest) {
     }
 }
 
+type CustomizationResult =
+    | { ok: true; data: Partial<PostCustomization> }
+    | { ok: false; message: string };
+
+/**
+ * ponytail: the composer sends the picked background as a JSON string in a
+ * `customization` FormData field. An absent field yields `{}` on purpose — the
+ * spread then contributes nothing, so an older client writes exactly the row it
+ * wrote before this feature existed and an existing post keeps the background
+ * it already has. Anything present but unsupported is a loud 400 rather than a
+ * silent default.
+ */
+function readCustomization(body: FormData): CustomizationResult {
+    const field = body.get("customization");
+    // The composer stringifies optional fields, so an unset one arrives as the
+    // literal "undefined" — same idiom as the coverImage check further down.
+    if (
+        typeof field !== "string" ||
+        field.trim() === "" ||
+        field === "undefined"
+    ) {
+        return { ok: true, data: {} };
+    }
+    let parsed: unknown;
+    try {
+        parsed = JSON.parse(field);
+    } catch {
+        return {
+            ok: false,
+            message: "Invalid post customization: payload is not valid JSON",
+        };
+    }
+    try {
+        return { ok: true, data: validatePostCustomizationInput(parsed) };
+    } catch (err) {
+        return {
+            ok: false,
+            message:
+                err instanceof Error
+                    ? err.message
+                    : "Invalid post customization",
+        };
+    }
+}
+
 export async function POST(req: NextRequest) {
+    // ponytail: this guard must precede req.formData(). Parsing first makes
+    // the server buffer an arbitrarily large multipart body on behalf of a
+    // caller we are about to reject, which turns the publish endpoint into an
+    // unauthenticated upload sink. Resolve the session first, reject, and
+    // only then read the body.
+    const session = await auth();
+    if (!session?.user) {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
     const body = await req.formData();
     const image_total = body.get("image_total")
         ? (body.get("image_total") as unknown as number)
@@ -113,7 +169,31 @@ export async function POST(req: NextRequest) {
         return randomBytes(2).toString("base64url").slice(0, 4);
     }
     try {
-        const session = await auth();
+        // ponytail: the upsert below keys on a caller-supplied postId and
+        // carried no author scope, so any signed-in user could rewrite any post
+        // by id. Resolve the row first and refuse when it belongs to somebody
+        // else. A postId that matches nothing still falls through to `create`,
+        // exactly as it did before.
+        const postId = (body.get("postId") as string) ?? "";
+        if (postId) {
+            const existing = await prisma.post.findUnique({
+                where: { id: postId },
+                select: { userId: true },
+            });
+            if (existing && existing.userId !== session.user.id) {
+                return NextResponse.json(
+                    { error: "Forbidden" },
+                    { status: 403 },
+                );
+            }
+        }
+        const customization = readCustomization(body);
+        if (!customization.ok) {
+            return NextResponse.json(
+                { error: customization.message },
+                { status: 400 },
+            );
+        }
         const pastDraft = await prisma.user.findUnique({
             where: { id: session?.user.id },
             select: {
@@ -129,7 +209,7 @@ export async function POST(req: NextRequest) {
         }
         const orgId = body.get("orgId") as string;
         const post = await prisma.post.upsert({
-            where: { id: (body.get("postId") as string) ?? "" },
+            where: { id: postId },
             update: {
                 title: (body.get("title") as string).trim(),
                 description: (body.get("description") as string).trim(),
@@ -138,6 +218,7 @@ export async function POST(req: NextRequest) {
                 readPerMinute: parseInt(body.get("readPerMinute") as string),
                 published:
                     (body.get("published") as string) === "true" ? true : false,
+                ...customization.data,
             },
             create: {
                 title: (body.get("title") as string).trim(),
@@ -156,6 +237,7 @@ export async function POST(req: NextRequest) {
                 user: {
                     connect: { id: session?.user.id },
                 },
+                ...customization.data,
                 ...(orgId && {
                     organization: {
                         connect: { id: orgId },

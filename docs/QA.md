@@ -44,6 +44,15 @@ Visit each at `/<author-username>/<titleId>`. The author-username is the handle,
 
 `draft-wip` is the only unpublished post. It does **not** appear in feeds or search; it's visible only to bob at `/manage/posts`.
 
+Two of the ten posts carry a visual customization (§6). The other eight are deliberately left at their schema defaults, so any feed shows customized and uncustomized posts side by side:
+
+| titleId | backgroundColor | backgroundPattern | backgroundImage | backgroundFit |
+| --- | --- | --- | --- | --- |
+| `designing-for-readers` | `moss` | `dots` | — | `cover` |
+| `the-state-of-blogging` | `dusk` | `none` | `/covers/cover-2.svg` | `cover` |
+
+`the-state-of-blogging` keeps its own cover image (`/covers/cover-3.svg`): the cover `<figure>` and the surface background are different pictures on purpose, so a QA run can tell the two fields apart.
+
 ### Comments (4 total)
 - `welcome-to-weaseln` — bob's top comment, alice's threaded reply ("Thanks Bob!").
 - `designing-for-readers` — carol's top comment ("I love how this focuses on the reader.").
@@ -269,7 +278,108 @@ After publishing `qa-bob-<timestamp>` as bob:
 
 ---
 
-## 6. Profile customization
+## 6. Post customization
+
+An author can give a post a background colour, a texture pattern and a background image from the composer at `/new`, and change them later from `/<author>/<titleId>/edit`. The four values persist as scalar columns on `Post` — `backgroundColor`, `backgroundPattern`, `backgroundImage`, `backgroundFit` — and on the same four columns of `PostDraft`, so a background picked mid-compose survives autosave.
+
+`backgroundColor` stores a **palette slug** (`default`, `clay`, `apricot`, `sand`, `moss`, `fern`, `fog`, `slate`, `dusk`, `blossom`), never a CSS colour: the stylesheet supplies a light/dark pair per slug, so a customized post has to stay readable across a theme flip. `backgroundImage` accepts only `/covers/…` or `https://res.cloudinary.com/…`.
+
+### Where the controls are
+
+The composer action bar carries a **Background** button (its dot shows the current swatch) that opens a **Post background** dialog. The dialog holds a live sample plus up to four radio groups, each one tab stop with arrow keys moving the selection:
+
+| Group | Options |
+| --- | --- |
+| **Background colour** | `Default`, `Clay`, `Apricot`, `Sand`, `Moss`, `Fern`, `Fog`, `Slate`, `Dusk`, `Blossom` |
+| **Texture** | `None`, `Dots`, `Grid`, `Hatch`, `Wash` |
+| **Background image** | `Remove image`, `Cover 1`–`Cover 4` |
+| **Image fit** | `Fill`, `Tile` — shown only while an image is set |
+
+**Done** closes the dialog. Nothing here is a separate save: the choice rides along with the publish (or the autosave) as a `customization` field.
+
+### How to assert it in the browser
+
+All three render surfaces — the feed card, the feed container and the post page — spread the output of a single function, so a customization shows up in the DOM as data attributes and nothing else:
+
+| Stored value | Rendered as |
+| --- | --- |
+| `backgroundColor: "moss"` | `data-post-bg="moss"` on the card / article surface |
+| `backgroundPattern: "dots"` | `data-post-pattern="dots"` |
+| `backgroundImage: "/covers/cover-2.svg"` | `data-post-fit="cover"` plus an inline `--post-image` custom property holding `url("/covers/cover-2.svg")` |
+| everything at its default | **no** `data-post-*` attribute and no inline style at all |
+
+A background image beats a pattern (both drive `background-image`), so a post with an image renders `data-post-fit` and no `data-post-pattern`.
+
+### 6.1 Seeded baseline — customized and uncustomized in one feed
+1. Log in as alice.
+2. Navigate to `/` (check the Relevant and Latest columns; both posts are published, and alice follows bob).
+3. **Expected:** the `designing-for-readers` card carries `data-post-bg="moss"` and `data-post-pattern="dots"`; the `the-state-of-blogging` card carries `data-post-bg="dusk"`, `data-post-fit="cover"` and the `--post-image` property. Every other card in the same feed carries **no** `data-post-*` attribute.
+4. Flip the theme (light ↔ dark).
+5. **Expected:** both customized cards keep legible title, body and metadata text. The tint changes with the theme; ink is never left dark-on-dark or light-on-light.
+
+### 6.2 Pick a background colour in the composer
+1. Log in as alice.
+2. Navigate to `/new` and fill the required fields from §5 — title `qa-bg-<timestamp>`, a description, ≥ 50 words of body, a tag.
+3. Click **Background**, and in the **Background colour** group choose **Clay**. Select it by its accessible name, not by pixel position.
+4. **Expected:** the live sample at the top of the dialog takes the clay tint immediately, and the dot on the **Background** button matches it.
+5. Tab to the **Background colour** group and press → / ←.
+6. **Expected:** the group is a single tab stop and the arrow keys move the selection through the swatches, wrapping at both ends. Leave **Clay** selected and click **Done**.
+7. Click **Publish**.
+8. **Expected:** redirected to `/alice/qa-bg-<timestamp>`, and the article surface there carries `data-post-bg="clay"`.
+
+### 6.3 Pick a bundled background image
+1. As alice, open `/new` and fill the required fields; title `qa-bgimg-<timestamp>`.
+2. Click **Background**, pick a **Texture** (say **Dots**), then in the **Background image** group choose **Cover 2**. The four bundled covers are served from `public/covers/`, so no Cloudinary credentials are needed.
+3. **Expected:** the live sample shows the image, the **Texture** group's hint changes to say it is hidden while an image is set, and an **Image fit** group appears with **Fill** selected.
+4. Choose **Remove image**.
+5. **Expected:** the **Image fit** group disappears and the **Dots** texture renders in the sample again — clearing the image falls back to the texture rather than to nothing.
+6. Choose **Cover 2** again, then click **Done**.
+7. Click **Publish**.
+8. **Expected:** the post page surface carries `data-post-fit="cover"` (the `Fill` option) and an inline `--post-image` of `url("/covers/cover-2.svg")`, and **no** `data-post-pattern` — the image beat the texture. The post's own cover `<figure>` (§5) is untouched: cover image and background image are separate fields.
+
+### 6.4 The same styling on the feed card and the post page
+1. After §6.2 and §6.3, as alice navigate to `/`.
+2. **Expected:** the cards for `qa-bg-<timestamp>` and `qa-bgimg-<timestamp>` carry exactly the `data-post-*` values their post pages carry.
+3. Navigate to `/alice`.
+4. **Expected:** the same values again on the profile feed cards.
+5. Open both post pages and compare.
+6. **Expected:** identical on all three surfaces. A divergence is a bug: the card, the container and the post page all read the same function, so there is no second implementation to disagree with.
+7. Repeat step 2 in an anonymous context.
+8. **Expected:** signed-out readers see the same customization — it is resolved server-side, not from the session.
+
+### 6.5 An uncustomized post is unchanged
+1. As alice, publish a post without touching the background controls (§5.1 is enough), or pick any seeded post other than the two listed in §1.
+2. **Expected:** its feed card and post page carry no `data-post-bg`, no `data-post-pattern`, no `data-post-fit` and no inline `--post-image`; the surface keeps the normal card background.
+3. **Expected:** it sits in the same feed as the customized posts from §6.1 with no visual change of its own — no faint tint, no extra border, no spacing shift.
+
+### 6.6 The choice survives a draft save
+1. As alice, open `/new`.
+2. Enter a title and a paragraph, then open **Background** and choose the **Fern** swatch and the **Grid** texture. Do not publish.
+3. Wait for the autosave, or click **Save draft** (§5.3).
+4. Open `/manage/posts` and reopen the draft.
+5. **Expected:** the **Background** button shows the fern dot, and inside the dialog **Fern** and **Grid** are still the checked radios — `PostDraft` carries the same four columns as a published post.
+6. Publish the draft.
+7. **Expected:** the published post renders `data-post-bg="fern"` and `data-post-pattern="grid"`. Nothing is lost in the draft → post hand-off.
+
+### 6.7 The choice survives an edit
+1. As alice, open `/alice/qa-bg-<timestamp>/edit`.
+2. **Expected:** the **Background** button already shows the clay dot, and the dialog opens with **Clay** checked — not reset to **Default**.
+3. Change the swatch to **Blossom**, set the texture to **Hatch**, and save.
+4. **Expected:** the post page now renders `data-post-bg="blossom"` and `data-post-pattern="hatch"`, and so do its cards on `/` and `/alice`. No trace of `clay` remains on any surface.
+5. Edit once more: set the colour back to **Default**, the texture to **None**, choose **Remove image**, and save.
+6. **Expected:** the post drops every `data-post-*` attribute and returns to the plain appearance of §6.5. Clearing a customization has to be possible, not one-way.
+
+### 6.8 Negative — an unsupported value is rejected
+This step checks the server-side guard. Optional but recommended:
+1. As alice, open DevTools → Network and capture the composer's `POST /api/post` (or the draft save to `/api/post/draft`). The choice travels as a `customization` FormData field holding JSON.
+2. Replay the request with that field set to `{"backgroundColor":"#ff0000"}` — a CSS colour instead of a slug. Repeat with `{"backgroundImage":"https://evil.example.com/x.png"}`, and again with a field that is not JSON at all.
+3. **Expected:** HTTP 400 with a JSON error every time, and no row written or changed. Writes validate strictly and refuse; an unsupported value is never quietly sanitised into a valid one.
+4. Reload the post.
+5. **Expected:** the previously saved customization is intact.
+
+---
+
+## 7. Profile customization
 
 The profile customization editor lives at `/settings/profile/customization`. Auth is gated; anonymous visits redirect to `/api/auth/signin?callbackUrl=%2Fsettings%2Fprofile%2Fcustomization` (then **302** → `/login`; see §2), and a returning-user sign-in returns to the editor. The user gets preset/layout/sections/colors/background/cards/typography controls, all debounced-saved (≈800ms) to `/api/user/profile-customization` (PATCH). The settings affect how the author appears on `/<username>` for everyone, including anonymous viewers.
 
@@ -281,16 +391,16 @@ A fresh user who has never saved a customization sees the editor pre-filled with
 - `cardOpacity: 100`, `cardRadius: "medium"`, `cardShadow: "subtle"`, `borderStyle: "none"`
 - `fontFamily: "system"`, `headingSize: "large"`, `textAlign: "center"`, `spacingDensity: "comfortable"`
 
-### 6.1 Anonymous redirect
+### 7.1 Anonymous redirect
 1. In an unauthenticated browser context, navigate to `/settings/profile/customization`.
 2. **Expected:** redirect to `/api/auth/signin?callbackUrl=%2Fsettings%2Fprofile%2Fcustomization` (HTTP 307, then **302** → `/login`). The editor must not render. No request to `/api/user/profile-customization` succeeds; a returning-user sign-in returns to `/settings/profile/customization`.
 
-### 6.2 Editor loads with defaults (alice)
+### 7.2 Editor loads with defaults (alice)
 1. Log in as alice (fresh context).
 2. Navigate to `/settings/profile/customization`.
 3. **Expected:** page renders the editor without errors. The Preset select shows `minimal`, Layout variant shows `standard`, all eight section checkboxes are checked (none hidden), background color swatch is white (placeholder), Background Image preview is absent, and the Cards/Typography selects show the defaults listed above. No "Saving..." or "Saved" indicator on first paint.
 
-### 6.3 Change preset and verify live save
+### 7.3 Change preset and verify live save
 1. As alice, open `/settings/profile/customization`.
 2. Change the Preset select from `minimal` to `editorial`.
 3. Wait ~1s (the editor debounces ≈800ms before PATCHing).
@@ -298,30 +408,30 @@ A fresh user who has never saved a customization sees the editor pre-filled with
 5. Reload the page.
 6. **Expected:** Preset is still `editorial`. The other defaults are preserved (SectionOrder unchanged, all defaults still in place).
 
-### 6.4 Change background color and verify
+### 7.4 Change background color and verify
 1. As alice, open `/settings/profile/customization`.
 2. Set the Background color swatch to a specific hex (e.g. `#1f2937`).
 3. Wait for the Saved indicator.
 4. Reload the page.
 5. **Expected:** the Background color swatch still shows `#1f2937` (the saved value, not the white placeholder). All other defaults remain.
 
-### 6.5 View customization on public profile
+### 7.5 View customization on public profile
 1. While still logged in as alice, open a **separate anonymous context** (`browser.newContext()`).
 2. Navigate to `/alice`.
 3. **Expected:** the public profile page renders the customization: the page background reflects the chosen background color (`#1f2937` or whatever was set), and the layout variant (`standard`) is applied. No errors in the network panel; `/api/user/profile-customization` does not need to be hit by anonymous viewers — the customization is fetched server-side at `/<username>` page load.
 
-### 6.6 Reset to defaults
+### 7.6 Reset to defaults
 1. As alice, return to `/settings/profile/customization`.
 2. Click **Reset to defaults**, confirm the browser `confirm` dialog.
 3. **Expected:** a success toast appears; the editor fields snap back to the defaults listed above (Preset `minimal`, Layout `standard`, all sections visible, all colors `null`, Background Image absent).
 4. Reload the page.
 5. **Expected:** defaults are still in place after reload — the reset was persisted.
 
-### 6.7 Public profile returns to default rendering
-1. After the reset in §6.6, reload `/alice` in the anonymous context.
+### 7.7 Public profile returns to default rendering
+1. After the reset in §7.6, reload `/alice` in the anonymous context.
 2. **Expected:** the page background and layout revert to the seed/default look (no custom background color applied). No 500s, no console errors.
 
-### 6.8 Background image upload
+### 7.8 Background image upload
 1. As alice, open `/settings/profile/customization`.
 2. Pick any local image file (PNG/JPEG/WebP, a few KB) via the **Choose background** file input.
 3. **Expected:** the preview image appears immediately. While uploading, the button label reads "Uploading..." and is disabled. When the upload completes, a success toast appears and the backgroundImage field is set to a `https://res.cloudinary.com/...` URL (or `/covers/...` if the QA bypass is in effect).
@@ -329,7 +439,7 @@ A fresh user who has never saved a customization sees the editor pre-filled with
 5. Reload the page.
 6. **Expected:** the preview still shows the image, the URL persists in the Background Image preview, and `/alice` (anonymous context) renders the uploaded image as the page background.
 
-### 6.9 Negative — invalid color is rejected
+### 7.9 Negative — invalid color is rejected
 This step verifies the server-side guard. Optional but recommended:
 1. As alice, open `/settings/profile/customization`.
 2. Open DevTools → Network and capture a `PATCH /api/user/profile-customization`.
@@ -338,7 +448,7 @@ This step verifies the server-side guard. Optional but recommended:
 
 ---
 
-## 7. What a passing QA run looks like
+## 8. What a passing QA run looks like
 
 A clean run is:
 - `npm run db:seed` succeeds, `npm run dev` (with `ENABLE_DEV_LOGIN=true`) boots without errors.
@@ -346,13 +456,14 @@ A clean run is:
 - All §3 per-user checks pass.
 - All §4 cross-user checks pass.
 - All §5 post-creation checks pass.
-- All §6 profile-customization checks pass.
+- All §6 post-customization checks pass.
+- All §7 profile-customization checks pass.
 - No console errors in the browser on the visited routes (Socket.IO connection failures are expected if the standalone Socket.IO server on `ws://localhost:5000` isn't running — they don't block functional correctness).
 - No 500s in the server log.
 
 ---
 
-## 8. Agent quick-reference
+## 9. Agent quick-reference
 
 ```js
 // Minimal helper for Playwright:

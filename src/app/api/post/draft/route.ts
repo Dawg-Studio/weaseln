@@ -4,8 +4,59 @@ import { auth } from "@/auth";
 import { NextRequest, NextResponse } from "next/server";
 
 import { getCloudinaryImage, uploadCloudinary } from "@/lib/cloudinary";
+import type { PostCustomization } from "@/modules/post-customization/types";
+import { validatePostCustomizationInput } from "@/modules/post-customization/validation";
+
+type CustomizationResult =
+    | { ok: true; data: Partial<PostCustomization> }
+    | { ok: false; message: string };
+
+/**
+ * ponytail: mirrors `/api/post` so a background picked mid-compose survives the
+ * autosave. An absent field yields `{}`, which leaves the draft on the schema
+ * defaults — byte-identical to the row this route wrote before the feature.
+ */
+function readCustomization(body: FormData): CustomizationResult {
+    const field = body.get("customization");
+    // The composer stringifies optional fields, so an unset one arrives as the
+    // literal "undefined" — same idiom as the coverImage check further down.
+    if (
+        typeof field !== "string" ||
+        field.trim() === "" ||
+        field === "undefined"
+    ) {
+        return { ok: true, data: {} };
+    }
+    let parsed: unknown;
+    try {
+        parsed = JSON.parse(field);
+    } catch {
+        return {
+            ok: false,
+            message: "Invalid post customization: payload is not valid JSON",
+        };
+    }
+    try {
+        return { ok: true, data: validatePostCustomizationInput(parsed) };
+    } catch (err) {
+        return {
+            ok: false,
+            message:
+                err instanceof Error
+                    ? err.message
+                    : "Invalid post customization",
+        };
+    }
+}
 
 export async function POST(req: NextRequest) {
+    // ponytail: guard before req.formData() — see the note in /api/post.
+    // An anonymous caller must not be able to make the server buffer a
+    // multipart body it is going to throw away.
+    const session = await auth();
+    if (!session?.user) {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
     const body = await req.formData();
     const image_total = body.get("image_total")
         ? (body.get("image_total") as unknown as number)
@@ -23,7 +74,13 @@ export async function POST(req: NextRequest) {
         return imageFiles;
     };
     try {
-        const session = await auth();
+        const customization = readCustomization(body);
+        if (!customization.ok) {
+            return NextResponse.json(
+                { error: customization.message },
+                { status: 400 },
+            );
+        }
         const pastDraft = await prisma.user.findUnique({
             where: { id: session?.user.id },
             select: {
@@ -52,6 +109,7 @@ export async function POST(req: NextRequest) {
                             ).trim(),
                             tags: [...JSON.parse(body.get("tags") as string)],
                             content: JSON.parse(body.get("content") as string),
+                            ...customization.data,
                         },
                     },
                 },

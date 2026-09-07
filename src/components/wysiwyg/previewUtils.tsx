@@ -5,6 +5,9 @@ import Link from "next/link";
 import parse from "html-react-parser";
 import { Fragment } from "react";
 import { useEditor } from "@tiptap/react";
+import { postSurfaceProps } from "@/modules/post-customization/surface";
+import { type PostCustomization } from "@/modules/post-customization/types";
+import { cn } from "@/utils/cn";
 
 const prose =
     "prose prose-sm sm:prose lg:prose-lg measure reading mx-auto my-8 px-4 sm:px-6 focus:outline-none";
@@ -15,16 +18,29 @@ export function PreviewEditor({
     editorDescription,
     coverImage,
     inputTags,
+    customization,
 }: {
     editor: ReturnType<typeof useEditor>;
     editorTitle: ReturnType<typeof useEditor>;
     editorDescription: ReturnType<typeof useEditor>;
     coverImage: string;
     inputTags: string[];
+    customization: PostCustomization;
 }) {
     const renderHtml = editor?.getHTML() as string;
+    // The preview spreads the same helper as PostCard, PostContainer and the
+    // post page, so it cannot promise a surface that publishing would not
+    // produce. An uncustomized post yields {} and this section renders exactly
+    // as it did before the feature existed.
+    const surface = postSurfaceProps(customization);
+    const customized = Object.keys(surface).length !== 0;
     return (
-        <section className={prose}>
+        // The tint needs padding to read as a page rather than a hairline:
+        // `prose`'s `my-8` is margin, which falls outside the painted box.
+        <section
+            {...surface}
+            className={cn(prose, customized && "rounded-box py-8")}
+        >
             {coverImage && (
                 <figure className="not-prose relative my-8 overflow-hidden rounded-box border border-hairline bg-base-200 elev-1">
                     <NextImage

@@ -8,6 +8,7 @@ import { Fragment, useMemo } from "react";
 import timeDiff from "@/utils/timeDiffCalc";
 import { cn } from "@/utils/cn";
 import { formatPostDate } from "@/utils/formatPostDate";
+import { postSurfaceProps } from "@/modules/post-customization/surface";
 
 export default function PostContainer({
     coverImage,
@@ -25,6 +26,10 @@ export default function PostContainer({
     createdAt,
     organization,
     organizationId,
+    backgroundColor,
+    backgroundPattern,
+    backgroundImage,
+    backgroundFit,
 }: Post & {
     _count?: {
         reactions: number;
@@ -46,7 +51,20 @@ export default function PostContainer({
         // Animation cascade origin then pins `transform: none` and outranks
         // `lift`'s hover translate, killing the card's motion affordance. The
         // stagger wrapper in PostList.tsx carries `enter` instead.
-        <div className="group relative rounded-box border border-hairline bg-surface p-4 elev-1 lift focus-within:border-primary/45 sm:p-5">
+        //
+        // The spread below is the post's customization surface, and it is the
+        // only styling decision this file defers to. postSurfaceProps() returns
+        // {} for an uncustomized post, so the default card renders exactly as
+        // it did before this feature existed — no wrapper, no fallback class.
+        <div
+            {...postSurfaceProps({
+                backgroundColor,
+                backgroundPattern,
+                backgroundImage,
+                backgroundFit,
+            })}
+            className="group relative rounded-box border border-hairline bg-surface p-4 elev-1 lift focus-within:border-primary/45 sm:p-5"
+        >
             <Link
                 href={`/${authorUsername ? authorUsername : userId}/${titleId}`}
                 className="block rounded-box"
