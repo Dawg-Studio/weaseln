@@ -40,10 +40,35 @@ describe("authenticated /api/notification", () => {
         await getNotifications(req);
         expect(findManyMock).toHaveBeenCalledWith(
             expect.objectContaining({
-                where: { userId: "u1" },
+                where: expect.objectContaining({ userId: "u1" }),
                 take: 50,
                 cursor: { id: "c1" },
                 skip: 1,
+            }),
+        );
+    });
+
+    it("returns data[] rows with post.title and excludes self-notifications", async () => {
+        authMock.mockResolvedValueOnce({ user: { id: "u1" } } as any);
+        findManyMock.mockResolvedValueOnce([
+            { id: "n1", post: { title: "Hello" } },
+        ] as any);
+        const req = new Request("http://localhost/api/notification");
+        const res = await getNotifications(req);
+        const body = await res.json();
+        expect(body).toEqual({
+            data: [{ id: "n1", post: { title: "Hello" } }],
+            lastCursor: "n1",
+        });
+        expect(findManyMock).toHaveBeenCalledWith(
+            expect.objectContaining({
+                where: expect.objectContaining({
+                    userId: "u1",
+                    OR: [
+                        { fromUserId: { not: "u1" } },
+                        { fromUserId: null },
+                    ],
+                }),
             }),
         );
     });

@@ -47,7 +47,7 @@ export default function Navigation({
     const getNotifications = async () => {
         const response = await fetch("/api/notification/count");
         const data = await response.json();
-        return data.data as number;
+        return data.count as number;
     };
 
     const { data, refetch } = useQuery({
