@@ -70,8 +70,11 @@ export async function GET(req: NextRequest) {
     }
 
     try {
+        const cursor = url.searchParams.get("cursor");
         const posts = await prisma.post.findMany({
             ...prismaQuery,
+            take: 50,
+            ...(cursor && { cursor: { id: cursor }, skip: 1 }),
             select: {
                 id: true,
                 authorUsername: true,
@@ -81,7 +84,10 @@ export async function GET(req: NextRequest) {
                 published: true,
             },
         });
-        return NextResponse.json({ data: posts }, { status: 200 });
+        return NextResponse.json(
+            { data: posts, lastCursor: posts.at(-1)?.id ?? null },
+            { status: 200 },
+        );
     } catch (err) {
         return NextResponse.json({ err }, { status: 500 });
     }

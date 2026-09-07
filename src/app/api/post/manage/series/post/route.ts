@@ -35,15 +35,29 @@ export async function GET(req: NextRequest) {
     }
 
     try {
+        const cursor = url.searchParams.get("cursor");
         const findArgs: Prisma.PostFindManyArgs = {
             where,
+            take: 50,
+            ...(cursor && { cursor: { id: cursor }, skip: 1 }),
             orderBy: {
                 createdAt: "desc",
+            },
+            // ponytail: userId beyond brief's 4 fields so the consumer's `/${authorUsername || userId}/${titleId}` link has a fallback when authorUsername is null
+            select: {
+                id: true,
+                title: true,
+                titleId: true,
+                published: true,
+                userId: true,
             },
         };
         const getPosts = await prisma.post.findMany(findArgs);
         if (getPosts)
-            return NextResponse.json({ data: getPosts }, { status: 200 });
+            return NextResponse.json(
+                { data: getPosts, lastCursor: getPosts.at(-1)?.id ?? null },
+                { status: 200 },
+            );
     } catch (err) {
         return NextResponse.json({ err }, { status: 500 });
     }
