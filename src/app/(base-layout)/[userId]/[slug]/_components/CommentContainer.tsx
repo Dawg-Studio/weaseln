@@ -1,6 +1,6 @@
 "use client";
 
-import { CommentReaction, PostComment } from "@/generated/prisma/client";
+import { PostComment } from "@/generated/prisma/client";
 import { generateHTML, JSONContent } from "@tiptap/react";
 import Image from "next/image";
 import parse from "html-react-parser";
@@ -38,12 +38,12 @@ export default function CommentContainer({
     createdAt,
     titleId,
     title,
-    reactions,
+    _count,
     isRemoved,
 }: PostComment & {
     titleId: string;
     title: string;
-    reactions?: CommentReaction[];
+    _count?: { reactions: number };
 }) {
     const { data: session } = useSession();
     const socket = useSocket();
@@ -178,7 +178,7 @@ export default function CommentContainer({
                                     target={{ id, authorId: userId }}
                                     targetType="comment"
                                     initialReactionCount={
-                                        reactions?.length ?? 0
+                                        _count?.reactions ?? 0
                                     }
                                 />
                             </div>
