@@ -47,6 +47,13 @@ Running only one is **not** sufficient. The 26 pre-existing lint errors in `Tipt
       (coverField.startsWith("/covers/") || coverField.startsWith("http"));
   ```
 
+## Post customization
+
+- **A post stores a palette SLUG, never a CSS colour.** `Post.backgroundColor` (and `PostDraft.backgroundColor`) holds one of the `POST_BACKGROUNDS` values — `default`, `clay`, `apricot`, … — from `src/modules/post-customization/types.ts`. The app flips its ink per `data-theme`, so a stored hex that reads at 12:1 in light can invert to unreadable in dark; a slug lets `globals.css` supply the light/dark pair and keeps contrast a property of the design system. Do not copy the free-form hex approach `src/modules/profile-customization` uses for profiles.
+- **`postSurfaceProps()` in `src/modules/post-customization/surface.ts` is the only place a customization becomes pixels.** Hand it a Prisma post row and spread the result onto the element that carries the background; it emits `data-post-bg` / `data-post-pattern` / `data-post-fit` and the inline `--post-image` property, and `{}` for an uncustomized post. All three render surfaces — `PostCard`, `PostContainer`, and the post page `src/app/(base-layout)/[userId]/[slug]/page.tsx` — spread it and do nothing else, which is why they cannot drift. Never hand-write those attributes or add a fourth code path.
+- **The four columns are scalars on `Post` and `PostDraft`, not a relation**, so every existing `findMany`/`findUnique` already returns them — no `include` changes anywhere. Validate on the way in with `validatePostCustomizationInput` (throws, so a bad write is a 400) and on the way out with `normalizePostCustomization` (never throws, so one corrupt row degrades to the default instead of taking down a feed).
+- **Background images are allowlisted to `/covers/…` and `https://res.cloudinary.com/…`.** The stored URL is interpolated into a CSS `url("…")` token, so `validation.ts` also enforces a positive charset allowlist. Widening either list means revisiting both.
+
 ## UI / accessibility
 
 - Every interactive control must have an accessible name. Anonymous-view gotchas to watch:
@@ -66,7 +73,7 @@ Running only one is **not** sufficient. The 26 pre-existing lint errors in `Tipt
 ## Cross-references
 
 - `docs/CONCERNS.md` — known correctness/refactor issues, including the `socials` crash (A3), the `gemini-pro` shutdown (A5), and the load-bearing typo `StautsNotif` (A4).
-- `docs/QA.md` — seeded fixtures and per-user browser smoke checks, including post creation (§5).
+- `docs/QA.md` — seeded fixtures and per-user browser smoke checks, including post creation (§5) and post customization (§6).
 - `README.md` — local dev setup, dev-login flag, and seeded credentials.
 
 <!-- BEGIN:nextjs-agent-rules -->

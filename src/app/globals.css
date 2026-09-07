@@ -181,6 +181,28 @@
     /* tan wash for the "saved / set aside" family and for selection */
     --wsl-tint-warm: oklch(75% 0.12 69 / 0.18);
 
+    /* ---- Post note surfaces (issue #21) ------------------------------- */
+    /* Nine hues at one lightness so the palette behaves as a set. Body ink
+       (--color-base-content) clears WCAG AAA on every one: worst case is
+       blossom at 10.67:1. The muted metadata voice clears AA throughout
+       (worst 5.60:1). All nine sit inside the sRGB gamut. */
+    --wsl-note-clay: oklch(92% 0.038 32);
+    --wsl-note-apricot: oklch(92% 0.046 55);
+    --wsl-note-sand: oklch(92% 0.055 85);
+    --wsl-note-moss: oklch(92% 0.052 125);
+    --wsl-note-fern: oklch(92% 0.048 158);
+    --wsl-note-fog: oklch(92% 0.045 205);
+    --wsl-note-slate: oklch(92% 0.037 245);
+    --wsl-note-dusk: oklch(92% 0.038 295);
+    --wsl-note-blossom: oklch(92% 0.046 340);
+    /* Texture stroke. Its own token, not --wsl-hairline: a pattern sits ON a
+       tint, where the hairline's alpha reads too faint. */
+    --wsl-note-line: oklch(30% 0.04 59 / 0.16);
+    /* Scrim painted OVER an author's background image so body copy stays
+       legible on a photograph we cannot inspect. Worst case (a pure black
+       image) still leaves ink at 12.14:1. */
+    --wsl-note-veil: oklch(99.1% 0.007 97 / 0.9);
+
     --wsl-nav-bg: oklch(97.9% 0.011 90 / 0.82);
     --wsl-scrim: oklch(25.8% 0.028 57 / 0.45);
     --wsl-scroll-thumb: oklch(30% 0.04 59 / 0.24);
@@ -212,6 +234,24 @@
     --wsl-tint: oklch(74% 0.118 48 / 0.16);
     --wsl-tint-strong: oklch(74% 0.118 48 / 0.24);
     --wsl-tint-warm: oklch(81% 0.105 74 / 0.2);
+
+    /* ---- Post note surfaces (issue #21) ------------------------------- */
+    /* The same nine slugs, re-voiced for the dark canvas (ink clears AAA
+       throughout, worst 11.86:1). This pairing is precisely why a post stores
+       a SLUG and not a hex: one stored colour cannot serve both themes. */
+    --wsl-note-clay: oklch(27.5% 0.05 32);
+    --wsl-note-apricot: oklch(27.5% 0.05 55);
+    --wsl-note-sand: oklch(27.5% 0.048 85);
+    --wsl-note-moss: oklch(27.5% 0.048 125);
+    --wsl-note-fern: oklch(27.5% 0.046 158);
+    --wsl-note-fog: oklch(27.5% 0.042 205);
+    --wsl-note-slate: oklch(27.5% 0.048 245);
+    --wsl-note-dusk: oklch(27.5% 0.048 295);
+    --wsl-note-blossom: oklch(27.5% 0.05 340);
+    --wsl-note-line: oklch(93% 0.018 85 / 0.18);
+    /* Heavier than light mode: the worst case here is a WHITE image behind
+       pale ink, which needs more covering to hold AA (6.03:1). */
+    --wsl-note-veil: oklch(23.5% 0.019 56 / 0.92);
 
     --wsl-nav-bg: oklch(19% 0.015 55 / 0.8);
     --wsl-scrim: oklch(11% 0.01 54 / 0.62);
@@ -614,6 +654,13 @@
    the utilities layer, so a layered rule here would lose. Everything below
    either sets custom properties or targets descendants, so ordinary Tailwind
    utility classes still override normally.
+
+   ponytail: ONE deliberate exception, at the very end of this file. The post
+   surface rules (issue #21) set `background-color` directly on the element
+   carrying [data-post-bg], because their entire job is to beat the
+   `bg-surface` utility already sitting on a post card. That is the point of
+   them, not an oversight — but it does mean a background utility on a
+   customized post card will NOT win. Nothing else below breaks the rule.
    ========================================================================== */
 
 /* Menu active state: a rust tint carrying base-content text. Rust text on a
@@ -746,4 +793,126 @@
     .btn:active {
         transform: none !important;
     }
+}
+
+/* ==========================================================================
+   Post surfaces — per-post visual customization (issue #21).
+
+   Authored UNLAYERED on purpose. Tailwind's utilities live in
+   `@layer utilities`, and an unlayered declaration outranks any layered one
+   regardless of specificity, so `[data-post-bg]` reliably beats the
+   `bg-surface` already on a post card without an `!important` and without
+   inflating specificity. These attributes are emitted ONLY by
+   postSurfaceProps() in src/modules/post-customization/surface.ts; a post with
+   no customization carries none of them and is untouched by every rule here.
+   ========================================================================== */
+
+[data-post-bg="clay"] {
+    --post-bg: var(--wsl-note-clay);
+}
+[data-post-bg="apricot"] {
+    --post-bg: var(--wsl-note-apricot);
+}
+[data-post-bg="sand"] {
+    --post-bg: var(--wsl-note-sand);
+}
+[data-post-bg="moss"] {
+    --post-bg: var(--wsl-note-moss);
+}
+[data-post-bg="fern"] {
+    --post-bg: var(--wsl-note-fern);
+}
+[data-post-bg="fog"] {
+    --post-bg: var(--wsl-note-fog);
+}
+[data-post-bg="slate"] {
+    --post-bg: var(--wsl-note-slate);
+}
+[data-post-bg="dusk"] {
+    --post-bg: var(--wsl-note-dusk);
+}
+[data-post-bg="blossom"] {
+    --post-bg: var(--wsl-note-blossom);
+}
+
+[data-post-bg] {
+    background-color: var(--post-bg);
+}
+
+/* ---- Textures. Generated from tokens, so each adapts per theme for free and
+        costs nothing in contrast: there is no raster and no URL. ---------- */
+
+[data-post-pattern="dots"] {
+    background-image: radial-gradient(
+        var(--wsl-note-line) 1px,
+        transparent 1px
+    );
+    background-size: 22px 22px;
+    background-position: -1px -1px;
+}
+
+[data-post-pattern="grid"] {
+    background-image:
+        linear-gradient(to right, var(--wsl-note-line) 1px, transparent 1px),
+        linear-gradient(to bottom, var(--wsl-note-line) 1px, transparent 1px);
+    background-size: 24px 24px;
+}
+
+[data-post-pattern="hatch"] {
+    background-image: repeating-linear-gradient(
+        45deg,
+        var(--wsl-note-line) 0 1px,
+        transparent 1px 10px
+    );
+}
+
+/* The rust/tan bloom of `brand-wash`, softened so it can sit under body copy. */
+[data-post-pattern="wash"] {
+    background-image:
+        radial-gradient(
+            118% 88% at 10% 104%,
+            color-mix(in oklab, var(--color-primary) 14%, transparent) 0%,
+            transparent 62%
+        ),
+        radial-gradient(
+            86% 72% at 94% -12%,
+            color-mix(in oklab, var(--color-secondary) 16%, transparent) 0%,
+            transparent 60%
+        );
+}
+
+/* ---- Author background images -------------------------------------------
+   The veil is listed FIRST so it paints ON TOP of the image. Without it a dark
+   photograph behind dark ink is unreadable, and we cannot inspect what an
+   author uploads. `--post-image` is set inline by postSurfaceProps() from a
+   URL that passed both the origin allowlist and the charset allowlist. ---- */
+
+[data-post-fit] {
+    background-image:
+        linear-gradient(var(--wsl-note-veil), var(--wsl-note-veil)),
+        var(--post-image);
+    background-repeat: no-repeat;
+}
+
+[data-post-fit="cover"] {
+    background-size:
+        cover,
+        cover;
+    background-position: center;
+}
+
+[data-post-fit="tile"] {
+    background-size:
+        auto,
+        320px auto;
+    background-repeat: repeat;
+}
+
+/* Keep the fill inside the card's own rounding so it never bleeds past the
+   corners or under the cover image's rounded figure. */
+[data-post-bg],
+[data-post-pattern],
+[data-post-fit] {
+    background-origin: padding-box;
+    background-clip: padding-box;
 }

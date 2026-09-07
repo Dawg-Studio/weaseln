@@ -160,6 +160,16 @@ model Post {
   authorUsername       String?
   authorImage          String
   coverImage           String?
+  // Issue #21 — per-post visual customization. All four are defaulted or
+  // nullable so `prisma db push` is additive on a populated table and an
+  // untouched row is byte-identical to the pre-feature default appearance.
+  // `backgroundColor` stores a PALETTE SLUG (see src/modules/post-customization),
+  // never a raw CSS colour: a stored hex is theme-blind in an app whose ink
+  // flips per data-theme.
+  backgroundColor      String               @default("default")
+  backgroundPattern    String               @default("none")
+  backgroundImage      String?
+  backgroundFit        String               @default("cover")
   title                String
   titleId              String               @unique
   isBookmarkedBy       User[]               @relation("Bookmarks")
@@ -186,14 +196,19 @@ model Post {
 }
 
 model PostDraft {
-  id          String   @id @default(uuid())
-  title       String?
-  description String?
-  content     Json?
-  tags        String[]
-  coverImage  String?
-  userId      String   @unique
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id                String   @id @default(uuid())
+  title             String?
+  description       String?
+  content           Json?
+  tags              String[]
+  coverImage        String?
+  // Mirrors Post so a background picked mid-compose survives autosave.
+  backgroundColor   String   @default("default")
+  backgroundPattern String   @default("none")
+  backgroundImage   String?
+  backgroundFit     String   @default("cover")
+  userId            String   @unique
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@schema("posts")
 }

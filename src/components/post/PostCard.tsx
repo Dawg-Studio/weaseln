@@ -1,6 +1,7 @@
 import { Post } from "@/generated/prisma/client";
 import Link from "next/link";
 import Image from "next/image";
+import { postSurfaceProps } from "@/modules/post-customization/surface";
 
 export default function PostCard({
     userId,
@@ -9,6 +10,10 @@ export default function PostCard({
     coverImage,
     title,
     description,
+    backgroundColor,
+    backgroundPattern,
+    backgroundImage,
+    backgroundFit,
 }: Post) {
     return (
         <Link
@@ -16,7 +21,18 @@ export default function PostCard({
             target="_blank"
             className="group block w-full max-w-sm rounded-box"
         >
-            <div className="card card-compact h-full w-full overflow-hidden rounded-box border border-hairline bg-surface elev-1 lift">
+            {/* ponytail: the customization surface. postSurfaceProps() returns
+                {} for an uncustomized post, so the default card emits exactly
+                the attributes it did before this feature existed. */}
+            <div
+                {...postSurfaceProps({
+                    backgroundColor,
+                    backgroundPattern,
+                    backgroundImage,
+                    backgroundFit,
+                })}
+                className="card card-compact h-full w-full overflow-hidden rounded-box border border-hairline bg-surface elev-1 lift"
+            >
                 {coverImage && (
                     <figure className="relative overflow-hidden bg-base-200">
                         <Image
