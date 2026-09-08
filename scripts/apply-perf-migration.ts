@@ -18,13 +18,19 @@ async function main() {
     const sqlPath = "prisma/migrations/20260906181623_db_perf/migration.sql";
     const raw = readFileSync(sqlPath, "utf8");
 
-    // Split on `;` at end of line so each statement runs in autocommit. The
-    // migration has no PL/pgSQL or dollar-quoted strings containing `;`, so
-    // line-aware split is safe.
+    // Split on `;` at end of line so each statement runs in autocommit.
+    // Strip `--` comment lines from each chunk first — otherwise a multi-line
+    // comment block preceding a statement causes the statement to be dropped.
     const statements = raw
         .split(/;\s*\n/)
-        .map((s) => s.trim())
-        .filter((s) => s.length > 0 && !s.startsWith("--"));
+        .map((s) =>
+            s
+                .split("\n")
+                .filter((line) => !line.trim().startsWith("--"))
+                .join("\n")
+                .trim(),
+        )
+        .filter((s) => s.length > 0);
 
     const client = new Client({ connectionString: url });
     await client.connect();
