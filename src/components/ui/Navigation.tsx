@@ -39,7 +39,7 @@ export default function Navigation({
     id,
     username,
     className,
-}: User & NavigationProps) {
+}: Pick<User, "name" | "image" | "id" | "username"> & NavigationProps) {
     const socket = useSocket();
 
     const { data: session, status } = useSession();

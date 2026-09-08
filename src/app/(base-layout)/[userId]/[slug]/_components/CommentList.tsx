@@ -7,7 +7,10 @@ import useSocket from "@/socket";
 import { Post, PostComment } from "@/generated/prisma/client";
 import QueryWrapper from "../../../../../components/provider/QueryWrapper";
 
-export default function CommentList({ titleId, title }: Post) {
+export default function CommentList({
+    titleId,
+    title,
+}: Pick<Post, "titleId" | "title">) {
     const socket = useSocket();
     const getComments = async () => {
         const params = new URLSearchParams({
