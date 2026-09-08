@@ -1,10 +1,11 @@
 import prisma from "@/db";
 // import { Metadata } from "next";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { auth } from "@/auth";
 
 import Tiptap from "@/components/wysiwyg/Tiptap";
 import { JSONContent } from "@tiptap/react";
+import { signInUrl } from "@/utils/signInUrl";
 
 // export async function generateMetadata({
 //     params,
@@ -38,33 +39,29 @@ export default async function EditPost({
     params: Promise<{ userId: string; slug: string }>;
 }) {
     const { slug, userId } = await params;
+    const session = await auth();
+    if (!session?.user) redirect(signInUrl(`/${userId}/${slug}/edit`));
+
     const post = await prisma.post.findFirst({
-        where: {
-            titleId: slug,
-            OR: [
-                {
-                    userId: userId,
-                },
-                {
-                    authorUsername: userId,
-                },
-            ],
+        where: { titleId: slug, userId: session.user.id },
+        select: {
+            id: true,
+            title: true,
+            description: true,
+            content: true,
+            tags: true,
+            coverImage: true,
         },
     });
-    if (!post) return notFound();
+    if (!post) notFound();
 
-    const session = await auth();
     const user = await prisma.user.findUnique({
-        where: { id: session?.user.id },
+        where: { id: session.user.id },
         select: {
             id: true,
             username: true,
         },
     });
-
-    const isLoggedIn = (await session?.user.id) === post.userId;
-
-    if (!isLoggedIn) return notFound();
 
     const tags = await import("../../../../api/tag/route");
 
@@ -75,7 +72,7 @@ export default async function EditPost({
         content: post.content as JSONContent,
         tags: post.tags,
         coverImage: post.coverImage as string,
-        userId: post.userId,
+        userId: session.user.id,
     };
 
     return (
