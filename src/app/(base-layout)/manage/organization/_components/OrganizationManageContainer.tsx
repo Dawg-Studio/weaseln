@@ -14,22 +14,24 @@ import {
     rerollSecretKey,
 } from "@/utils/actions/organization";
 
+type OrgMember = Pick<User, "id" | "username" | "name" | "image">;
+
 export default function OrganizationManageContainer({
     organizations,
     sessionUserId,
 }: {
     organizations: (Organization & {
-        admins: User[];
-        members: User[];
-        owner: User;
+        admins: OrgMember[];
+        members: OrgMember[];
+        owner: OrgMember;
     })[];
     sessionUserId: string;
 }) {
     const [selectedOrganization, setSelectedOrganization] = useState<
         | (Organization & {
-              admins: User[];
-              members: User[];
-              owner: User;
+              admins: OrgMember[];
+              members: OrgMember[];
+              owner: OrgMember;
           })
         | undefined
     >(organizations[0]);
@@ -83,7 +85,7 @@ export default function OrganizationManageContainer({
             toast.error("Could not generate a new secret key.", { id: "org" });
         }
     }
-    async function promoteToAdmin(user: User) {
+    async function promoteToAdmin(user: OrgMember) {
         if (!selectedOrganization || !sessionUserId || !user.id) return;
         const isUserAdmin = selectedOrganization.admins?.find(
             (admin) => admin.id === user.id,
@@ -114,7 +116,7 @@ export default function OrganizationManageContainer({
         }
     }
 
-    async function demoteToMember(user: User) {
+    async function demoteToMember(user: OrgMember) {
         if (!selectedOrganization || !sessionUserId || !user.id) return;
         const isUserMember = selectedOrganization.members.find(
             (member) => member.id === user.id,
@@ -145,7 +147,7 @@ export default function OrganizationManageContainer({
         }
     }
 
-    async function removeOrgAdmin(user: User) {
+    async function removeOrgAdmin(user: OrgMember) {
         if (!selectedOrganization || !sessionUserId || !user.id) return;
         try {
             await removeAdmin(selectedOrganization.id, user.id);
@@ -167,7 +169,7 @@ export default function OrganizationManageContainer({
         }
     }
 
-    async function removeOrgMember(user: User) {
+    async function removeOrgMember(user: OrgMember) {
         if (!selectedOrganization || !sessionUserId || !user.id) return;
         try {
             await removeMember(selectedOrganization.id, user.id);

@@ -12,6 +12,8 @@ import toast from "react-hot-toast";
 import { useRouter } from "next/navigation";
 import { joinOrganizationWithSK } from "@/utils/actions/organization";
 
+type OrgMember = Pick<User, "id" | "username" | "name" | "image">;
+
 export default function OrganizationManageCreateContainer({
     id,
     name,
@@ -24,9 +26,9 @@ export default function OrganizationManageCreateContainer({
     setSelectedOrganization: React.Dispatch<
         React.SetStateAction<
             | (Organization & {
-                  admins: User[];
-                  members: User[];
-                  owner: User;
+                  admins: OrgMember[];
+                  members: OrgMember[];
+                  owner: OrgMember;
               })
             | undefined
         >
