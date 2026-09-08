@@ -22,6 +22,12 @@ ALTER TABLE posts."Post" ADD COLUMN IF NOT EXISTS search_doc tsvector
 CREATE INDEX IF NOT EXISTS "Post_search_doc_gin" ON posts."Post" USING GIN (search_doc);
 
 -- 1.3 EmailVerificationCode.key unique
+-- Production already has duplicate `key` values; the ADD CONSTRAINT below would fail.
+-- Dedup first: keep the row with the lowest `id` per duplicate `key`.
+DELETE FROM verification."EmailVerificationCode" a
+USING verification."EmailVerificationCode" b
+WHERE a.id < b.id
+  AND a.key = b.key;
 ALTER TABLE verification."EmailVerificationCode"
   ADD CONSTRAINT "EmailVerificationCode_key_key" UNIQUE (key);
 
