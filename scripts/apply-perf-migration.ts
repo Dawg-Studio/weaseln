@@ -37,9 +37,10 @@ async function main() {
                 applied++;
             } catch (e) {
                 // Migration file is missing some IF NOT EXISTS clauses; treat
-                // "already exists" as a no-op so the script is idempotent.
-                const msg = e instanceof Error ? e.message : String(e);
-                if (/already exists/i.test(msg)) {
+                // PG "duplicate object" (42710) and "duplicate table" (42P07)
+                // as a no-op so the script is idempotent. Anything else fails.
+                const code = (e as { code?: string }).code;
+                if (code === "42710" || code === "42P07") {
                     skipped++;
                 } else {
                     throw e;

@@ -43,11 +43,12 @@ beforeEach(() => {
 });
 
 describe("getProfile", () => {
-    // ponytail: React.cache dedupes via AsyncLocalStorage. vitest's jsdom env
-    // doesn't seed that context, so the "two calls → one DB hit" assertion fails
-    // (loader hits Prisma both times). Skipping per brief: rely on the smoke test
-    // (Step 4 of T15) for the dedup guarantee, which needs a real React render
-    // to wire up AsyncLocalStorage.
+    // ponytail: React.cache dedupes via AsyncLocalStorage seeded by React's
+    // render context. Neither vitest's jsdom nor node env seeds that context
+    // for unit tests, so the "two calls → one DB hit" assertion fails in both
+    // (verified on node env: 2 calls hit Prisma both times). Skipping per
+    // brief; rely on the smoke test (Step 4 of T15) for the dedup guarantee,
+    // which needs a real React render to wire up AsyncLocalStorage.
     it.skip("caches: two calls → one DB hit", async () => {
         userFindFirstMock.mockResolvedValue({ id: "u1" });
         await getProfile("u1");
@@ -96,8 +97,9 @@ describe("getAllTags", () => {
 });
 
 describe("getPost / getSeries", () => {
-    // ponytail: same AsyncLocalStorage caveat as the getProfile cache test —
-    // skipped; smoke test (Step 4 of T15) verifies the dedup at render time.
+    // ponytail: same React.cache / AsyncLocalStorage caveat as the getProfile
+    // cache test — verified to fail on both jsdom and node envs. Skipped; the
+    // smoke test (Step 4 of T15) verifies the dedup at render time.
     it.skip("getPost caches", async () => {
         postFindUniqueMock.mockResolvedValue({ id: "p1" });
         await getPost("slug");

@@ -37,28 +37,30 @@ export async function rerollSecretKey(organizationId: string) {
 export async function joinOrganizationWithSK(secret: string) {
     const session = await auth();
     if (!session?.user) throw new Error("Not authenticated");
-    try {
-        return await prisma.organization.update({
-            where: { secret },
-            data: { members: { connect: { id: session.user.id } } },
-            select: {
-                id: true,
-                owner: { select: { id: true, name: true, image: true } },
-                admins: { select: { id: true } },
-                members: { select: { id: true } },
-            },
-        });
-    } catch (e) {
-        if (
-            typeof e === "object" &&
-            e !== null &&
-            "code" in e &&
-            (e as { code?: unknown }).code === "P2025"
-        ) {
-            throw new Error("Invalid secret");
+    return prisma.$transaction(async (tx) => {
+        try {
+            return await tx.organization.update({
+                where: { secret },
+                data: { members: { connect: { id: session.user.id } } },
+                select: {
+                    id: true,
+                    owner: { select: { id: true, name: true, image: true } },
+                    admins: { select: { id: true } },
+                    members: { select: { id: true } },
+                },
+            });
+        } catch (e) {
+            if (
+                typeof e === "object" &&
+                e !== null &&
+                "code" in e &&
+                (e as { code?: unknown }).code === "P2025"
+            ) {
+                throw new Error("Invalid secret");
+            }
+            throw e;
         }
-        throw e;
-    }
+    });
 }
 
 export async function addAdmin(organizationId: string, adminId: string) {
