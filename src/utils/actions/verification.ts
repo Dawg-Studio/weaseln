@@ -19,14 +19,15 @@ export async function generateVerificationCode(userId: string) {
     return key;
 }
 
-export async function verifyEmail(userId: string, _code: string) {
-    await prisma.$transaction([
-        prisma.user.update({
-            where: { id: userId },
-            data: { emailVerified: new Date() },
-        }),
-        prisma.emailVerificationCode.delete({ where: { userId } }),
-    ]);
+export async function verifyEmail(userId: string, code: string) {
+    const { count } = await prisma.user.updateMany({
+        where: { id: userId, emailVerificationCode: { key: code } },
+        data: { emailVerified: new Date() },
+    });
+    if (count === 0) {
+        throw new Error("Invalid or expired verification code");
+    }
+    await prisma.emailVerificationCode.delete({ where: { userId } });
 }
 
 export const getCurrentEmailVerificationCodeDate = async () => {

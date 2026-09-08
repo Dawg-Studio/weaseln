@@ -76,4 +76,20 @@ describe("buildWhere", () => {
         expect(w.OR).toBeUndefined();
         expect(w.tags).toEqual({ has: "ai" });
     });
+
+    it("keyword + userId merges into a single OR (don't overwrite)", () => {
+        const w = buildWhere({ keyword: "neural", userId: "alice" });
+        expect(w.OR).toEqual([
+            { title: { search: "neural" } },
+            { description: { search: "neural" } },
+            { author: { search: "neural" } },
+            { userId: "alice" },
+            { authorUsername: "alice" },
+        ]);
+    });
+
+    it("userId alone still works", () => {
+        const w = buildWhere({ userId: "alice" });
+        expect(w.OR).toEqual([{ userId: "alice" }, { authorUsername: "alice" }]);
+    });
 });

@@ -2,7 +2,9 @@
 CREATE INDEX CONCURRENTLY IF NOT EXISTS "Post_tags_gin"      ON posts."Post"  USING GIN (tags);
 CREATE INDEX CONCURRENTLY IF NOT EXISTS "User_interests_gin" ON users."User"  USING GIN (interests);
 
--- 1.1 Hot-path FK and orderBy columns
+-- 1.1 Hot-path FK and orderBy columns. The PostComment_/PostReaction_ btree
+-- indexes below duplicate Prisma @@index declarations; IF NOT EXISTS keeps
+-- apply-perf-migration.ts idempotent on re-runs.
 CREATE INDEX CONCURRENTLY IF NOT EXISTS "UserNotifications_userId_idx"    ON users."UserNotifications" ("userId");
 CREATE INDEX CONCURRENTLY IF NOT EXISTS "UserNotifications_createdAt_idx" ON users."UserNotifications" ("createdAt" DESC);
 CREATE INDEX CONCURRENTLY IF NOT EXISTS "PostComment_reply_idx"           ON posts."PostComment"       ("postCommentReplyId");

@@ -56,7 +56,8 @@ export function buildWhere(params: ListPostsParams): Prisma.PostWhereInput {
     }
 
     if (params.userId) {
-        where.OR = [{ userId: params.userId }, { authorUsername: params.userId }];
+        const userFilter = [{ userId: params.userId }, { authorUsername: params.userId }];
+        where.OR = where.OR ? [...where.OR, ...userFilter] : userFilter;
     }
 
     if (params.orgId) {
