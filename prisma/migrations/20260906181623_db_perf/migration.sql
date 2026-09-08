@@ -32,6 +32,12 @@ ALTER TABLE verification."EmailVerificationCode"
   ADD CONSTRAINT "EmailVerificationCode_key_key" UNIQUE (key);
 
 -- 1.3 EmailVerificationCode.userId unique (required by T8 verifyEmail delete-by-userId)
+-- Same dedup-first pattern: production may have multiple rows per userId
+-- (a user that requested several codes without redeeming). Keep the lowest id.
+DELETE FROM verification."EmailVerificationCode" a
+USING verification."EmailVerificationCode" b
+WHERE a.id < b.id
+  AND a."userId" = b."userId";
 ALTER TABLE verification."EmailVerificationCode"
   ADD CONSTRAINT "EmailVerificationCode_userId_key" UNIQUE ("userId");
 
