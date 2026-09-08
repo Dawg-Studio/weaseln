@@ -6,6 +6,7 @@ import { auth } from "@/auth";
 import Tiptap from "@/components/wysiwyg/Tiptap";
 import { JSONContent } from "@tiptap/react";
 import { signInUrl } from "@/utils/signInUrl";
+import { getAllTags } from "@/utils/server/loaders";
 
 // export async function generateMetadata({
 //     params,
@@ -42,28 +43,28 @@ export default async function EditPost({
     const session = await auth();
     if (!session?.user) redirect(signInUrl(`/${userId}/${slug}/edit`));
 
-    const post = await prisma.post.findFirst({
-        where: { titleId: slug, userId: session.user.id },
-        select: {
-            id: true,
-            title: true,
-            description: true,
-            content: true,
-            tags: true,
-            coverImage: true,
-        },
-    });
+    const [post, user, tags] = await Promise.all([
+        prisma.post.findFirst({
+            where: { titleId: slug, userId: session.user.id },
+            select: {
+                id: true,
+                title: true,
+                description: true,
+                content: true,
+                tags: true,
+                coverImage: true,
+            },
+        }),
+        prisma.user.findUnique({
+            where: { id: session.user.id },
+            select: {
+                id: true,
+                username: true,
+            },
+        }),
+        getAllTags(),
+    ]);
     if (!post) notFound();
-
-    const user = await prisma.user.findUnique({
-        where: { id: session.user.id },
-        select: {
-            id: true,
-            username: true,
-        },
-    });
-
-    const tags = await import("../../../../api/tag/route");
 
     const postContent = {
         id: post.id,
@@ -81,7 +82,7 @@ export default async function EditPost({
             username={user?.username}
             editOrDraft={postContent}
             mode={"edit"}
-            tags={[...(await (await tags.GET()).json())]}
+            tags={tags}
         />
     );
 }
