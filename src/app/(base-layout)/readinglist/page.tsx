@@ -33,6 +33,10 @@ export default async function ReadingList() {
                     tags: true,
                     createdAt: true,
                     organizationId: true,
+                    backgroundColor: true,
+                    backgroundPattern: true,
+                    backgroundImage: true,
+                    backgroundFit: true,
                     _count: {
                         select: { reactions: true, comments: true },
                     },

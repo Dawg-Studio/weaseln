@@ -53,6 +53,10 @@ export default async function EditPost({
                 content: true,
                 tags: true,
                 coverImage: true,
+                backgroundColor: true,
+                backgroundPattern: true,
+                backgroundImage: true,
+                backgroundFit: true,
             },
         }),
         prisma.user.findUnique({
@@ -73,6 +77,13 @@ export default async function EditPost({
         content: post.content as JSONContent,
         tags: post.tags,
         coverImage: post.coverImage as string,
+        // The four customization columns ride along so the composer opens on
+        // the background this post already has, instead of resetting it to
+        // the default on every edit.
+        backgroundColor: post.backgroundColor,
+        backgroundPattern: post.backgroundPattern,
+        backgroundImage: post.backgroundImage,
+        backgroundFit: post.backgroundFit,
         userId: session.user.id,
     };
 
