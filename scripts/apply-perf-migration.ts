@@ -19,18 +19,17 @@ async function main() {
     const raw = readFileSync(sqlPath, "utf8");
 
     // Split on `;` at end of line so each statement runs in autocommit.
-    // Strip `--` comment lines from each chunk first — otherwise a multi-line
-    // comment block preceding a statement causes the statement to be dropped.
+    // Filter out chunks that are pure comments (every non-blank line is a
+    // `--` line) so multi-line comment blocks preceding a statement don't
+    // cause the statement itself to be dropped.
     const statements = raw
         .split(/;\s*\n/)
-        .map((s) =>
+        .filter((s) =>
             s
                 .split("\n")
-                .filter((line) => !line.trim().startsWith("--"))
-                .join("\n")
-                .trim(),
+                .some((line) => line.trim() && !line.trim().startsWith("--")),
         )
-        .filter((s) => s.length > 0);
+        .map((s) => s.trim());
 
     const client = new Client({ connectionString: url });
     await client.connect();
