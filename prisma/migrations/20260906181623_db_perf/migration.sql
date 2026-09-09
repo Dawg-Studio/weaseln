@@ -13,7 +13,11 @@ CREATE INDEX CONCURRENTLY IF NOT EXISTS "PostReaction_post_created_idx"   ON pos
 CREATE INDEX CONCURRENTLY IF NOT EXISTS "TagsRanking_createdAt_idx"       ON tags."TagsRanking"        ("createdAt" DESC);
 
 -- 1.2 Generated tsvector column on Post + GIN
-ALTER TABLE posts."Post" ADD COLUMN IF NOT EXISTS search_doc tsvector
+-- IF NOT EXISTS is intentionally omitted from the ADD COLUMN: the IF NOT EXISTS
+-- clause combined with GENERATED ALWAYS AS ... STORED is unreliable across
+-- Postgres versions (some silently no-op the column creation). Re-runs are
+-- handled by the apply script's 42710 (duplicate_object) catch.
+ALTER TABLE posts."Post" ADD COLUMN search_doc tsvector
   GENERATED ALWAYS AS (
         setweight(to_tsvector('english', coalesce(title,       '')), 'A')
      || setweight(to_tsvector('english', coalesce(description, '')), 'B')
