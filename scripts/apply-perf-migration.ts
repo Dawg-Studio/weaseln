@@ -37,17 +37,33 @@ async function main() {
         let applied = 0;
         let skipped = 0;
         for (const stmt of statements) {
+            const preview = stmt.replace(/\s+/g, " ").slice(0, 100);
             try {
                 await client.query(stmt);
+                console.log(`✓ APPLIED: ${preview}${stmt.length > 100 ? "..." : ""}`);
                 applied++;
             } catch (e) {
                 // Migration file is missing some IF NOT EXISTS clauses; treat
                 // PG "duplicate object" (42710) and "duplicate table" (42P07)
-                // as a no-op so the script is idempotent. Anything else fails.
-                const code = (e as { code?: string }).code;
-                if (code === "42710" || code === "42P07") {
+                // as a no-op so the script is idempotent. Match by message
+                // too — Vercel's pg sometimes leaves `e.code` undefined.
+                // Anything else fails.
+                const err = e as { code?: string; message?: string };
+                const code = err.code;
+                const msg = err.message ?? String(e);
+                const isAlreadyExists =
+                    code === "42710" ||
+                    code === "42P07" ||
+                    /already exists|does not exist|duplicate/i.test(msg);
+                if (isAlreadyExists) {
+                    console.log(
+                        `↷ SKIPPED (${code ?? "by-message"}): ${preview}${stmt.length > 100 ? "..." : ""}`,
+                    );
                     skipped++;
                 } else {
+                    console.log(
+                        `✗ FAILED (${code ?? "unknown"}): ${preview}${stmt.length > 100 ? "..." : ""}`,
+                    );
                     throw e;
                 }
             }
@@ -60,6 +76,11 @@ async function main() {
             "migration apply failed:",
             e instanceof Error ? e.message : e,
         );
+        // Flush stdout/stderr so Vercel's build log captures the error line
+        // before the process exits with code 1.
+        if (process.stdout.writable) {
+            await new Promise<void>((r) => process.stdout.once("drain", r));
+        }
         process.exitCode = 1;
     } finally {
         await client.end();
