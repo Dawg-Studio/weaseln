@@ -147,6 +147,19 @@ The magic-link form on `/login` parks the reader at `/login/verify` (`pages.veri
 
 For each user, log in fresh and walk through these checks.
 
+### Day/night theme (run once in any context)
+
+1. Open `/` with `localStorage.theme` cleared. The root element has
+   `data-theme="light"`, and the navigation control is named "Switch to dark
+   theme".
+2. Activate the theme control. The root changes to `data-theme="dark"`, the
+   page surfaces visibly switch to the dark palette, the control is now named
+   "Switch to light theme", and `localStorage.theme` is `dark`.
+3. Navigate to another route and reload. Dark mode remains active before the
+   page paints; there must be no light-theme flash or hydration warning.
+4. Activate the control again. The root and stored value return to `light`, and
+   that choice also survives a reload.
+
 ### As alice (`alice@test.com`)
 1. **Home feed (`/`)** — see Alice's authored posts; org badge visible on the 4 org posts.
 2. **`/alice`** — profile shows 4 authored posts (published + drafts), 2 followings (bob, carol), 2 followers.

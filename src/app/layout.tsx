@@ -44,15 +44,13 @@ export const metadata: Metadata = {
             template: APP_TITLE_TEMPLATE,
         },
         description: APP_DESCRIPTION,
-        /* Square opaque PNG. The 1200x630 SVG this replaced was deleted with
-           the login redesign, and most social scrapers will not render an SVG
-           regardless; docs/ASSETS.md lists this file as the social fallback.
-           A square suits the "summary" twitter card declared just below. */
+        /* Opaque full logo. Most social scrapers will not render an SVG;
+           docs/ASSETS.md lists this raster as the social fallback. */
         images: [
             {
                 url: "/weaseln.png",
-                width: 1024,
-                height: 1024,
+                width: 1448,
+                height: 1086,
                 alt: "weaseln",
             },
         ],
@@ -79,7 +77,7 @@ export const metadata: Metadata = {
         capable: true,
         statusBarStyle: "default",
         title: APP_DEFAULT_TITLE,
-        // The full lockup, not /icons/512.png: that file is the app icon (the
+        // The full logo, not /icons/512.png: that file is the app icon (the
         // mark alone, sized for a home screen), while a splash has room for the
         // wordmark and tagline.
         startupImage: "/weaseln.png",
@@ -111,7 +109,7 @@ export default async function RootLayout({
 }) {
     return (
         <html lang="en" data-theme="light" suppressHydrationWarning>
-            <body className={inter.className}>
+            <head>
                 <script
                     dangerouslySetInnerHTML={{
                         __html:
@@ -120,6 +118,8 @@ export default async function RootLayout({
                             "}catch(e){}})()",
                     }}
                 />
+            </head>
+            <body className={inter.className}>
                 <ThemeProvider />
                 <Suspense>
                     <NextTopLoader showSpinner={false} />

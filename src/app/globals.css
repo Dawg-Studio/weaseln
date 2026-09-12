@@ -154,7 +154,7 @@
 
 @plugin "@tailwindcss/typography";
 
-/* dark: follows the app data-theme toggle (layout.tsx + theme-change),
+/* dark: follows the app data-theme toggle (layout.tsx + useTheme),
    not the OS preference. */
 @custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
 
