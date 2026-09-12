@@ -3,6 +3,7 @@
 import { auth } from "@/auth";
 import prisma from "@/db";
 import { GoogleGenAI } from "@google/genai";
+import { getTagUsageAndFollowers } from "@/utils/services/ranking";
 import type { TagRank } from "@/types/tag";
 
 // ponytail: previous implementation read `tagsRanking` (a cron-populated
@@ -13,71 +14,23 @@ import type { TagRank } from "@/types/tag";
 // snapshot is still populated by the cron if you want cheaper reads; this
 // path is the source of truth.
 export async function getTagRankings(): Promise<TagRank[]> {
-    const posts = await prisma.post.findMany({
-        select: { tags: true },
-    });
-    const usageByTag = new Map<string, number>();
-    for (const post of posts) {
-        for (const tag of post.tags) {
-            usageByTag.set(tag, (usageByTag.get(tag) ?? 0) + 1);
-        }
-    }
-
-    const ranks: TagRank[] = [];
-    for (const [tag, usage] of usageByTag.entries()) {
-        const followers = await prisma.user.count({
-            where: { interests: { has: tag } },
-        });
-        ranks.push({ tag, usage, followers });
-    }
-
+    const ranks = await getTagUsageAndFollowers();
     ranks.sort((a, b) => b.usage - a.usage);
     return ranks.slice(0, 10);
 }
 
 export async function updateInterest(tag: string) {
     const session = await auth();
-    try {
-        const getUser = await prisma.user.findUnique({
-            where: {
-                id: session?.user.id,
-            },
-        });
-        //if user hasn't followed the tag
-        const ifNotFollowing = getUser?.interests.filter(
-            (interest: string) => interest === tag,
-        );
-        if (ifNotFollowing?.length === 0) {
-            const updateUser = await prisma.user.update({
-                where: {
-                    id: session?.user.id,
-                },
-                data: {
-                    interests: {
-                        push: tag,
-                    },
-                },
-            });
-            if (updateUser) return "following";
-        }
-        // unfollow tag
-        const newInterests = [
-            ...(getUser?.interests as string[]).filter(
-                (interest) => interest !== tag,
-            ),
-        ];
-        const updateUser = await prisma.user.update({
-            where: {
-                id: session?.user.id,
-            },
-            data: {
-                interests: newInterests,
-            },
-        });
-        if (updateUser) return "unfollowing";
-    } catch (err) {
-        console.log(err);
-        return err;
+    if (!session?.user) throw new Error("Not authenticated");
+    const appended = await prisma.$executeRaw`
+        UPDATE users."User"
+        SET interests = array_append(interests, ${tag})
+        WHERE id = ${session.user.id} AND NOT (${tag} = ANY(interests))`;
+    if (appended === 0) {
+        await prisma.$executeRaw`
+            UPDATE users."User"
+            SET interests = array_remove(interests, ${tag})
+            WHERE id = ${session.user.id}`;
     }
 }
 

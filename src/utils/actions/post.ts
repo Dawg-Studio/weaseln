@@ -14,110 +14,26 @@ export async function addPostView(postId: string) {
     return !!postView
 }
 
-export async function addOrUpdateUserPostReadingHistory(postId: string, readingLengthMs: number) {
-    const session = await auth()
-
-    async function addPostReadingLength() {
-        const newPostReadingLength = await prisma.postReadingLength.create({
-            data: {
-                postId: postId,
-                readingLength: readingLengthMs
-            }
-        })
-        if (newPostReadingLength) return true
-    }
-
-    if (!session) {
-        await addPostReadingLength()
-    } else {
-        //find if a reading history already existed
-        const getPastReadingHistory = await prisma.postReadingHistory.findUnique({
-            where: {
-                userId_postId: {
-                    userId: session?.user.id,
-                    postId: postId
-                }
-            }
-        })
-        //if a reading history didn't exist, create a new one
-        if (!getPastReadingHistory) {
-            //create a reading length first
-            const newPostReadingLength = await prisma.postReadingLength.create({
-                data: {
-                    postId: postId,
-                    readingLength: readingLengthMs
-                }
-            })
-            if (newPostReadingLength) {
-                //and connect it for the reading history
-                const newPostReadingHistory = await prisma.postReadingHistory.create({
-                    data: {
-                        userId: session?.user.id,
-                        postId: postId,
-                        readingLengthId: newPostReadingLength.id
-                    }
-                })
-                if (newPostReadingHistory) return true
-            }
-        } else {
-            //increment the reading length
-            const updatePostReadingLength = await prisma.postReadingLength.update({
-                where: { id: getPastReadingHistory.readingLengthId },
-                data: {
-                    readingLength: {
-                        increment: readingLengthMs
-                    }
-                }
-            })
-            if (updatePostReadingLength) return true
-        }
-    }
-
+export async function addOrUpdateUserPostReadingHistory(
+    userId: string,
+    postId: string,
+    readingLengthMs: number,
+) {
+    await prisma.postReadingHistory.upsert({
+        where: { userId_postId: { userId, postId } },
+        update: {
+            readingLength: {
+                update: { readingLength: { increment: readingLengthMs } },
+            },
+        },
+        create: {
+            user: { connect: { id: userId } },
+            post: { connect: { id: postId } },
+            readingLength: { create: { postId, readingLength: readingLengthMs } },
+        },
+    });
+    return true;
 }
-
-async function bookmarkPost(titleId: string) {
-    const session = await auth()
-
-    try {
-        const bookmarkPost = await prisma.user.update({
-            where: { id: session?.user.id },
-            data: {
-                bookMarks: {
-                    connect: {
-                        titleId: titleId
-                    }
-                }
-            }
-        })
-        if (bookmarkPost) return 'bookmarked'
-        return 'unbookmarked'
-    } catch (err) {
-        return err
-    }
-
-
-}
-async function unBookmarkPost(titleId: string) {
-    const session = await auth()
-
-    try {
-        const unBookmarkPost = await prisma.user.update({
-            where: { id: session?.user.id },
-            data: {
-                bookMarks: {
-                    disconnect: {
-                        titleId: titleId
-                    }
-                }
-            }
-        })
-        if (unBookmarkPost) return 'unbookmarked'
-        return 'bookmarked'
-    } catch (err) {
-        return err
-    }
-}
-
 
 export async function checkBookmarkPostStatus(titleId: string) {
     const session = await auth()
@@ -141,23 +57,25 @@ export async function checkBookmarkPostStatus(titleId: string) {
 
 export async function setBookmarkPost(titleId: string) {
     const session = await auth()
-    try {
-        const checkBookmarkPost = await prisma.user.findUnique({
+    return prisma.$transaction(async (tx) => {
+        const existing = await tx.user.findUnique({
             where: {
                 id: session?.user.id,
-                bookMarks: {
-                    some: {
-                        titleId: titleId
-                    }
-                }
+                bookMarks: { some: { titleId } },
             },
+            select: { id: true },
         })
-        if (!checkBookmarkPost) {
-            return await bookmarkPost(titleId)
-        } else {
-            return await unBookmarkPost(titleId)
+        if (existing) {
+            await tx.user.update({
+                where: { id: session?.user.id },
+                data: { bookMarks: { disconnect: { titleId } } },
+            })
+            return "unbookmarked"
         }
-    } catch (err) {
-        return err
-    }
+        await tx.user.update({
+            where: { id: session?.user.id },
+            data: { bookMarks: { connect: { titleId } } },
+        })
+        return "bookmarked"
+    })
 }

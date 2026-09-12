@@ -25,7 +25,7 @@ export default function PostContainer({
     createdAt,
     organization,
     organizationId,
-}: Post & {
+}: Omit<Post, "content" | "updatedAt"> & {
     _count?: {
         reactions: number;
         comments: number;

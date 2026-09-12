@@ -1,10 +1,12 @@
 import prisma from "@/db";
 // import { Metadata } from "next";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { auth } from "@/auth";
 
 import Tiptap from "@/components/wysiwyg/Tiptap";
 import { JSONContent } from "@tiptap/react";
+import { signInUrl } from "@/utils/signInUrl";
+import { getAllTags } from "@/utils/server/loaders";
 
 // export async function generateMetadata({
 //     params,
@@ -38,35 +40,35 @@ export default async function EditPost({
     params: Promise<{ userId: string; slug: string }>;
 }) {
     const { slug, userId } = await params;
-    const post = await prisma.post.findFirst({
-        where: {
-            titleId: slug,
-            OR: [
-                {
-                    userId: userId,
-                },
-                {
-                    authorUsername: userId,
-                },
-            ],
-        },
-    });
-    if (!post) return notFound();
-
     const session = await auth();
-    const user = await prisma.user.findUnique({
-        where: { id: session?.user.id },
-        select: {
-            id: true,
-            username: true,
-        },
-    });
+    if (!session?.user) redirect(signInUrl(`/${userId}/${slug}/edit`));
 
-    const isLoggedIn = (await session?.user.id) === post.userId;
-
-    if (!isLoggedIn) return notFound();
-
-    const tags = await import("../../../../api/tag/route");
+    const [post, user, tags] = await Promise.all([
+        prisma.post.findFirst({
+            where: { titleId: slug, userId: session.user.id },
+            select: {
+                id: true,
+                title: true,
+                description: true,
+                content: true,
+                tags: true,
+                coverImage: true,
+                backgroundColor: true,
+                backgroundPattern: true,
+                backgroundImage: true,
+                backgroundFit: true,
+            },
+        }),
+        prisma.user.findUnique({
+            where: { id: session.user.id },
+            select: {
+                id: true,
+                username: true,
+            },
+        }),
+        getAllTags(),
+    ]);
+    if (!post) notFound();
 
     const postContent = {
         id: post.id,
@@ -75,7 +77,14 @@ export default async function EditPost({
         content: post.content as JSONContent,
         tags: post.tags,
         coverImage: post.coverImage as string,
-        userId: post.userId,
+        // The four customization columns ride along so the composer opens on
+        // the background this post already has, instead of resetting it to
+        // the default on every edit.
+        backgroundColor: post.backgroundColor,
+        backgroundPattern: post.backgroundPattern,
+        backgroundImage: post.backgroundImage,
+        backgroundFit: post.backgroundFit,
+        userId: session.user.id,
     };
 
     return (
@@ -84,7 +93,7 @@ export default async function EditPost({
             username={user?.username}
             editOrDraft={postContent}
             mode={"edit"}
-            tags={[...(await (await tags.GET()).json())]}
+            tags={tags}
         />
     );
 }

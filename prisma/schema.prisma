@@ -80,8 +80,6 @@ model User {
   ownedOrganizations    Organization[]            @relation("UserOwnsOrganizations")
   adminInOrganizations  Organization[]            @relation("UserAdminOfOrganizations")
 
-  @@unique([id, name, image])
-  @@unique([id, name, username, image])
   @@index([name])
   @@schema("users")
 }
@@ -160,6 +158,16 @@ model Post {
   authorUsername       String?
   authorImage          String
   coverImage           String?
+  // Issue #21 — per-post visual customization. All four are defaulted or
+  // nullable so `prisma db push` is additive on a populated table and an
+  // untouched row is byte-identical to the pre-feature default appearance.
+  // `backgroundColor` stores a PALETTE SLUG (see src/modules/post-customization),
+  // never a raw CSS colour: a stored hex is theme-blind in an app whose ink
+  // flips per data-theme.
+  backgroundColor      String               @default("default")
+  backgroundPattern    String               @default("none")
+  backgroundImage      String?
+  backgroundFit        String               @default("cover")
   title                String
   titleId              String               @unique
   isBookmarkedBy       User[]               @relation("Bookmarks")
@@ -177,11 +185,10 @@ model Post {
   published            Boolean              @default(false)
   createdAt            DateTime             @default(now())
   updatedAt            DateTime             @updatedAt
-  user                 User                 @relation(fields: [userId, author, authorImage], references: [id, name, image])
+  user                 User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
   organizationId       String?
   organization         Organization?        @relation(fields: [organizationId], references: [id])
 
-  @@index([author, title, description])
   @@schema("posts")
 }
 
@@ -192,6 +199,16 @@ model PostDraft {
   content     Json?
   tags        String[]
   coverImage  String?
+  // Issue #21 — per-post visual customization. All four are defaulted or
+  // nullable so `prisma db push` is additive on a populated table and an
+  // untouched row is byte-identical to the pre-feature default appearance.
+  // `backgroundColor` stores a PALETTE SLUG (see src/modules/post-customization),
+  // never a raw CSS colour: a stored hex is theme-blind in an app whose ink
+  // flips per data-theme.
+  backgroundColor      String               @default("default")
+  backgroundPattern    String               @default("none")
+  backgroundImage      String?
+  backgroundFit        String               @default("cover")
   userId      String   @unique
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -207,7 +224,6 @@ model PostSeries {
   author      User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
   updatedAt   DateTime @default(now()) @updatedAt
 
-  @@index([title, description])
   @@schema("posts")
 }
 
@@ -261,10 +277,12 @@ model PostComment {
   postCommentReplies PostComment[]     @relation("PostCommentReply")
   postCommentReply   PostComment?      @relation("PostCommentReply", fields: [postCommentReplyId], references: [id])
   reactions          CommentReaction[]
-  user               User?             @relation(fields: [userId, userName, userUsername, userImage], references: [id, name, username, image], onDelete: Cascade)
+  user               User              @relation(fields: [userId], references: [id], onDelete: Cascade)
   post               Post              @relation(fields: [postId], references: [id], onDelete: Cascade)
   isRemoved          Boolean           @default(false)
 
+  @@index([postCommentReplyId])
+  @@index([postId, createdAt])
   @@schema("posts")
 }
 
@@ -278,7 +296,7 @@ model CommentReaction {
   createdAt DateTime    @default(now())
   updatedAt DateTime    @updatedAt
   comment   PostComment @relation(fields: [commentId], references: [id])
-  user      User        @relation(fields: [userId, userName, userImage], references: [id, name, image], onDelete: Cascade)
+  user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([commentId, userId])
   @@schema("posts")
@@ -293,10 +311,11 @@ model PostReaction {
   type      String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  user      User     @relation(fields: [userId, userName, userImage], references: [id, name, image], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
 
   @@unique([postId, userId])
+  @@index([postId, createdAt])
   @@schema("posts")
 }
 
@@ -315,16 +334,19 @@ model UserNotifications {
   user       User     @relation(fields: [userId], references: [id])
   fromUser   User?    @relation("UserNotificationsFromUser", fields: [fromUserId], references: [id])
 
+  @@index([userId])
+  @@index([createdAt])
   @@schema("users")
 }
 
 model EmailVerificationCode {
   id        String   @id @default(uuid())
-  userId    String   @unique
-  key       String
+  userId    String
+  key       String   @unique
   user      User     @relation(fields: [userId], references: [id])
   createdAt DateTime @default(now())
 
+  @@unique([userId])
   @@schema("verification")
 }
 
@@ -333,6 +355,7 @@ model TagsRanking {
   data      Json[]
   createdAt DateTime @default(now())
 
+  @@index([createdAt])
   @@schema("tags")
 }
 

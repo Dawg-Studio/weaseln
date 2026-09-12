@@ -16,7 +16,16 @@ export default async function ManageFollowing() {
     const user = await prisma.user.findUnique({
         where: { id: session.user.id },
         include: {
-            following: true,
+            following: {
+                take: 50,
+                select: {
+                    id: true,
+                    name: true,
+                    username: true,
+                    image: true,
+                    bio: true,
+                },
+            },
         },
     });
 

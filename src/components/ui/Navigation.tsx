@@ -39,7 +39,7 @@ export default function Navigation({
     id,
     username,
     className,
-}: User & NavigationProps) {
+}: Pick<User, "name" | "image" | "id" | "username"> & NavigationProps) {
     const socket = useSocket();
 
     const { data: session, status } = useSession();
@@ -47,7 +47,7 @@ export default function Navigation({
     const getNotifications = async () => {
         const response = await fetch("/api/notification/count");
         const data = await response.json();
-        return data.data as number;
+        return data.count as number;
     };
 
     const { data, refetch } = useQuery({

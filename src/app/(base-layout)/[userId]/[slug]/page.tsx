@@ -101,10 +101,6 @@ export default async function PostPage({
     const session = await auth();
     const isPublisher = (await session?.user.id) === post.userId;
 
-    const user = await prisma.user.findUnique({
-        where: { id: session?.user.id ?? "" },
-    });
-
     const extensions = tiptapExtensions();
 
     const postContent = generateHTML(post?.content as JSONContent, extensions);
@@ -114,9 +110,9 @@ export default async function PostPage({
                 {isPublisher && (
                     <div className="not-prose mb-6 flex items-center justify-end gap-3">
                         <Link
-                            href={`/${user?.username || user?.id}/${
-                                post.titleId
-                            }/edit`}
+                            href={`/${
+                                post.authorUsername ?? post.userId
+                            }/${post.titleId}/edit`}
                             className="btn btn-ghost h-9 min-h-9 rounded-field px-3 text-sm font-medium text-base-content/70 press hover:bg-base-200 hover:text-base-content"
                         >
                             Edit
@@ -345,7 +341,7 @@ export default async function PostPage({
                             className="mb-4"
                         />
                         <QueryWrapper>
-                            <CommentList {...post} />
+                            <CommentList titleId={post.titleId} title={post.title} />
                         </QueryWrapper>
                     </NextAuthProvider>
                 </div>

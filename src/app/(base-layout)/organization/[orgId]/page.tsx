@@ -20,14 +20,17 @@ const OrgProfilePage = async ({
         },
         include: {
             owner: { select: { username: true, name: true, image: true } },
-            admins: { select: { username: true, name: true, image: true } },
+            admins: {
+                take: 50,
+                select: { username: true, name: true, image: true },
+            },
             members: {
+                take: 50,
                 select: { username: true, name: true, image: true },
             },
             _count: {
                 select: {
                     posts: true,
-                    members: true,
                 },
             },
         },
@@ -36,7 +39,7 @@ const OrgProfilePage = async ({
         return;
     }
     const posts = org._count.posts;
-    const members = org._count.members;
+    const members = org.members.length;
     // ponytail: derive the role for every member from the org relations so the
     // profile UI can show owner/admin/member badges. Owner is rendered first.
     const orgMembers = [

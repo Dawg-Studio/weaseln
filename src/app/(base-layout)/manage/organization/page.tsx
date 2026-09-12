@@ -32,9 +32,17 @@ export default async function ManageOrganizations() {
             ],
         },
         include: {
-            owner: true,
-            admins: true,
-            members: true,
+            owner: {
+                select: { id: true, username: true, name: true, image: true },
+            },
+            admins: {
+                take: 50,
+                select: { id: true, username: true, name: true, image: true },
+            },
+            members: {
+                take: 50,
+                select: { id: true, username: true, name: true, image: true },
+            },
         },
         orderBy: {
             updatedAt: "desc",

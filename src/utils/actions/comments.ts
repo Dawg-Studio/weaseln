@@ -2,24 +2,25 @@
 import prisma from "@/db";
 
 export async function isCommentOwner(userId: string, titleId: string) {
-    const getPostId = await prisma.post.findUnique({
-        where: {
-            titleId: titleId,
-            userId: userId
-        },
-        select: {
-            id: true,
-        }
-    });
-    const commentOwner = await prisma.postComment.findFirst({
-        where: {
-            userId: userId
-        },
-        select: {
-            userId: true
-        }
-
-    });
+    const [getPostId, commentOwner] = await Promise.all([
+        prisma.post.findUnique({
+            where: {
+                titleId: titleId,
+                userId: userId
+            },
+            select: {
+                id: true,
+            }
+        }),
+        prisma.postComment.findFirst({
+            where: {
+                userId: userId
+            },
+            select: {
+                userId: true
+            }
+        }),
+    ]);
 
     if (!commentOwner) {
         throw new Error("You have no comment for this post yet");

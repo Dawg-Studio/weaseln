@@ -21,9 +21,10 @@ export default function TagFollowButton({
     isLoggedIn: boolean;
 }) {
     const [tagFollowStatus, setTagFollowStatus] = useState<boolean>();
-    // updateInterest swallows its errors and returns the error object, so a
-    // failure is "no success sentinel" rather than a throw. Not committing is
-    // the rollback: React reverts to `tagFollowStatus` when the transition ends.
+    // ponytail: updateInterest used to return "following"/"unfollowing"; the
+    // T10 atomic rewrite returns void, so we commit `next` on success instead
+    // of branching on the response. Catch path leaves `tagFollowStatus` alone
+    // and useOptimistic reverts.
     const [optimisticFollowStatus, applyOptimisticFollowStatus] = useOptimistic(
         tagFollowStatus,
         (_base, next: boolean) => next,
@@ -47,18 +48,11 @@ export default function TagFollowButton({
         startTransition(async () => {
             applyOptimisticFollowStatus(next);
             try {
-                const response = await updateInterest(tag);
-                if (response === "following") {
-                    setTagFollowStatus(true);
-                }
-                if (response === "unfollowing") {
-                    setTagFollowStatus(false);
-                }
+                await updateInterest(tag);
+                setTagFollowStatus(next);
             } catch (error) {
-                // updateInterest catches its DB work, but its
-                // `await auth()` sits outside that try and the
-                // round-trip itself can reject. Contain it here so the
-                // transition settles and the label reverts.
+                // updateInterest throws on no-session or DB rejection; we
+                // don't commit `next` so useOptimistic reverts the label.
                 console.error(error);
             }
         });
