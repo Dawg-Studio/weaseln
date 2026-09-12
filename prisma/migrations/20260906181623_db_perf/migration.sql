@@ -12,17 +12,36 @@ CREATE INDEX CONCURRENTLY IF NOT EXISTS "PostComment_post_created_idx"    ON pos
 CREATE INDEX CONCURRENTLY IF NOT EXISTS "PostReaction_post_created_idx"   ON posts."PostReaction"      ("postId", "createdAt" DESC);
 CREATE INDEX CONCURRENTLY IF NOT EXISTS "TagsRanking_createdAt_idx"       ON tags."TagsRanking"        ("createdAt" DESC);
 
--- 1.2 Generated tsvector column on Post + GIN
--- IF NOT EXISTS is intentionally omitted from the ADD COLUMN: the IF NOT EXISTS
--- clause combined with GENERATED ALWAYS AS ... STORED is unreliable across
--- Postgres versions (some silently no-op the column creation). Re-runs are
--- handled by the apply script's 42710 (duplicate_object) catch.
-ALTER TABLE posts."Post" ADD COLUMN search_doc tsvector
-  GENERATED ALWAYS AS (
-        setweight(to_tsvector('english', coalesce(title,       '')), 'A')
-     || setweight(to_tsvector('english', coalesce(description, '')), 'B')
-     || setweight(to_tsvector('english', coalesce(author,      '')), 'C')
-  ) STORED;
+-- 1.2 tsvector column on Post for FTS + GIN index.
+-- Implementation: regular tsvector column populated by a BEFORE INSERT OR UPDATE
+-- trigger. NOT a GENERATED column: Prisma 7's db push cannot represent the
+-- GENERATED ALWAYS AS expression in an Unsupported("tsvector") field, and
+-- tries to "fix" the mismatch with an ALTER COLUMN ... DEFAULT that Postgres
+-- rejects ("column ... is a generated column"). A trigger is Prisma-friendly
+-- and gives the same FTS update semantics.
+ALTER TABLE posts."Post" ADD COLUMN search_doc tsvector;
+CREATE OR REPLACE FUNCTION posts."Post_search_doc_trigger"() RETURNS trigger AS $$
+BEGIN
+    NEW."search_doc" :=
+        setweight(to_tsvector('english', coalesce(NEW."title",       '')), 'A')
+     || setweight(to_tsvector('english', coalesce(NEW."description", '')), 'B')
+     || setweight(to_tsvector('english', coalesce(NEW."author",      '')), 'C');
+    RETURN NEW;
+END
+$$ LANGUAGE plpgsql;
+DROP TRIGGER IF EXISTS "Post_search_doc_set" ON posts."Post";
+CREATE TRIGGER "Post_search_doc_set"
+    BEFORE INSERT OR UPDATE OF "title", "description", "author"
+    ON posts."Post"
+    FOR EACH ROW EXECUTE FUNCTION posts."Post_search_doc_trigger"();
+
+-- Backfill existing rows: set search_doc for all current Post rows so the
+-- FTS index is useful immediately on prod.
+UPDATE posts."Post" SET "search_doc" =
+    setweight(to_tsvector('english', coalesce("title",       '')), 'A')
+ || setweight(to_tsvector('english', coalesce("description", '')), 'B')
+ || setweight(to_tsvector('english', coalesce("author",      '')), 'C');
+
 CREATE INDEX IF NOT EXISTS "Post_search_doc_gin" ON posts."Post" USING GIN (search_doc);
 
 -- 1.3 EmailVerificationCode.key unique

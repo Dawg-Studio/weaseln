@@ -189,7 +189,6 @@ model Post {
   organizationId       String?
   organization         Organization?        @relation(fields: [organizationId], references: [id])
   /// postgres FTS column — see prisma/migrations/<ts>_db_perf/migration.sql
-  /// @ignore — managed by raw SQL via scripts/apply-perf-migration.ts; Prisma cannot represent the GENERATED ALWAYS AS expression in Unsupported types
   search_doc           Unsupported("tsvector")?
 
   @@schema("posts")
