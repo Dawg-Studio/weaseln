@@ -35,13 +35,6 @@ CREATE TRIGGER "Post_search_doc_set"
     ON posts."Post"
     FOR EACH ROW EXECUTE FUNCTION posts."Post_search_doc_trigger"();
 
--- Backfill existing rows: set search_doc for all current Post rows so the
--- FTS index is useful immediately on prod.
-UPDATE posts."Post" SET "search_doc" =
-    setweight(to_tsvector('english', coalesce("title",       '')), 'A')
- || setweight(to_tsvector('english', coalesce("description", '')), 'B')
- || setweight(to_tsvector('english', coalesce("author",      '')), 'C');
-
 CREATE INDEX IF NOT EXISTS "Post_search_doc_gin" ON posts."Post" USING GIN (search_doc);
 
 -- 1.3 EmailVerificationCode.key unique
