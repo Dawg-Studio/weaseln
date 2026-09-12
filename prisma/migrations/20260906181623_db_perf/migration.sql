@@ -13,13 +13,19 @@ CREATE INDEX CONCURRENTLY IF NOT EXISTS "PostReaction_post_created_idx"   ON pos
 CREATE INDEX CONCURRENTLY IF NOT EXISTS "TagsRanking_createdAt_idx"       ON tags."TagsRanking"        ("createdAt" DESC);
 
 -- 1.2 tsvector column on Post for FTS + GIN index.
--- Implementation: regular tsvector column populated by a BEFORE INSERT OR UPDATE
--- trigger. NOT a GENERATED column: Prisma 7's db push cannot represent the
--- GENERATED ALWAYS AS expression in an Unsupported("tsvector") field, and
--- tries to "fix" the mismatch with an ALTER COLUMN ... DEFAULT that Postgres
--- rejects ("column ... is a generated column"). A trigger is Prisma-friendly
--- and gives the same FTS update semantics.
-ALTER TABLE posts."Post" ADD COLUMN search_doc tsvector;
+-- Implementation: regular tsvector column populated by a BEFORE INSERT OR
+-- UPDATE trigger. NOT a GENERATED column: Prisma 7's db push cannot
+-- represent the GENERATED ALWAYS AS expression in an Unsupported("tsvector") field, and
+-- triggers cannot set values on GENERATED columns (Postgres overrides the
+-- trigger's value with the GENERATED expression result).
+--
+-- DROP EXPRESSION IF EXISTS: idempotent. On a fresh DB the column doesn't
+-- exist yet, so this is a no-op; the ADD COLUMN below creates it as a
+-- regular column. On prod the column was created in an earlier deploy as
+-- GENERATED; DROP EXPRESSION converts it to a regular column so the
+-- trigger can populate it.
+ALTER TABLE posts."Post" ALTER COLUMN search_doc DROP EXPRESSION IF EXISTS;
+ALTER TABLE posts."Post" ADD COLUMN IF NOT EXISTS search_doc tsvector;
 CREATE OR REPLACE FUNCTION posts."Post_search_doc_trigger"() RETURNS trigger AS $$
 BEGIN
     NEW."search_doc" :=
@@ -34,7 +40,6 @@ CREATE TRIGGER "Post_search_doc_set"
     BEFORE INSERT OR UPDATE OF "title", "description", "author"
     ON posts."Post"
     FOR EACH ROW EXECUTE FUNCTION posts."Post_search_doc_trigger"();
-
 CREATE INDEX IF NOT EXISTS "Post_search_doc_gin" ON posts."Post" USING GIN (search_doc);
 
 -- 1.3 EmailVerificationCode.key unique
