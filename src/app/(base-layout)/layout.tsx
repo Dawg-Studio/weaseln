@@ -11,18 +11,15 @@ export default async function RootLayout({
 }) {
     const sessionUser = await getSessionUser();
 
-    if (!sessionUser) {
-        return (
-            <QueryWrapper>
-                <NextAuthProvider>{children}</NextAuthProvider>
-            </QueryWrapper>
-        );
-    }
-
     return (
         <QueryWrapper>
             <NextAuthProvider>
-                <Navigation {...sessionUser} />
+                <Navigation
+                    id={sessionUser?.id ?? ""}
+                    name={sessionUser?.name ?? ""}
+                    image={sessionUser?.image ?? ""}
+                    username={sessionUser?.username ?? ""}
+                />
                 {children}
             </NextAuthProvider>
         </QueryWrapper>
