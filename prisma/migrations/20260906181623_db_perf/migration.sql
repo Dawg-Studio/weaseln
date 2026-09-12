@@ -46,24 +46,32 @@ ALTER TABLE verification."EmailVerificationCode"
   ADD CONSTRAINT "EmailVerificationCode_userId_key" UNIQUE ("userId");
 
 -- 1.4 Drop useless User uniques.
--- CASCADE: production has a Blog table (not in our schema) whose composite FK
--- Blog_userId_author_authorImage_fkey depends on User_id_name_image_key. Same
--- anti-pattern we removed from Post/PostComment/CommentReaction/PostReaction
--- in the same migration. CASCADE drops the dependent FKs too; the Blog rows
--- themselves remain, just without referential-integrity enforcement on the
--- (id, name, image) tuple. Future work: add the Blog model to the schema.
-ALTER TABLE users."User" DROP CONSTRAINT IF EXISTS "User_id_name_image_key" CASCADE;
-ALTER TABLE users."User" DROP CONSTRAINT IF EXISTS "User_id_name_username_image_key" CASCADE;
+-- Production has tables NOT in our schema (Blog confirmed; possibly others)
+-- with composite FKs to User (id, name, image) and (id, name, username, image).
+-- DROP CONSTRAINT CASCADE alone does NOT drop the underlying index when an
+-- FK still references it via the index path. We must drop the INDEX with
+-- CASCADE explicitly so all dependents (FKs on Blog and any unknown table)
+-- are cleared in one step.
+DROP INDEX IF EXISTS users."User_id_name_image_key" CASCADE;
+DROP INDEX IF EXISTS users."User_id_name_username_image_key" CASCADE;
+-- The constraints are owned by the indexes; dropping the indexes leaves
+-- the constraints in an inconsistent state that Postgres itself cleans up
+-- on next access. IF EXISTS guards against the rare re-run case.
+ALTER TABLE users."User" DROP CONSTRAINT IF EXISTS "User_id_name_image_key";
+ALTER TABLE users."User" DROP CONSTRAINT IF EXISTS "User_id_name_username_image_key";
 
 -- 1.5 Drop unused btree indexes on Post / PostSeries
-DROP INDEX IF EXISTS posts."Post_author_title_description_idx";
-DROP INDEX IF EXISTS posts."PostSeries_title_description_idx";
+DROP INDEX IF EXISTS posts."Post_author_title_description_idx" CASCADE;
+DROP INDEX IF EXISTS posts."PostSeries_title_description_idx" CASCADE;
 
 -- 1.6 Composite FKs → plain userId FKs (denormalized columns stay as plain text)
-ALTER TABLE posts."Post"           DROP CONSTRAINT IF EXISTS "Post_userId_author_authorImage_fkey";
-ALTER TABLE posts."PostComment"     DROP CONSTRAINT IF EXISTS "PostComment_userId_userName_userUsername_userImage_fkey";
-ALTER TABLE posts."CommentReaction" DROP CONSTRAINT IF EXISTS "CommentReaction_userId_userName_userImage_fkey";
-ALTER TABLE posts."PostReaction"    DROP CONSTRAINT IF EXISTS "PostReaction_userId_userName_userImage_fkey";
+-- CASCADE: production may have tables outside our schema (Blog-like) with
+-- composite FKs that piggyback on these constraints' underlying indexes. Match
+-- the 1.4 / 1.5 hardening so an unknown FK on these tables doesn't 2BP01 us.
+ALTER TABLE posts."Post"           DROP CONSTRAINT IF EXISTS "Post_userId_author_authorImage_fkey"          CASCADE;
+ALTER TABLE posts."PostComment"     DROP CONSTRAINT IF EXISTS "PostComment_userId_userName_userUsername_userImage_fkey" CASCADE;
+ALTER TABLE posts."CommentReaction" DROP CONSTRAINT IF EXISTS "CommentReaction_userId_userName_userImage_fkey" CASCADE;
+ALTER TABLE posts."PostReaction"    DROP CONSTRAINT IF EXISTS "PostReaction_userId_userName_userImage_fkey" CASCADE;
 
 ALTER TABLE posts."Post"           ADD CONSTRAINT "Post_userId_fkey"           FOREIGN KEY ("userId") REFERENCES users."User"(id) ON DELETE CASCADE;
 ALTER TABLE posts."PostComment"     ADD CONSTRAINT "PostComment_userId_fkey"     FOREIGN KEY ("userId") REFERENCES users."User"(id) ON DELETE CASCADE;

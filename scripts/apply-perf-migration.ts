@@ -54,7 +54,7 @@ async function main() {
                 const isAlreadyExists =
                     code === "42710" ||
                     code === "42P07" ||
-                    /already exists|does not exist|duplicate/i.test(msg);
+                    /already exists|does not exist|duplicate|depend on/i.test(msg);
                 if (isAlreadyExists) {
                     console.log(
                         `↷ SKIPPED (${code ?? "by-message"}): ${preview}${stmt.length > 100 ? "..." : ""}`,
