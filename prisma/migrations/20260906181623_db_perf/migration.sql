@@ -45,9 +45,15 @@ WHERE a.id < b.id
 ALTER TABLE verification."EmailVerificationCode"
   ADD CONSTRAINT "EmailVerificationCode_userId_key" UNIQUE ("userId");
 
--- 1.4 Drop useless User uniques
-ALTER TABLE users."User" DROP CONSTRAINT IF EXISTS "User_id_name_image_key";
-ALTER TABLE users."User" DROP CONSTRAINT IF EXISTS "User_id_name_username_image_key";
+-- 1.4 Drop useless User uniques.
+-- CASCADE: production has a Blog table (not in our schema) whose composite FK
+-- Blog_userId_author_authorImage_fkey depends on User_id_name_image_key. Same
+-- anti-pattern we removed from Post/PostComment/CommentReaction/PostReaction
+-- in the same migration. CASCADE drops the dependent FKs too; the Blog rows
+-- themselves remain, just without referential-integrity enforcement on the
+-- (id, name, image) tuple. Future work: add the Blog model to the schema.
+ALTER TABLE users."User" DROP CONSTRAINT IF EXISTS "User_id_name_image_key" CASCADE;
+ALTER TABLE users."User" DROP CONSTRAINT IF EXISTS "User_id_name_username_image_key" CASCADE;
 
 -- 1.5 Drop unused btree indexes on Post / PostSeries
 DROP INDEX IF EXISTS posts."Post_author_title_description_idx";
