@@ -22,11 +22,11 @@ function getFieldLine(body: string, fieldName: string): string {
 }
 
 describe("Prisma schema shape", () => {
-    it("declares the Unsupported search_doc column on Post", () => {
+    it("does not declare search_doc on Post (apply-perf-migration.ts owns it)", () => {
         expect(
-            /\bsearch_doc\b[^\n]*Unsupported\(\s*["']tsvector["']\s*\)/.test(SCHEMA),
-            'prisma/schema.prisma must declare `search_doc Unsupported("tsvector")?` on Post',
-        ).toBe(true);
+            /\bsearch_doc\b/.test(SCHEMA),
+            "prisma/schema.prisma must NOT declare search_doc — the apply script owns it; Prisma client uses $queryRaw for FTS",
+        ).toBe(false);
     });
 
     it("EmailVerificationCode.key is unique", () => {

@@ -11,12 +11,12 @@
     }
   },
   "scripts": {
-    "predev": "prisma generate && tsx scripts/apply-perf-migration.ts && prisma db push",
+    "predev": "prisma generate && tsx scripts/apply-perf-migration.ts",
     "dev": "next dev",
-    "db:setup": "prisma generate && tsx scripts/apply-perf-migration.ts && prisma db push",
+    "db:setup": "prisma generate && tsx scripts/apply-perf-migration.ts",
     "db:seed": "prisma db seed",
     "db:studio": "prisma studio",
-    "build": "prisma generate && tsx scripts/apply-perf-migration.ts && prisma db push && next build",
+    "build": "prisma generate && tsx scripts/apply-perf-migration.ts && next build",
     "start": "next start",
     "lint": "eslint . && npx tsc --noemit",
     "test": "vitest run",

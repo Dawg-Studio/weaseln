@@ -8,6 +8,55 @@ import { Client } from "pg";
 // CREATE INDEX CONCURRENTLY works. All statements are IF NOT EXISTS / IF
 // EXISTS, so re-running is a no-op.
 
+// Split SQL into statements, treating dollar-quoted regions (`$$...$$` or
+// `$tag$...$tag$`) as opaque so `;` inside them doesn't terminate a chunk.
+// A naive `;\s*\n` split cut the trigger function body in half at `setweight(... 'C');`
+// inside its `$$...$$` block, producing "unterminated dollar-quoted string".
+function splitSqlStatements(sql: string): string[] {
+    const statements: string[] = [];
+    let current = "";
+    let i = 0;
+    while (i < sql.length) {
+        if (sql[i] === "$") {
+            const tagMatch = sql.slice(i).match(/^\$([a-zA-Z_]*)\$/);
+            if (tagMatch) {
+                const tag = tagMatch[0];
+                const closeIdx = sql.indexOf(tag, i + tag.length);
+                if (closeIdx === -1) {
+                    current += sql.slice(i);
+                    i = sql.length;
+                    break;
+                }
+                current += sql.slice(i, closeIdx + tag.length);
+                i = closeIdx + tag.length;
+                continue;
+            }
+        }
+        if (
+            sql[i] === ";" &&
+            (sql[i + 1] === "\n" || sql[i + 1] === "\r")
+        ) {
+            statements.push(current + ";");
+            current = "";
+            i++;
+            while (
+                i < sql.length &&
+                (sql[i] === "\n" ||
+                    sql[i] === "\r" ||
+                    sql[i] === " " ||
+                    sql[i] === "\t")
+            ) {
+                i++;
+            }
+            continue;
+        }
+        current += sql[i];
+        i++;
+    }
+    if (current.trim()) statements.push(current);
+    return statements;
+}
+
 async function main() {
     const url = process.env.DATABASE_URL;
     if (!url) {
@@ -18,16 +67,16 @@ async function main() {
     const sqlPath = "prisma/migrations/20260906181623_db_perf/migration.sql";
     const raw = readFileSync(sqlPath, "utf8");
 
-    // Split on `;` at end of line so each statement runs in autocommit.
-    // Filter out chunks that are pure comments (every non-blank line is a
-    // `--` line) so multi-line comment blocks preceding a statement don't
+    // Filter out chunks that are pure comments (every non-blank line is
+    // `--`) so multi-line comment blocks preceding a statement don't
     // cause the statement itself to be dropped.
-    const statements = raw
-        .split(/;\s*\n/)
+    const statements = splitSqlStatements(raw)
         .filter((s) =>
             s
                 .split("\n")
-                .some((line) => line.trim() && !line.trim().startsWith("--")),
+                .some(
+                    (line) => line.trim() && !line.trim().startsWith("--"),
+                ),
         )
         .map((s) => s.trim());
 
