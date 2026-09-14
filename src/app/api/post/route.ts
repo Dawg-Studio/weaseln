@@ -244,7 +244,14 @@ export async function POST(req: NextRequest) {
                                 folder: uploaded[parseInt(index)].folder,
                                 public_id: uploaded[parseInt(index)].public_id,
                             });
-                            if (!image.attrs?.src) return;
+                            if (!image.attrs?.src) {
+                                return NextResponse.json(
+                                    {
+                                        error: "Post content image is missing a source",
+                                    },
+                                    { status: 400 },
+                                );
+                            }
                             image.attrs.src = imageAddr;
                         }
                     }
@@ -308,10 +315,8 @@ export async function POST(req: NextRequest) {
                 }
             }
         }
-        if (post) {
-            revalidatePath("/new", "page");
-            return NextResponse.json({ data: post.titleId }, { status: 200 });
-        }
+        revalidatePath("/new", "page");
+        return NextResponse.json({ data: post.titleId }, { status: 200 });
     } catch (err) {
         console.log(err);
         return NextResponse.json({ err }, { status: 500 });

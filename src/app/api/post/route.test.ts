@@ -9,6 +9,8 @@ const mockPostUpsert = vi.fn();
 const mockPostUpdate = vi.fn();
 const mockUserFindUnique = vi.fn();
 const mockDraftDelete = vi.fn();
+const mockUploadCloudinary = vi.fn();
+const mockGetCloudinaryImage = vi.fn();
 
 vi.mock("@/auth", () => ({ auth: () => mockAuth() }));
 vi.mock("@/db", () => ({
@@ -25,6 +27,11 @@ vi.mock("@/db", () => ({
             delete: (...args: unknown[]) => mockDraftDelete(...args),
         },
     },
+}));
+vi.mock("@/lib/cloudinary", () => ({
+    uploadCloudinary: (...args: unknown[]) => mockUploadCloudinary(...args),
+    getCloudinaryImage: (...args: unknown[]) =>
+        mockGetCloudinaryImage(...args),
 }));
 // ponytail: revalidatePath needs a Next request store that a unit test cannot
 // provide. Cache invalidation is not what these tests assert, so stub it out
@@ -67,15 +74,8 @@ function postRequest(fields: PostFields): NextRequest {
     return req as unknown as NextRequest;
 }
 
-/**
- * `POST` can fall off its own end and resolve to `undefined` (the image-rewrite
- * bail-out). A test that lands there should say so instead of reading `.status`
- * off nothing.
- */
 async function callPost(fields: PostFields) {
-    const res = await POST(postRequest(fields));
-    if (!res) throw new Error("POST /api/post resolved without a response");
-    return res;
+    return POST(postRequest(fields));
 }
 
 function expectNoWrites() {
@@ -92,6 +92,8 @@ describe("POST /api/post", () => {
         mockPostUpdate.mockReset();
         mockUserFindUnique.mockReset();
         mockDraftDelete.mockReset();
+        mockUploadCloudinary.mockReset();
+        mockGetCloudinaryImage.mockReset();
         // The signed-in happy path: no leftover draft, and the upsert hands
         // back the shape the route selects.
         mockUserFindUnique.mockResolvedValue({ draft: null });
@@ -100,6 +102,17 @@ describe("POST /api/post", () => {
             titleId: "backgrounds-for-posts-ab12",
             content: { type: "doc", content: [] },
         });
+        mockUploadCloudinary.mockResolvedValue({
+            upload: { ok: true },
+            metadata: {
+                timestamp: 1,
+                folder: "post",
+                public_id: "post-1_0",
+            },
+        });
+        mockGetCloudinaryImage.mockReturnValue(
+            "https://res.cloudinary.com/demo/image/upload/post-1_0.jpg",
+        );
     });
 
     it("rejects an anonymous request with 401 and touches no row", async () => {
@@ -168,6 +181,37 @@ describe("POST /api/post", () => {
         expect(mockPostUpsert.mock.calls[0][0].where).toEqual({
             id: "alices-post",
         });
+    });
+
+    it("returns 400 when a content image has no source", async () => {
+        mockAuth.mockResolvedValue({ user: { id: "alice" } });
+        mockPostFindUnique.mockResolvedValue(null);
+        mockPostUpsert.mockResolvedValue({
+            id: "post-1",
+            titleId: "backgrounds-for-posts-ab12",
+            content: {
+                type: "doc",
+                content: [{ type: "image", attrs: {} }],
+            },
+        });
+
+        const res = await callPost(
+            validFields({
+                image_total: "1",
+                image_0: "image bytes",
+                content: JSON.stringify({
+                    type: "doc",
+                    content: [{ type: "image", attrs: {} }],
+                }),
+            }),
+        );
+
+        expect(res.status).toBe(400);
+        expect(await res.json()).toEqual({
+            error: "Post content image is missing a source",
+        });
+        expect(mockUploadCloudinary).toHaveBeenCalledTimes(1);
+        expect(mockPostUpdate).not.toHaveBeenCalled();
     });
 
     it("persists a valid customization payload on both branches of the upsert", async () => {

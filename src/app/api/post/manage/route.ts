@@ -15,7 +15,7 @@ export async function GET(req: NextRequest) {
         | "most-comments";
 
     const session = await auth();
-    if (!session) {
+    if (!session?.user) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -95,22 +95,45 @@ export async function GET(req: NextRequest) {
 
 export async function PUT(req: NextRequest) {
     const session = await auth();
-    if (!session) {
+    if (!session?.user) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const url = new URL(req.url);
-    const postId = url.searchParams.get("postId") as string;
+    const postId = url.searchParams.get("postId");
     const publish = url.searchParams.get("publish") as "true" | "false";
 
+    if (!postId) {
+        return NextResponse.json(
+            { error: "postId is required" },
+            { status: 400 },
+        );
+    }
+
     try {
-        const publishOrUnpublishPost = await prisma.post.update({
+        const existing = await prisma.post.findUnique({
             where: { id: postId },
+            select: { userId: true },
+        });
+        if (!existing) {
+            return NextResponse.json(
+                { error: "Post not found" },
+                { status: 404 },
+            );
+        }
+        if (existing.userId !== session.user.id) {
+            return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+        }
+
+        await prisma.post.update({
+            // Keep the owner predicate on the mutation as well as the check
+            // above, so a concurrent ownership change cannot reopen the hole.
+            where: { id: postId, userId: session.user.id },
             data: {
                 published: publish === "true" ? true : false,
             },
         });
-        if (publishOrUnpublishPost) return NextResponse.json({ status: 200 });
+        return NextResponse.json({ status: 200 });
     } catch (err) {
         console.log(err);
         return NextResponse.json({ err }, { status: 500 });
@@ -119,18 +142,41 @@ export async function PUT(req: NextRequest) {
 
 export async function DELETE(req: NextRequest) {
     const session = await auth();
-    if (!session) {
+    if (!session?.user) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const url = new URL(req.url);
 
-    const postId = url.searchParams.get("postId") as string;
+    const postId = url.searchParams.get("postId");
+    if (!postId) {
+        return NextResponse.json(
+            { error: "postId is required" },
+            { status: 400 },
+        );
+    }
+
     try {
-        const deletePost = await prisma.post.delete({
+        const existing = await prisma.post.findUnique({
             where: { id: postId },
+            select: { userId: true },
         });
-        if (deletePost) return NextResponse.json({ status: 200 });
+        if (!existing) {
+            return NextResponse.json(
+                { error: "Post not found" },
+                { status: 404 },
+            );
+        }
+        if (existing.userId !== session.user.id) {
+            return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+        }
+
+        await prisma.post.delete({
+            // Defense in depth against a row changing between lookup and
+            // deletion: the destructive query remains owner-scoped.
+            where: { id: postId, userId: session.user.id },
+        });
+        return NextResponse.json({ status: 200 });
     } catch (err) {
         console.log(err);
         return NextResponse.json({ err }, { status: 500 });
