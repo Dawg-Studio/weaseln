@@ -38,15 +38,9 @@ export async function GET() {
         "sports",
     ];
     try {
-        const postTags = await prisma.post.findMany({
-            select: {
-                tags: true,
-            },
-        });
-        let tags: string[] = [...default_tags]; //add default tags
-        for (const tag of postTags) {
-            tags.push(...tag.tags);
-        }
+        const distinct = await prisma.$queryRaw<{ tag: string }[]>`
+            SELECT DISTINCT tag FROM posts."Post", unnest(tags) AS tag`;
+        const tags = distinct.map((d) => d.tag).concat(default_tags ?? []);
 
         return NextResponse.json(Array.from(new Set(tags)).sort(), {
             status: 200,

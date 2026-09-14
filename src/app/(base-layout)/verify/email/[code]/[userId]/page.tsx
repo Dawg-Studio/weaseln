@@ -8,7 +8,8 @@ export default async function EmailVeritification({
 }) {
     const { code, userId } = await params;
     if (!code || !userId) notFound();
-    const verify = await verifyEmail(code, userId);
+    await verifyEmail(userId, code);
+    const verify = true;
 
     return (
         <div className="mt-12 mb-12 mr-4 ml-4 lg:mr-28 lg:ml-28 mx-auto space-y-4">

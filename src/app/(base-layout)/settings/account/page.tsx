@@ -1,14 +1,16 @@
-
 import prisma from "@/db";
 import { auth } from "@/auth";
+import { redirect } from "next/navigation";
 import AccountSettingsComponent from "@/app/(base-layout)/settings/account/_components/Account";
 import ApiKeys from "./_components/ApiKeys";
 import maskString from "@/utils/maskString";
+import { signInUrl } from "@/utils/signInUrl";
 
 export default async function AccountSettings() {
     const session = await auth();
+    if (!session?.user) redirect(signInUrl("/settings/account"));
     const linkedProviders = await prisma.account.findMany({
-        where: { userId: session?.user.id },
+        where: { userId: session.user.id },
         select: {
             id: true,
             providerAccountId: true,
@@ -16,7 +18,7 @@ export default async function AccountSettings() {
         },
     });
     const apiKeys = await prisma.apiKey.findMany({
-        where: { ownerId: session?.user.id, isActive: true },
+        where: { ownerId: session.user.id, isActive: true },
     });
 
     const maskedKeys = apiKeys.map((key) => ({

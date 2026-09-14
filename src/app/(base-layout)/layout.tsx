@@ -1,33 +1,25 @@
 import Navigation from "@/components/ui/Navigation";
 
-
-import { auth } from "@/auth";
-import prisma from "@/db";
-import { User } from "@/generated/prisma/client";
 import QueryWrapper from "@/components/provider/QueryWrapper";
 import NextAuthProvider from "@/components/provider/NextAuthProvider";
+import { getSessionUser } from "@/utils/server/loaders";
 
 export default async function RootLayout({
     children,
 }: {
     children: React.ReactNode;
 }) {
-    const session = await auth();
-
-    const user = (await prisma.user.findUnique({
-        where: { id: session?.user.id ?? "" },
-        select: {
-            name: true,
-            image: true,
-            id: true,
-            username: true,
-        },
-    })) as User;
+    const sessionUser = await getSessionUser();
 
     return (
         <QueryWrapper>
             <NextAuthProvider>
-                <Navigation {...user} />
+                <Navigation
+                    id={sessionUser?.id ?? ""}
+                    name={sessionUser?.name ?? ""}
+                    image={sessionUser?.image ?? ""}
+                    username={sessionUser?.username ?? ""}
+                />
                 {children}
             </NextAuthProvider>
         </QueryWrapper>

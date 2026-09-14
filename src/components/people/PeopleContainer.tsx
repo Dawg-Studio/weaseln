@@ -12,7 +12,7 @@ export default function PeopleContainer({
     image,
     id,
     bio,
-}: User) {
+}: Pick<User, "id" | "name" | "username" | "image" | "bio">) {
     return (
         <Link href={`/${username || id}`} className="group block rounded-box">
             <div className="lift flex items-start gap-4 rounded-box border border-hairline bg-surface elev-1 p-4 sm:p-5">

@@ -1,7 +1,6 @@
 import PostContainer from "@/components/post/PostContainer";
 import prisma from "@/db";
 
-import { postContainerInclude } from "@/utils/prismaQuery";
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import { Fragment } from "react";
@@ -17,7 +16,39 @@ export default async function ReadingList() {
         where: { id: session.user.id },
         select: {
             bookMarks: {
-                include: postContainerInclude,
+                take: 20,
+                orderBy: { createdAt: "desc" },
+                select: {
+                    id: true,
+                    coverImage: true,
+                    title: true,
+                    titleId: true,
+                    description: true,
+                    author: true,
+                    userId: true,
+                    authorUsername: true,
+                    authorImage: true,
+                    readPerMinute: true,
+                    published: true,
+                    tags: true,
+                    createdAt: true,
+                    organizationId: true,
+                    backgroundColor: true,
+                    backgroundPattern: true,
+                    backgroundImage: true,
+                    backgroundFit: true,
+                    _count: {
+                        select: { reactions: true, comments: true },
+                    },
+                    organization: {
+                        select: {
+                            id: true,
+                            name: true,
+                            image: true,
+                            username: true,
+                        },
+                    },
+                },
             },
         },
     });

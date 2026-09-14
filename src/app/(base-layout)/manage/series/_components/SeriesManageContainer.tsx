@@ -1,7 +1,7 @@
 "use client";
 
 import { FormContext } from "@/types/formContext";
-import { Post, PostSeries } from "@/generated/prisma/client";
+import { PostSeries } from "@/generated/prisma/client";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { Fragment, useEffect, useRef, useState } from "react";
 import Input from "@/components/ui/Input";
@@ -10,8 +10,8 @@ import SeriesManagePostContainer from "./SeriesManagePostContainer";
 import QueryWrapper from "@/components/provider/QueryWrapper";
 import Modal from "@/components/ui/Modal";
 
-interface PostSeriesWithPosts extends PostSeries {
-    posts: Array<Post>;
+interface PostSeriesWithCount extends PostSeries {
+    _count: { posts: number };
 }
 
 export default function SeriesManageContainer() {
@@ -236,7 +236,7 @@ export default function SeriesManageContainer() {
             <div className="flex flex-wrap gap-4 mt-4">
                 {isSuccess &&
                     data &&
-                    data.map((series: PostSeriesWithPosts) => (
+                    data.map((series: PostSeriesWithCount) => (
                         <Fragment key={series.id}>
                             <div className="flex flex-col gap-4 rounded-box border border-hairline bg-surface elev-1 lift">
                                 <div
@@ -255,7 +255,7 @@ export default function SeriesManageContainer() {
                                                 {series.title}
                                             </h2>
                                             <p className="text-md text-right">
-                                                {series.posts.length} Posts
+                                                {series._count.posts} Posts
                                             </p>
                                         </div>
                                         <p>{series.description}</p>

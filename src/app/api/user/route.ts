@@ -2,43 +2,38 @@ import { NextResponse } from "next/server";
 
 import prisma from "@/db";
 import { auth } from "@/auth";
-import { User } from "@/generated/prisma/client";
+import { Prisma, User } from "@/generated/prisma/client";
+
+const PER_PAGE = 20;
+
 //Promise<any> is a temporary fix
 export async function GET(req: Request) {
     const url = new URL(req.url);
     const lastCursor = url.searchParams.get("cursor");
     const keyword = url.searchParams.get("q")?.split(" ").join("&");
 
-    const prismaQuery = {
-        where: {
-            name: {
-                search: keyword,
-            },
-            username: {
-                search: keyword,
-            },
-            bio: {
-                search: keyword,
-            },
-            address: {
-                search: keyword,
-            },
-            occupation: {
-                search: keyword,
-            },
-        },
-    };
+    const where: Prisma.UserWhereInput = {};
+    if (keyword) {
+        where.OR = [
+            { name:       { search: keyword } },
+            { username:   { search: keyword } },
+            { email:      { search: keyword } },
+            { bio:        { search: keyword } },
+            { address:    { search: keyword } },
+            { occupation: { search: keyword } },
+        ];
+    }
 
     try {
         const users = await prisma.user.findMany({
-            ...prismaQuery,
+            where,
             ...(lastCursor && {
                 skip: 1,
                 cursor: {
                     id: lastCursor,
                 },
             }),
-            take: 1,
+            take: PER_PAGE + 1,
         });
 
         if (users.length === 0) {
@@ -54,23 +49,16 @@ export async function GET(req: Request) {
             );
         }
 
-        const lastPost: User = users[users.length - 1];
-        const cursor: string = lastPost.id;
-
-        const nextPost = await prisma.user.findMany({
-            ...prismaQuery,
-            take: 1,
-            skip: 1,
-            cursor: {
-                id: cursor,
-            },
-        });
+        const hasNextPost = users.length > PER_PAGE;
+        const page = hasNextPost ? users.slice(0, PER_PAGE) : users;
+        const lastUser: User = page[page.length - 1];
+        const cursor: string = lastUser.id;
 
         const data = {
-            data: users,
+            data: page,
             metaData: {
-                lastCursor: cursor !== undefined ? cursor : null,
-                hasNextPost: nextPost.length > 0,
+                lastCursor: cursor ?? null,
+                hasNextPost,
             },
         };
 

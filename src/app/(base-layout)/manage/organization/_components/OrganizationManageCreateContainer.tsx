@@ -12,6 +12,8 @@ import toast from "react-hot-toast";
 import { useRouter } from "next/navigation";
 import { joinOrganizationWithSK } from "@/utils/actions/organization";
 
+type OrgMember = Pick<User, "id" | "username" | "name" | "image">;
+
 export default function OrganizationManageCreateContainer({
     id,
     name,
@@ -24,9 +26,9 @@ export default function OrganizationManageCreateContainer({
     setSelectedOrganization: React.Dispatch<
         React.SetStateAction<
             | (Organization & {
-                  admins: User[];
-                  members: User[];
-                  owner: User;
+                  admins: OrgMember[];
+                  members: OrgMember[];
+                  owner: OrgMember;
               })
             | undefined
         >
@@ -45,11 +47,17 @@ export default function OrganizationManageCreateContainer({
 
     const joinOrganization = joinOrgForm.handleSubmit(async (data) => {
         const secret = data["Secret key"];
-        const join = await joinOrganizationWithSK(secret);
-        if (join.status) {
-            setSelectedOrganization(join.organization!);
-        } else {
-            toast.error(join.message);
+        try {
+            const returned = await joinOrganizationWithSK(secret);
+            joinOrgForm.reset();
+            // ponytail: returned is a partial select; the container re-renders full data via router.refresh.
+            setSelectedOrganization(returned as unknown as Parameters<typeof setSelectedOrganization>[0]);
+            router.refresh();
+        } catch (e) {
+            toast.error(
+                e instanceof Error ? e.message : "Could not join organization.",
+                { id: "join" },
+            );
         }
     });
 

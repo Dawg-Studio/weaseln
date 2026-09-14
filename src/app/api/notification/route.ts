@@ -1,41 +1,32 @@
 import prisma from "@/db";
 
 import { auth } from "@/auth";
-import { NextRequest, NextResponse } from "next/server";
 
-export async function GET(req: NextRequest) {
-    const url = new URL(req.url);
-    const keyword = url && url.searchParams.get("q");
+export async function GET(req: Request) {
     const session = await auth();
-    const getNotifications = await prisma.userNotifications.findMany({
+    if (!session?.user) return new Response("Unauthorized", { status: 401 });
+    const url = new URL(req.url);
+    const cursor = url.searchParams.get("cursor");
+    const type = url.searchParams.get("type");
+    const rows = await prisma.userNotifications.findMany({
         where: {
-            userId: session?.user.id,
+            userId: session.user.id,
             OR: [
-                {
-                    fromUserId: {
-                        not: session?.user.id,
-                    },
-                },
-                {
-                    fromUserId: null,
-                },
+                { fromUserId: { not: session.user.id } },
+                { fromUserId: null },
             ],
-            ...(keyword && {
-                message: {
-                    search: keyword,
-                },
+            ...(type === "reactions" && { message: { contains: "reacted" } }),
+            ...(type === "comments" && {
+                OR: [
+                    { message: { contains: "commented" } },
+                    { message: { contains: "replied" } },
+                ],
             }),
         },
-        include: {
-            post: {
-                select: {
-                    title: true,
-                },
-            },
-        },
-        orderBy: {
-            createdAt: "desc",
-        },
+        take: 50,
+        ...(cursor && { cursor: { id: cursor }, skip: 1 }),
+        orderBy: { createdAt: "desc" },
+        include: { post: { select: { title: true } } },
     });
-    return NextResponse.json({ data: getNotifications }, { status: 200 });
+    return Response.json({ data: rows, lastCursor: rows.at(-1)?.id ?? null });
 }

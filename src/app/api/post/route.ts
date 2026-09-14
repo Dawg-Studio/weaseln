@@ -194,16 +194,18 @@ export async function POST(req: NextRequest) {
                 { status: 400 },
             );
         }
-        const pastDraft = await prisma.user.findUnique({
-            where: { id: session?.user.id },
+        const author = await prisma.user.findUnique({
+            where: { id: session.user.id },
             select: {
                 draft: true,
+                name: true,
+                image: true,
             },
         });
-        if (pastDraft?.draft) {
+        if (author?.draft) {
             await prisma.postDraft.delete({
                 where: {
-                    userId: session?.user.id,
+                    userId: session.user.id,
                 },
             });
         }
@@ -221,6 +223,8 @@ export async function POST(req: NextRequest) {
                 ...customization.data,
             },
             create: {
+                author: author?.name ?? "",
+                authorImage: author?.image ?? "",
                 title: (body.get("title") as string).trim(),
                 titleId: `${(body.get("title") as string)
                     .replace(/[^a-zA-Z0-9 ]/g, "")
@@ -235,7 +239,7 @@ export async function POST(req: NextRequest) {
                 published:
                     (body.get("published") as string) === "true" ? true : false,
                 user: {
-                    connect: { id: session?.user.id },
+                    connect: { id: session.user.id },
                 },
                 ...customization.data,
                 ...(orgId && {

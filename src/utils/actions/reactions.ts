@@ -49,44 +49,42 @@ export async function toggleReaction(
     const session = await auth()
     if (!session) throw new Error("Unauthorized")
 
-    try {
-        if (target === "post" && "postId" in key) {
-            const upserted = await prisma.postReaction.upsert({
-                where: {
-                    postId_userId: {
-                        userId: session.user.id,
-                        postId: key.postId,
-                    },
+    if (target === "post" && "postId" in key) {
+        await prisma.postReaction.upsert({
+            where: {
+                postId_userId: {
+                    userId: session.user.id,
+                    postId: key.postId,
                 },
-                update: { type },
-                create: {
-                    type,
-                    post: { connect: { id: key.postId } },
-                    user: { connect: { id: session.user.id } },
+            },
+            update: { type },
+            create: {
+                type,
+                userName: session.user.name ?? "",
+                userImage: session.user.image ?? "",
+                post: { connect: { id: key.postId } },
+                user: { connect: { id: session.user.id } },
+            },
+        })
+    } else if (target === "comment" && "commentId" in key) {
+        await prisma.commentReaction.upsert({
+            where: {
+                commentId_userId: {
+                    userId: session.user.id,
+                    commentId: key.commentId,
                 },
-            })
-            if (upserted) return true
-        } else if (target === "comment" && "commentId" in key) {
-            const upserted = await prisma.commentReaction.upsert({
-                where: {
-                    commentId_userId: {
-                        userId: session.user.id,
-                        commentId: key.commentId,
-                    },
-                },
-                update: { type },
-                create: {
-                    type,
-                    comment: { connect: { id: key.commentId } },
-                    user: { connect: { id: session.user.id } },
-                },
-            })
-            if (upserted) return true
-        } else {
-            throw new Error(`Invalid key shape for target "${target}"`)
-        }
-    } catch (error) {
-        return error
+            },
+            update: { type },
+            create: {
+                type,
+                userName: session.user.name ?? "",
+                userImage: session.user.image ?? "",
+                comment: { connect: { id: key.commentId } },
+                user: { connect: { id: session.user.id } },
+            },
+        })
+    } else {
+        throw new Error(`Invalid key shape for target "${target}"`)
     }
 }
 
@@ -94,32 +92,26 @@ export async function deleteReaction(target: ReactionTarget, key: ReactionKey) {
     const session = await auth()
     if (!session) throw new Error("Unauthorized")
 
-    try {
-        if (target === "post" && "postId" in key) {
-            const deleted = await prisma.postReaction.delete({
-                where: {
-                    postId_userId: {
-                        postId: key.postId,
-                        userId: session.user.id,
-                    },
+    if (target === "post" && "postId" in key) {
+        await prisma.postReaction.delete({
+            where: {
+                postId_userId: {
+                    postId: key.postId,
+                    userId: session.user.id,
                 },
-            })
-            if (deleted) return true
-        } else if (target === "comment" && "commentId" in key) {
-            const deleted = await prisma.commentReaction.delete({
-                where: {
-                    commentId_userId: {
-                        commentId: key.commentId,
-                        userId: session.user.id,
-                    },
+            },
+        })
+    } else if (target === "comment" && "commentId" in key) {
+        await prisma.commentReaction.delete({
+            where: {
+                commentId_userId: {
+                    commentId: key.commentId,
+                    userId: session.user.id,
                 },
-            })
-            if (deleted) return true
-        } else {
-            throw new Error(`Invalid key shape for target "${target}"`)
-        }
-    } catch (error) {
-        return error
+            },
+        })
+    } else {
+        throw new Error(`Invalid key shape for target "${target}"`)
     }
 }
 

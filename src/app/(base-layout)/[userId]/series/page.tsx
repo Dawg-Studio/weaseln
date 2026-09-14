@@ -3,6 +3,7 @@ import { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Fragment } from "react";
+import { getProfile } from "@/utils/server/loaders";
 
 export async function generateMetadata({
     params,
@@ -10,21 +11,10 @@ export async function generateMetadata({
     params: Promise<{ userId: string }>;
 }): Promise<Metadata> {
     const { userId } = await params;
-    const userPostSeries = await prisma.user.findFirst({
-        where: {
-            OR: [
-                {
-                    id: userId,
-                },
-                {
-                    username: userId,
-                },
-            ],
-        },
-    });
+    const user = await getProfile(userId);
     return {
-        title: `${userPostSeries?.name}'s Series`,
-        authors: [{ name: userPostSeries?.name as string }],
+        title: `${user?.name}'s Series`,
+        authors: [{ name: user?.name as string }],
     };
 }
 
@@ -35,39 +25,29 @@ export default async function SeriesUserPage({
 }) {
     const { userId } = await params;
 
-    const userPostSeries = await prisma.user.findFirst({
-        where: {
-            OR: [
-                {
-                    id: userId,
-                },
-                {
-                    username: userId,
-                },
-            ],
-        },
-        include: {
-            series: {
-                include: {
-                    _count: {
-                        select: {
-                            posts: {
-                                where: {
-                                    published: true,
-                                },
+    const [user, userPostSeries] = await Promise.all([
+        getProfile(userId),
+        prisma.user.findFirst({
+            where: { OR: [{ id: userId }, { username: userId }] },
+            include: {
+                series: {
+                    include: {
+                        _count: {
+                            select: {
+                                posts: { where: { published: true } },
                             },
                         },
                     },
                 },
             },
-        },
-    });
-    if (!userPostSeries) return notFound();
+        }),
+    ]);
+    if (!user) return notFound();
 
     return (
         <>
             <h1 className="mb-4 text-title text-base-content lg:text-display">
-                {userPostSeries.name}&apos;s Series
+                {user.name}&apos;s Series
             </h1>
             <div className="flex flex-wrap gap-4">
                 {userPostSeries &&

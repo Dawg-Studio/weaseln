@@ -17,7 +17,7 @@ export default function NotificationList() {
     const getNotifications = async () => {
         const params = new URLSearchParams({
             ...(slug && {
-                q: slug === "reactions" ? "reacted" : "commented | replied",
+                type: slug === "reactions" ? "reactions" : "comments",
             }),
         });
         const response = await fetch(`/api/notification?${params}`);

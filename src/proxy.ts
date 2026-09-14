@@ -8,6 +8,7 @@ export const config = {
         "/:userId/:titleId/edit",
         "/settings/:path*",
         "/manage/:path*",
+        "/notifications/:path*",
         "/api/post/manage/:path*",
         "/api/user/cloudinary/:path*",
         "/api/email/:path*",

@@ -30,7 +30,7 @@ export default function PostContainer({
     backgroundPattern,
     backgroundImage,
     backgroundFit,
-}: Post & {
+}: Omit<Post, "content" | "updatedAt"> & {
     _count?: {
         reactions: number;
         comments: number;

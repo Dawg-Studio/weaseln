@@ -3,10 +3,10 @@ import prisma from "@/db";
 import type { FormSocials } from "@/types/user";
 import { Fragment } from "react";
 import { Metadata } from "next";
-import { auth } from "@/auth";
 
 import UserOrgProfile from "@/components/user/UserOrgProfile";
 import { normalizeProfileCustomization } from "@/modules/profile-customization/validation";
+import { getProfile, getSessionUser } from "@/utils/server/loaders";
 
 export async function generateMetadata({
     params,
@@ -14,21 +14,7 @@ export async function generateMetadata({
     params: Promise<{ userId: string }>;
 }): Promise<Metadata> {
     const { userId } = await params;
-    const user = await prisma.user.findFirst({
-        where: {
-            OR: [
-                {
-                    id: userId,
-                },
-                {
-                    username: userId, //for unique username URL
-                },
-            ],
-        },
-        include: {
-            profileCustomization: true,
-        },
-    });
+    const user = await getProfile(userId);
     if (!user) return notFound();
     const websiteUrl = (user?.socials as FormSocials[]).find(
         (social) => social.name === "Personal Website",
@@ -48,37 +34,10 @@ export default async function ProfilePage({
     params: Promise<{ userId: string }>;
 }) {
     const { userId } = await params;
-    const session = await auth();
-    const user = await prisma.user.findFirst({
-        where: {
-            OR: [
-                {
-                    id: userId,
-                },
-                {
-                    username: userId, //for unique username URL
-                },
-            ],
-        },
-        include: {
-            _count: {
-                select: {
-                    post: true,
-                    followedBy: true,
-                    following: true,
-                },
-            },
-            profileCustomization: true,
-            organizations: {
-                select: {
-                    id: true,
-                    name: true,
-                    username: true,
-                    image: true,
-                },
-            },
-        },
-    });
+    const [session, user] = await Promise.all([
+        getSessionUser(),
+        getProfile(userId),
+    ]);
 
     const followers = user?._count.followedBy;
     const following = user?._count.following;
@@ -96,7 +55,7 @@ export default async function ProfilePage({
         if (session) {
             const checkUserFollowed = await prisma.user.findUnique({
                 where: {
-                    id: session.user.id,
+                    id: session.id,
                     following: {
                         some: {
                             id: user?.id,

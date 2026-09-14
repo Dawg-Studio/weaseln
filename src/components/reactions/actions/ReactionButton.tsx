@@ -97,13 +97,11 @@ export default function ReactionButton({
                         reaction: undefined,
                         count: Math.max(0, optimistic.count - 1),
                     });
-                    const removed = await deleteReaction(targetType, key);
-                    if (removed === true) {
-                        setState((prev) => ({
-                            reaction: undefined,
-                            count: Math.max(0, prev.count - 1),
-                        }));
-                    }
+                    await deleteReaction(targetType, key);
+                    setState((prev) => ({
+                        reaction: undefined,
+                        count: Math.max(0, prev.count - 1),
+                    }));
                     return;
                 }
 
@@ -111,32 +109,27 @@ export default function ReactionButton({
                     reaction: "heart",
                     count: optimistic.count + 1,
                 });
-                const added = await toggleReaction(targetType, key, "heart");
-                if (added === true) {
-                    setState((prev) => ({
-                        reaction: "heart",
-                        count: prev.count + 1,
-                    }));
-                    const reactionNotification: UserNotificationInputValidation =
-                        {
-                            userId: target.authorId,
-                            fromUserId: session.user.id,
-                            from: session.user.name,
-                            fromImage: session.user.image,
-                            message:
-                                targetType === "post"
-                                    ? `${session.user.name ?? "Someone"} has reacted with ❤️ to your post`
-                                    : `${session.user.name ?? "Someone"} has reacted with ❤️ to your comment`,
-                            postId: target.id,
-                            actionUrl: pathname,
-                        };
-                    socket.emit("submitNotification", reactionNotification);
-                }
+                await toggleReaction(targetType, key, "heart");
+                setState((prev) => ({
+                    reaction: "heart",
+                    count: prev.count + 1,
+                }));
+                const reactionNotification: UserNotificationInputValidation = {
+                    userId: target.authorId,
+                    fromUserId: session.user.id,
+                    from: session.user.name,
+                    fromImage: session.user.image,
+                    message:
+                        targetType === "post"
+                            ? `${session.user.name ?? "Someone"} has reacted with ❤️ to your post`
+                            : `${session.user.name ?? "Someone"} has reacted with ❤️ to your comment`,
+                    postId: target.id,
+                    actionUrl: pathname,
+                };
+                socket.emit("submitNotification", reactionNotification);
             } catch (error) {
-                // These actions throw "Unauthorized" ahead of their own
-                // try/catch, and the round-trip itself can reject. Swallowing
-                // here keeps the rejection inside the transition: leaving
-                // `state` untouched IS the rollback.
+                // toggleReaction/deleteReaction throw on authz or DB errors;
+                // leaving `state` untouched IS the rollback.
                 console.error(error);
             }
         });

@@ -13,7 +13,9 @@ export async function GET(req: NextRequest) {
 
     const response = async () => {
         if (keyword) {
-            return (tagRankings?.data as TagRank[]).filter((tag: TagRank) =>
+            return (
+                (tagRankings?.data as TagRank[] | undefined) ?? []
+            ).filter((tag: TagRank) =>
                 tag.tag.toLowerCase().includes(keyword.toLowerCase()),
             );
         }
