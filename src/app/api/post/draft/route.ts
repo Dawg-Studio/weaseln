@@ -4,50 +4,7 @@ import { auth } from "@/auth";
 import { NextRequest, NextResponse } from "next/server";
 
 import { getCloudinaryImage, uploadCloudinary } from "@/lib/cloudinary";
-import type { PostCustomization } from "@/modules/post-customization/types";
-import { validatePostCustomizationInput } from "@/modules/post-customization/validation";
-
-type CustomizationResult =
-    | { ok: true; data: Partial<PostCustomization> }
-    | { ok: false; message: string };
-
-/**
- * ponytail: mirrors `/api/post` so a background picked mid-compose survives the
- * autosave. An absent field yields `{}`, which leaves the draft on the schema
- * defaults — byte-identical to the row this route wrote before the feature.
- */
-function readCustomization(body: FormData): CustomizationResult {
-    const field = body.get("customization");
-    // The composer stringifies optional fields, so an unset one arrives as the
-    // literal "undefined" — same idiom as the coverImage check further down.
-    if (
-        typeof field !== "string" ||
-        field.trim() === "" ||
-        field === "undefined"
-    ) {
-        return { ok: true, data: {} };
-    }
-    let parsed: unknown;
-    try {
-        parsed = JSON.parse(field);
-    } catch {
-        return {
-            ok: false,
-            message: "Invalid post customization: payload is not valid JSON",
-        };
-    }
-    try {
-        return { ok: true, data: validatePostCustomizationInput(parsed) };
-    } catch (err) {
-        return {
-            ok: false,
-            message:
-                err instanceof Error
-                    ? err.message
-                    : "Invalid post customization",
-        };
-    }
-}
+import { readCustomization } from "@/modules/post-customization/validation";
 
 export async function POST(req: NextRequest) {
     // ponytail: guard before req.formData() — see the note in /api/post.

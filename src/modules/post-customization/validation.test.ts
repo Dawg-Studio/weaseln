@@ -5,6 +5,7 @@ import {
     DEFAULT_POST_CUSTOMIZATION,
     isDefaultPostCustomization,
     normalizePostCustomization,
+    readCustomization,
     validatePostCustomizationInput,
 } from "./validation";
 
@@ -148,6 +149,20 @@ describe("validatePostCustomizationInput", () => {
         });
     });
 
+    it("returns only allowlisted fields from an object with unknown keys", () => {
+        expect(
+            validatePostCustomizationInput({
+                backgroundColor: "fern",
+                userId: "someone-else",
+                organizationId: "any-org",
+                user: { connect: { id: "someone-else" } },
+            }),
+        ).toStrictEqual({
+            ...DEFAULT_POST_CUSTOMIZATION,
+            backgroundColor: "fern",
+        });
+    });
+
     it("accepts a bundled /covers/ image and a Cloudinary image", () => {
         expect(
             validatePostCustomizationInput({
@@ -197,6 +212,60 @@ describe("validatePostCustomizationInput", () => {
         expect(() =>
             validatePostCustomizationInput({ backgroundImage: 12 }),
         ).toThrow();
+    });
+});
+
+describe("readCustomization", () => {
+    it.each([undefined, "", "   ", "undefined"])(
+        "treats %s as an absent customization field",
+        (value) => {
+            const body = new FormData();
+            if (value !== undefined) body.set("customization", value);
+
+            expect(readCustomization(body)).toStrictEqual({
+                ok: true,
+                data: {},
+            });
+        },
+    );
+
+    it("parses, validates, and strips unknown keys", () => {
+        const body = new FormData();
+        body.set(
+            "customization",
+            JSON.stringify({
+                backgroundColor: "clay",
+                userId: "someone-else",
+            }),
+        );
+
+        expect(readCustomization(body)).toStrictEqual({
+            ok: true,
+            data: {
+                ...DEFAULT_POST_CUSTOMIZATION,
+                backgroundColor: "clay",
+            },
+        });
+    });
+
+    it("reports malformed JSON and invalid customization values", () => {
+        const malformed = new FormData();
+        malformed.set("customization", "{");
+        expect(readCustomization(malformed)).toStrictEqual({
+            ok: false,
+            message: "Invalid post customization: payload is not valid JSON",
+        });
+
+        const invalid = new FormData();
+        invalid.set(
+            "customization",
+            JSON.stringify({ backgroundColor: "neon" }),
+        );
+        expect(readCustomization(invalid)).toStrictEqual({
+            ok: false,
+            message:
+                "Invalid post customization: backgroundColor must be one of default, clay, apricot, sand, moss, fern, fog, slate, dusk, blossom",
+        });
     });
 });
 

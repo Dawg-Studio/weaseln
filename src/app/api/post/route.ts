@@ -10,8 +10,7 @@ import { getCloudinaryImage, uploadCloudinary } from "@/lib/cloudinary";
 import { revalidatePath } from "next/cache";
 import { postContainerInclude } from "@/utils/prismaQuery";
 import { rankContentForUser } from "@/utils/services/ranking";
-import type { PostCustomization } from "@/modules/post-customization/types";
-import { validatePostCustomizationInput } from "@/modules/post-customization/validation";
+import { readCustomization } from "@/modules/post-customization/validation";
 import { buildWhere, buildOrderBy, paginate, ListPostsParams } from "./_query";
 //Promise<any> is a temporary fix
 
@@ -90,51 +89,6 @@ export async function GET(req: NextRequest) {
     } catch (err) {
         console.log(err);
         return NextResponse.json({ err }, { status: 500 });
-    }
-}
-
-type CustomizationResult =
-    | { ok: true; data: Partial<PostCustomization> }
-    | { ok: false; message: string };
-
-/**
- * ponytail: the composer sends the picked background as a JSON string in a
- * `customization` FormData field. An absent field yields `{}` on purpose — the
- * spread then contributes nothing, so an older client writes exactly the row it
- * wrote before this feature existed and an existing post keeps the background
- * it already has. Anything present but unsupported is a loud 400 rather than a
- * silent default.
- */
-function readCustomization(body: FormData): CustomizationResult {
-    const field = body.get("customization");
-    // The composer stringifies optional fields, so an unset one arrives as the
-    // literal "undefined" — same idiom as the coverImage check further down.
-    if (
-        typeof field !== "string" ||
-        field.trim() === "" ||
-        field === "undefined"
-    ) {
-        return { ok: true, data: {} };
-    }
-    let parsed: unknown;
-    try {
-        parsed = JSON.parse(field);
-    } catch {
-        return {
-            ok: false,
-            message: "Invalid post customization: payload is not valid JSON",
-        };
-    }
-    try {
-        return { ok: true, data: validatePostCustomizationInput(parsed) };
-    } catch (err) {
-        return {
-            ok: false,
-            message:
-                err instanceof Error
-                    ? err.message
-                    : "Invalid post customization",
-        };
     }
 }
 

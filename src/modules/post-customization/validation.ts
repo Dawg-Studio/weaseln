@@ -76,6 +76,10 @@ function assertBackgroundUrl(
 
 export type PostCustomizationInput = Partial<PostCustomization>;
 
+export type CustomizationResult =
+    | { ok: true; data: Partial<PostCustomization> }
+    | { ok: false; message: string };
+
 /**
  * Strict parse: throws on anything unsupported. Use on every write path, so a
  * hostile or malformed value never reaches the database.
@@ -106,12 +110,60 @@ export function validatePostCustomizationInput(
     }
 
     return {
-        ...DEFAULT_POST_CUSTOMIZATION,
-        ...input,
-        // An explicit `undefined` in a partial payload must not survive the
-        // spread as a key — normalise it back to the null sentinel.
+        // Build the persistence object from the allowlisted fields. Spreading
+        // `input` here would let arbitrary JSON keys (for example `userId` or
+        // `organizationId`) reach a Prisma update alongside these values.
+        backgroundColor:
+            input.backgroundColor ??
+            DEFAULT_POST_CUSTOMIZATION.backgroundColor,
+        backgroundPattern:
+            input.backgroundPattern ??
+            DEFAULT_POST_CUSTOMIZATION.backgroundPattern,
         backgroundImage: input.backgroundImage ?? null,
+        backgroundFit:
+            input.backgroundFit ?? DEFAULT_POST_CUSTOMIZATION.backgroundFit,
     };
+}
+
+/**
+ * Parse the optional customization JSON shared by draft autosaves and post
+ * publishing. Missing fields preserve the existing route behavior by
+ * contributing no Prisma update data; malformed or unsupported values become
+ * a caller-facing validation failure.
+ */
+export function readCustomization(body: FormData): CustomizationResult {
+    const field = body.get("customization");
+    // The composer stringifies optional fields, so an unset one arrives as the
+    // literal "undefined" — the same convention used for coverImage.
+    if (
+        typeof field !== "string" ||
+        field.trim() === "" ||
+        field === "undefined"
+    ) {
+        return { ok: true, data: {} };
+    }
+
+    let parsed: unknown;
+    try {
+        parsed = JSON.parse(field);
+    } catch {
+        return {
+            ok: false,
+            message: "Invalid post customization: payload is not valid JSON",
+        };
+    }
+
+    try {
+        return { ok: true, data: validatePostCustomizationInput(parsed) };
+    } catch (err) {
+        return {
+            ok: false,
+            message:
+                err instanceof Error
+                    ? err.message
+                    : "Invalid post customization",
+        };
+    }
 }
 
 /**
