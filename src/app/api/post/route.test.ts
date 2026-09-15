@@ -5,7 +5,7 @@ import { DEFAULT_POST_CUSTOMIZATION } from "@/modules/post-customization/validat
 
 const mockAuth = vi.fn();
 const mockPostFindUnique = vi.fn();
-const mockPostUpsert = vi.fn();
+const mockPostCreate = vi.fn();
 const mockPostUpdate = vi.fn();
 const mockUserFindUnique = vi.fn();
 const mockDraftDelete = vi.fn();
@@ -17,7 +17,7 @@ vi.mock("@/db", () => ({
     default: {
         post: {
             findUnique: (...args: unknown[]) => mockPostFindUnique(...args),
-            upsert: (...args: unknown[]) => mockPostUpsert(...args),
+            create: (...args: unknown[]) => mockPostCreate(...args),
             update: (...args: unknown[]) => mockPostUpdate(...args),
         },
         user: {
@@ -79,7 +79,7 @@ async function callPost(fields: PostFields) {
 }
 
 function expectNoWrites() {
-    expect(mockPostUpsert).not.toHaveBeenCalled();
+    expect(mockPostCreate).not.toHaveBeenCalled();
     expect(mockPostUpdate).not.toHaveBeenCalled();
     expect(mockDraftDelete).not.toHaveBeenCalled();
 }
@@ -88,16 +88,21 @@ describe("POST /api/post", () => {
     beforeEach(() => {
         mockAuth.mockReset();
         mockPostFindUnique.mockReset();
-        mockPostUpsert.mockReset();
+        mockPostCreate.mockReset();
         mockPostUpdate.mockReset();
         mockUserFindUnique.mockReset();
         mockDraftDelete.mockReset();
         mockUploadCloudinary.mockReset();
         mockGetCloudinaryImage.mockReset();
-        // The signed-in happy path: no leftover draft, and the upsert hands
+        // The signed-in happy path: no leftover draft, and the create hands
         // back the shape the route selects.
         mockUserFindUnique.mockResolvedValue({ draft: null });
-        mockPostUpsert.mockResolvedValue({
+        mockPostCreate.mockResolvedValue({
+            id: "post-1",
+            titleId: "backgrounds-for-posts-ab12",
+            content: { type: "doc", content: [] },
+        });
+        mockPostUpdate.mockResolvedValue({
             id: "post-1",
             titleId: "backgrounds-for-posts-ab12",
             content: { type: "doc", content: [] },
@@ -138,8 +143,8 @@ describe("POST /api/post", () => {
     });
 
     it("refuses a postId owned by somebody else with 403 and writes nothing", async () => {
-        // The authorization hole this covers: the upsert keys on a
-        // caller-supplied postId, so before the ownership check any signed-in
+        // The authorization hole this covers: a mutation keyed on a
+        // caller-supplied postId could let any signed-in
         // user could rewrite any post — including its background — by guessing
         // or reading an id out of a feed response.
         mockAuth.mockResolvedValue({ user: { id: "alice" } });
@@ -177,16 +182,18 @@ describe("POST /api/post", () => {
         );
 
         expect(res.status).toBe(200);
-        expect(mockPostUpsert).toHaveBeenCalledTimes(1);
-        expect(mockPostUpsert.mock.calls[0][0].where).toEqual({
+        expect(mockPostUpdate).toHaveBeenCalledTimes(1);
+        expect(mockPostUpdate.mock.calls[0][0].where).toEqual({
             id: "alices-post",
+            userId: "alice",
         });
+        expect(mockPostCreate).not.toHaveBeenCalled();
     });
 
     it("returns 400 when a content image has no source", async () => {
         mockAuth.mockResolvedValue({ user: { id: "alice" } });
         mockPostFindUnique.mockResolvedValue(null);
-        mockPostUpsert.mockResolvedValue({
+        mockPostCreate.mockResolvedValue({
             id: "post-1",
             titleId: "backgrounds-for-posts-ab12",
             content: {
@@ -214,7 +221,7 @@ describe("POST /api/post", () => {
         expect(mockPostUpdate).not.toHaveBeenCalled();
     });
 
-    it("persists a valid customization payload on both branches of the upsert", async () => {
+    it("persists a valid customization payload on create", async () => {
         mockAuth.mockResolvedValue({ user: { id: "alice" } });
         mockPostFindUnique.mockResolvedValue(null);
 
@@ -233,8 +240,8 @@ describe("POST /api/post", () => {
         const body = await res.json();
         expect(body.data).toBe("backgrounds-for-posts-ab12");
 
-        expect(mockPostUpsert).toHaveBeenCalledTimes(1);
-        const args = mockPostUpsert.mock.calls[0][0];
+        expect(mockPostCreate).toHaveBeenCalledTimes(1);
+        const args = mockPostCreate.mock.calls[0][0];
         const expected = {
             backgroundColor: "moss",
             backgroundPattern: "dots",
@@ -243,13 +250,13 @@ describe("POST /api/post", () => {
         };
         // The four columns are scalars, so they sit directly on the payload —
         // no nested create/connect.
-        expect(args.create).toMatchObject(expected);
-        expect(args.update).toMatchObject(expected);
+        expect(args.data).toMatchObject(expected);
         // The row still belongs to the session user, never to a request field.
-        expect(args.create.user.connect).toEqual({ id: "alice" });
+        expect(args.data.user.connect).toEqual({ id: "alice" });
+        expect(mockPostUpdate).not.toHaveBeenCalled();
     });
 
-    it("fills the unsent fields of a partial payload with the module defaults", async () => {
+    it("persists only the supplied keys of a partial payload", async () => {
         mockAuth.mockResolvedValue({ user: { id: "alice" } });
         mockPostFindUnique.mockResolvedValue(null);
 
@@ -260,11 +267,13 @@ describe("POST /api/post", () => {
         );
 
         expect(res.status).toBe(200);
-        const args = mockPostUpsert.mock.calls[0][0];
-        expect(args.update).toMatchObject({
-            ...DEFAULT_POST_CUSTOMIZATION,
+        const args = mockPostCreate.mock.calls[0][0];
+        expect(args.data).toMatchObject({
             backgroundColor: "fog",
         });
+        expect(args.data).not.toHaveProperty("backgroundPattern");
+        expect(args.data).not.toHaveProperty("backgroundImage");
+        expect(args.data).not.toHaveProperty("backgroundFit");
     });
 
     it("rejects an unsupported palette slug with 400 and writes nothing", async () => {
@@ -348,16 +357,16 @@ describe("POST /api/post", () => {
         const res = await callPost(fields);
 
         expect(res.status).toBe(200);
-        expect(mockPostUpsert).toHaveBeenCalledTimes(1);
-        const args = mockPostUpsert.mock.calls[0][0];
+        expect(mockPostCreate).toHaveBeenCalledTimes(1);
+        const args = mockPostCreate.mock.calls[0][0];
         // A client that predates this feature sends no field, so the route
         // contributes no keys and the schema `@default`s write the default
         // customization on create — while an existing row keeps the background
         // it already has. Either way the post renders exactly as it did before.
         for (const column of Object.keys(DEFAULT_POST_CUSTOMIZATION)) {
-            expect(args.create).not.toHaveProperty(column);
-            expect(args.update).not.toHaveProperty(column);
+            expect(args.data).not.toHaveProperty(column);
         }
+        expect(mockPostUpdate).not.toHaveBeenCalled();
     });
 
     it('treats the literal string "undefined" as no customization', async () => {
@@ -369,9 +378,10 @@ describe("POST /api/post", () => {
         const res = await callPost(validFields({ customization: "undefined" }));
 
         expect(res.status).toBe(200);
-        const args = mockPostUpsert.mock.calls[0][0];
+        const args = mockPostCreate.mock.calls[0][0];
         for (const column of Object.keys(DEFAULT_POST_CUSTOMIZATION)) {
-            expect(args.update).not.toHaveProperty(column);
+            expect(args.data).not.toHaveProperty(column);
         }
+        expect(mockPostUpdate).not.toHaveBeenCalled();
     });
 });

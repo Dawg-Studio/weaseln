@@ -215,7 +215,7 @@ The post composer lives at `/new`. Auth is gated; anonymous visits redirect to `
 - Tags (the editor accepts any tag; an arbitrary new tag may be added by typing)
 
 ### Optional fields
-- **Cover image** — the composer uploads it to Cloudinary and stores the resulting URL on `Post.coverImage`. The field is **nullable** in the schema; publishing without one is allowed. When a post has no cover, the feed card (`PostContainer` / `PostCard`) and the post page (`/[userId]/[slug]`) skip the cover `<figure>` entirely — no placeholder, no watermark.
+- **Cover image** — the composer uploads it to Cloudinary and stores the resulting URL on `Post.coverImage`. The field is **nullable** in the schema; publishing without one is allowed. When a post has no cover, the feed card (`PostContainer`) and the post page (`/[userId]/[slug]`) skip the cover `<figure>` entirely — no placeholder, no watermark.
 
 ### 5.1 Happy-path publish as alice
 1. Log in as alice.

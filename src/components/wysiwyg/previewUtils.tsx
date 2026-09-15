@@ -28,8 +28,8 @@ export function PreviewEditor({
     customization: PostCustomization;
 }) {
     const renderHtml = editor?.getHTML() as string;
-    // The preview spreads the same helper as PostCard, PostContainer and the
-    // post page, so it cannot promise a surface that publishing would not
+    // The preview spreads the same helper as the live PostContainer and post
+    // page, so it cannot promise a surface that publishing would not
     // produce. An uncustomized post yields {} and this section renders exactly
     // as it did before the feature existed.
     const surface = postSurfaceProps(customization);

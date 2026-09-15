@@ -131,20 +131,16 @@ describe("validatePostCustomizationInput", () => {
         expect(() => validatePostCustomizationInput(["clay"])).toThrow();
     });
 
-    it("fills a partial payload from the defaults", () => {
-        expect(validatePostCustomizationInput({})).toEqual(
-            DEFAULT_POST_CUSTOMIZATION,
-        );
+    it("keeps a partial payload partial", () => {
+        expect(validatePostCustomizationInput({})).toEqual({});
         expect(
             validatePostCustomizationInput({ backgroundColor: "moss" }),
         ).toEqual({
-            ...DEFAULT_POST_CUSTOMIZATION,
             backgroundColor: "moss",
         });
         expect(
             validatePostCustomizationInput({ backgroundPattern: "hatch" }),
         ).toEqual({
-            ...DEFAULT_POST_CUSTOMIZATION,
             backgroundPattern: "hatch",
         });
     });
@@ -158,7 +154,6 @@ describe("validatePostCustomizationInput", () => {
                 user: { connect: { id: "someone-else" } },
             }),
         ).toStrictEqual({
-            ...DEFAULT_POST_CUSTOMIZATION,
             backgroundColor: "fern",
         });
     });
@@ -188,15 +183,13 @@ describe("validatePostCustomizationInput", () => {
         }
     });
 
-    it("treats a null or omitted image as the no-image sentinel", () => {
+    it("preserves an explicit null image and omits an unspecified image", () => {
         expect(
-            validatePostCustomizationInput({ backgroundImage: null })
-                .backgroundImage,
-        ).toBeNull();
+            validatePostCustomizationInput({ backgroundImage: null }),
+        ).toStrictEqual({ backgroundImage: null });
         expect(
-            validatePostCustomizationInput({ backgroundColor: "clay" })
-                .backgroundImage,
-        ).toBeNull();
+            validatePostCustomizationInput({ backgroundColor: "clay" }),
+        ).toStrictEqual({ backgroundColor: "clay" });
     });
 
     it.each(REJECTED_IMAGE_URLS)("rejects $label", ({ url }) => {
@@ -208,6 +201,9 @@ describe("validatePostCustomizationInput", () => {
     it("rejects an empty or non-string background image", () => {
         expect(() =>
             validatePostCustomizationInput({ backgroundImage: "" }),
+        ).toThrow();
+        expect(() =>
+            validatePostCustomizationInput({ backgroundImage: undefined }),
         ).toThrow();
         expect(() =>
             validatePostCustomizationInput({ backgroundImage: 12 }),
@@ -242,7 +238,6 @@ describe("readCustomization", () => {
         expect(readCustomization(body)).toStrictEqual({
             ok: true,
             data: {
-                ...DEFAULT_POST_CUSTOMIZATION,
                 backgroundColor: "clay",
             },
         });

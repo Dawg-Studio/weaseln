@@ -123,23 +123,19 @@ export async function POST(req: NextRequest) {
         return randomBytes(2).toString("base64url").slice(0, 4);
     }
     try {
-        // ponytail: the upsert below keys on a caller-supplied postId and
-        // carried no author scope, so any signed-in user could rewrite any post
-        // by id. Resolve the row first and refuse when it belongs to somebody
-        // else. A postId that matches nothing still falls through to `create`,
-        // exactly as it did before.
+        // Resolve a caller-supplied ID from the stored row before deciding
+        // whether this request updates or creates a post. The update below
+        // repeats this owner predicate in its actual write, so a concurrent
+        // ownership change cannot turn this check into an authorization gap.
         const postId = (body.get("postId") as string) ?? "";
-        if (postId) {
-            const existing = await prisma.post.findUnique({
+        const existing = postId
+            ? await prisma.post.findUnique({
                 where: { id: postId },
                 select: { userId: true },
-            });
-            if (existing && existing.userId !== session.user.id) {
-                return NextResponse.json(
-                    { error: "Forbidden" },
-                    { status: 403 },
-                );
-            }
+            })
+            : null;
+        if (existing && existing.userId !== session.user.id) {
+            return NextResponse.json({ error: "Forbidden" }, { status: 403 });
         }
         const customization = readCustomization(body);
         if (!customization.ok) {
@@ -164,50 +160,52 @@ export async function POST(req: NextRequest) {
             });
         }
         const orgId = body.get("orgId") as string;
-        const post = await prisma.post.upsert({
-            where: { id: postId },
-            update: {
-                title: (body.get("title") as string).trim(),
-                description: (body.get("description") as string).trim(),
-                tags: [...JSON.parse(body.get("tags") as string)],
-                content: JSON.parse(body.get("content") as string),
-                readPerMinute: parseInt(body.get("readPerMinute") as string),
-                published:
-                    (body.get("published") as string) === "true" ? true : false,
-                ...customization.data,
-            },
-            create: {
-                author: author?.name ?? "",
-                authorImage: author?.image ?? "",
-                title: (body.get("title") as string).trim(),
-                titleId: `${(body.get("title") as string)
-                    .replace(/[^a-zA-Z0-9 ]/g, "")
-                    .trim()
-                    .split(" ")
-                    .join("-")}-${generateRandomCode()}`,
-                description: (body.get("description") as string).trim(),
-                tags: [...JSON.parse(body.get("tags") as string)],
-                content: JSON.parse(body.get("content") as string),
-                readPerMinute: parseInt(body.get("readPerMinute") as string),
-                authorUsername: body.get("username") as string,
-                published:
-                    (body.get("published") as string) === "true" ? true : false,
-                user: {
-                    connect: { id: session.user.id },
-                },
-                ...customization.data,
-                ...(orgId && {
-                    organization: {
-                        connect: { id: orgId },
-                    },
-                }),
-            },
-            select: {
-                id: true,
-                content: true,
-                titleId: true,
-            },
-        });
+        const postData = {
+            title: (body.get("title") as string).trim(),
+            description: (body.get("description") as string).trim(),
+            tags: [...JSON.parse(body.get("tags") as string)],
+            content: JSON.parse(body.get("content") as string),
+            readPerMinute: parseInt(body.get("readPerMinute") as string),
+            published:
+                (body.get("published") as string) === "true" ? true : false,
+            ...customization.data,
+        };
+        const post = existing
+            ? await prisma.post.update({
+                  where: { id: postId, userId: session.user.id },
+                  data: postData,
+                  select: {
+                      id: true,
+                      content: true,
+                      titleId: true,
+                  },
+              })
+            : await prisma.post.create({
+                  data: {
+                      author: author?.name ?? "",
+                      authorImage: author?.image ?? "",
+                      titleId: `${(body.get("title") as string)
+                          .replace(/[^a-zA-Z0-9 ]/g, "")
+                          .trim()
+                          .split(" ")
+                          .join("-")}-${generateRandomCode()}`,
+                      authorUsername: body.get("username") as string,
+                      user: {
+                          connect: { id: session.user.id },
+                      },
+                      ...postData,
+                      ...(orgId && {
+                          organization: {
+                              connect: { id: orgId },
+                          },
+                      }),
+                  },
+                  select: {
+                      id: true,
+                      content: true,
+                      titleId: true,
+                  },
+              });
         //deletes the draft if new post has been inserted completely
         if (post && image_total === 0 && body.get("coverImage") === "undefined")
             return NextResponse.json({ data: post.titleId }, { status: 200 }); //if no new images and cover images detected
@@ -257,7 +255,7 @@ export async function POST(req: NextRequest) {
                     }
                 }
                 await prisma.post.update({
-                    where: { id: post.id },
+                    where: { id: post.id, userId: session.user.id },
                     data: {
                         content: content,
                     },
@@ -277,7 +275,7 @@ export async function POST(req: NextRequest) {
                     coverField.startsWith("http"));
             if (coverIsUrl) {
                 const coverImage = await prisma.post.update({
-                    where: { id: post.id },
+                    where: { id: post.id, userId: session.user.id },
                     data: { coverImage: coverField as string },
                 });
                 if (coverImage) {
@@ -300,7 +298,7 @@ export async function POST(req: NextRequest) {
                         folder: cloudinary.metadata.folder,
                     });
                     const coverImage = await prisma.post.update({
-                        where: { id: post.id },
+                        where: { id: post.id, userId: session.user.id },
                         data: {
                             coverImage: imageAddr, //always output coverImage of 1920 1080
                         },

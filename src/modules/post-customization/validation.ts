@@ -60,7 +60,7 @@ function assertBackgroundUrl(
     value: unknown,
     field: string,
 ): asserts value is string | null {
-    if (value === null || value === undefined) return;
+    if (value === null) return;
     if (typeof value !== "string") fail(`${field} must be a string or null`);
     if (value.length === 0) fail(`${field} must not be empty`);
     if (value.length > MAX_URL_LENGTH) {
@@ -74,55 +74,54 @@ function assertBackgroundUrl(
     }
 }
 
+/** A validated subset suitable for Prisma create or update data. */
 export type PostCustomizationInput = Partial<PostCustomization>;
 
 export type CustomizationResult =
-    | { ok: true; data: Partial<PostCustomization> }
+    | { ok: true; data: PostCustomizationInput }
     | { ok: false; message: string };
 
 /**
  * Strict parse: throws on anything unsupported. Use on every write path, so a
  * hostile or malformed value never reaches the database.
  *
- * Absent fields fall back to the default, which means a partial payload is
- * legal and a `{}` payload yields the untouched default appearance.
+ * The result contains only supplied, allowlisted fields. This lets callers
+ * spread it into Prisma update data without replacing an existing setting that
+ * a partial payload did not mention.
  */
 export function validatePostCustomizationInput(
     input: unknown,
-): PostCustomization {
+): PostCustomizationInput {
     if (!isPlainObject(input)) fail("payload must be an object");
 
-    if (input.backgroundColor !== undefined) {
-        assertOneOf(input.backgroundColor, POST_BACKGROUNDS, "backgroundColor");
+    const customization: PostCustomizationInput = {};
+
+    if (Object.hasOwn(input, "backgroundColor")) {
+        assertOneOf(
+            input.backgroundColor,
+            POST_BACKGROUNDS,
+            "backgroundColor",
+        );
+        customization.backgroundColor = input.backgroundColor;
     }
-    if (input.backgroundPattern !== undefined) {
+    if (Object.hasOwn(input, "backgroundPattern")) {
         assertOneOf(
             input.backgroundPattern,
             POST_PATTERNS,
             "backgroundPattern",
         );
+        customization.backgroundPattern = input.backgroundPattern;
     }
-    if (input.backgroundFit !== undefined) {
+    if (Object.hasOwn(input, "backgroundFit")) {
         assertOneOf(input.backgroundFit, POST_IMAGE_FITS, "backgroundFit");
+        customization.backgroundFit = input.backgroundFit;
     }
-    if (input.backgroundImage !== undefined) {
+    if (Object.hasOwn(input, "backgroundImage")) {
         assertBackgroundUrl(input.backgroundImage, "backgroundImage");
+        customization.backgroundImage = input.backgroundImage;
     }
 
-    return {
-        // Build the persistence object from the allowlisted fields. Spreading
-        // `input` here would let arbitrary JSON keys (for example `userId` or
-        // `organizationId`) reach a Prisma update alongside these values.
-        backgroundColor:
-            input.backgroundColor ??
-            DEFAULT_POST_CUSTOMIZATION.backgroundColor,
-        backgroundPattern:
-            input.backgroundPattern ??
-            DEFAULT_POST_CUSTOMIZATION.backgroundPattern,
-        backgroundImage: input.backgroundImage ?? null,
-        backgroundFit:
-            input.backgroundFit ?? DEFAULT_POST_CUSTOMIZATION.backgroundFit,
-    };
+    return customization;
 }
 
 /**

@@ -20,11 +20,13 @@ export type PostSurfaceProps = {
 /**
  * THE single place a stored customization becomes pixels.
  *
- * `PostCard`, `PostContainer` and the post detail page all spread the result of
- * this function and do nothing else. That is what satisfies "rendered
- * consistently in post cards and post detail views" — the three surfaces cannot
- * drift because there is only one implementation to drift from. (Contrast the
- * profile feature, where `ProfileCustomizationPreview.tsx` keeps a second copy
+ * `PostContainer` and the post detail page both spread the result of this
+ * function and do nothing else. The editor preview uses it too, so it cannot
+ * promise a surface that publishing would not produce. That is what satisfies
+ * "rendered consistently in post cards and post detail views" — the live post
+ * surfaces cannot drift because there is only one implementation to drift
+ * from. (Contrast the profile feature, where `ProfileCustomizationPreview.tsx`
+ * keeps a second copy
  * of `UserOrgProfile.tsx`'s class maps, with a comment admitting the risk.)
  *
  * Why data attributes and a CSS custom property rather than the codebase's
