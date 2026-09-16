@@ -188,6 +188,17 @@ model Post {
   user                 User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
   organizationId       String?
   organization         Organization?        @relation(fields: [organizationId], references: [id])
+  // Issue #22 — text-to-audio. All fields nullable/defaulted so `prisma db push`
+  // is additive and existing rows remain byte-identical. `audioUrl` is a
+  // same-origin public path (e.g. /audio/<postId>.wav) or external URL when
+  // Cloudinary/S3 is configured. `audioStatus` tracks lifecycle without
+  // blocking publish/read.
+  audioUrl             String?
+  audioStatus          String               @default("none")
+  audioProvider        String?
+  audioGeneratedAt     DateTime?
+  audioDurationMs      Int?
+  audioError           String?
 
   @@schema("posts")
 }

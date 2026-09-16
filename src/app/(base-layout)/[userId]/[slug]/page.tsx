@@ -27,6 +27,8 @@ import { cn } from "@/utils/cn";
 import tiptapExtensions from "@/utils/tiptapExt";
 import { formatPostDate } from "@/utils/formatPostDate";
 import PostList from "@/components/post/PostList";
+import PostAudioPlayer from "@/components/post/PostAudioPlayer";
+import { buildSynthesisText } from "@/modules/tts/extractText";
 
 export async function generateMetadata({
     params,
@@ -104,6 +106,12 @@ export default async function PostPage({
     const extensions = tiptapExtensions();
 
     const postContent = generateHTML(post?.content as JSONContent, extensions);
+    // Issue #22: precompute plain text for browser-voice fallback (server-side, no extra fetch).
+    const plainTextForTts = buildSynthesisText({
+        title: post.title,
+        description: post.description,
+        content: post.content as unknown,
+    }).slice(0, 5000);
     return (
         <PostSlugWatcher postId={post.id}>
             <main className={prose}>
@@ -325,6 +333,14 @@ export default async function PostPage({
                             {/* <FontAwesomeIcon icon={faEllipsis} title="More" /> */}
                         </div>
                     </div>
+                </div>
+                <div className="not-prose">
+                    <PostAudioPlayer
+                        postId={post.id}
+                        plainText={plainTextForTts}
+                        initialAudioUrl={post.audioUrl}
+                        initialStatus={post.audioStatus}
+                    />
                 </div>
                 <article>{parse(`${postContent}`)}</article>
                 <hr className="my-8 h-px w-full border-0 bg-hairline" />
