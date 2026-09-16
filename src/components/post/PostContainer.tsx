@@ -25,7 +25,17 @@ export default function PostContainer({
     createdAt,
     organization,
     organizationId,
-}: Omit<Post, "content" | "updatedAt"> & {
+}: Omit<
+    Post,
+    | "content"
+    | "updatedAt"
+    | "audioUrl"
+    | "audioStatus"
+    | "audioProvider"
+    | "audioGeneratedAt"
+    | "audioDurationMs"
+    | "audioError"
+> & {
     _count?: {
         reactions: number;
         comments: number;

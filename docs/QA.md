@@ -338,7 +338,52 @@ This step verifies the server-side guard. Optional but recommended:
 
 ---
 
-## 7. What a passing QA run looks like
+## 7. Text-to-Audio (Issue #22)
+
+The post page (`/<userId>/<slug>`) exposes a **Listen** panel: server-synthesized audio (`Generate audio` → `<audio controls>`) plus a **Browser voice** fallback (`speechSynthesis`). Both are optional and never block publishing or reading. Default provider is the zero-deps `mock` WAV (tone) — enable VoxCPM via env (see `docs/TTS_EVALUATION.md`).
+
+### 7.1 Public read & initial state
+
+1. As anonymous, visit `/alice/welcome-to-weaseln`.
+2. **Expected:** a `Listen` section with text "Convert this post to audio", `Generate audio` and `Browser voice` buttons, no `<audio>` element, no errors. `GET /api/post/audio?postId=<id>` returns `audioStatus: "none"`, `audioUrl: null`.
+
+### 7.2 Anonymous generate is gated
+
+1. In the same anonymous context, `POST /api/post/audio` with `{ postId: "<id>" }` (no cookies).
+2. **Expected:** `401 { code: "UNAUTHORIZED", message: "Sign in to generate audio." }`. The page's `Generate audio` button surfaces "Sign in to generate audio." when clicked.
+
+### 7.3 Generate and play (alice, published post)
+
+1. Log in as alice. Visit `/alice/welcome-to-weaseln`. Scroll to `Listen`.
+2. Click **Generate audio**.
+3. **Expected:** button → `Generating…` (spinner), then `<audio controls>` appears with `src="/audio/<postId>.wav"` and provider label `via mock` + duration. `GET /api/post/audio?postId=<id>` now returns `audioStatus: "ready"`, `audioUrl` non-null. The audio is playable (duration ~ few seconds, audible tone).
+4. Reload the page.
+5. **Expected:** the `<audio>` element is still there — generation was persisted on `Post.audioUrl`. No second generation needed.
+
+### 7.4 Regenerate
+
+1. As alice, on the same post where audio is `ready`, click **Regenerate**.
+2. **Expected:** a new generation starts (spinner), then replaces the existing `audioUrl` with the same path but new file bytes. The count remains 1 file per post.
+
+### 7.5 Browser voice fallback
+
+1. As alice (or anonymous) on any published post, click **Browser voice**.
+2. **Expected:** if `speechSynthesis` is available, speech starts; button flips to `Stop`, clicking again cancels. Info toast: "Playing with browser voice (no server cost)." — no server request is made. If `speechSynthesis` is unavailable, a warning is shown.
+
+### 7.6 Unsupported / unavailable states
+
+* **Empty content:** `checkEligibility` rejects posts with <10 chars or >5000 chars → `POST` returns `400 { code: "EMPTY_CONTENT" | "TOO_LONG" }`, UI shows warning. Long posts advise to shorten/split.
+* **Unavailable VoxCPM:** with `TTS_PROVIDER=voxcpm` and `VOXCPM_API_URL` unset, `POST` returns `503 { code: "UNAVAILABLE", message: "VoxCPM service is not configured..." }`, UI suggests browser voice.
+* **Generation failure:** if the provider throws, post is marked `audioStatus: "failed"` and `audioError` is exposed in the panel's error alert; the post body still renders.
+* **Rate limit:** exceed `10/hour per user` or `5/hour per post` → `429 RATE_LIMITED` with `RetryAfter`. UI shows the message; cached `ready` reads do not count toward the limit.
+
+### 7.7 Non-blocking publish/read
+
+1. With TTS misconfigured (`TTS_PROVIDER=voxcpm` but no URL), publish a new QA post at `/new` (§5.1 steps). It must succeed and redirect to `/<user>/<titleId>` with no console 500s. The new post's `Listen` panel still renders (shows `UNAVAILABLE` on generate attempts) and article text still renders.
+
+---
+
+## 8. What a passing QA run looks like
 
 A clean run is:
 - `npm run db:seed` succeeds, `npm run dev` (with `ENABLE_DEV_LOGIN=true`) boots without errors.
@@ -347,12 +392,13 @@ A clean run is:
 - All §4 cross-user checks pass.
 - All §5 post-creation checks pass.
 - All §6 profile-customization checks pass.
+- All §7 text-to-audio checks pass.
 - No console errors in the browser on the visited routes (Socket.IO connection failures are expected if the standalone Socket.IO server on `ws://localhost:5000` isn't running — they don't block functional correctness).
 - No 500s in the server log.
 
 ---
 
-## 8. Agent quick-reference
+## 9. Agent quick-reference
 
 ```js
 // Minimal helper for Playwright:

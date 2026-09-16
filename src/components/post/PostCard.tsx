@@ -9,7 +9,15 @@ export default function PostCard({
     coverImage,
     title,
     description,
-}: Post) {
+}: Omit<
+    Post,
+    | "audioUrl"
+    | "audioStatus"
+    | "audioProvider"
+    | "audioGeneratedAt"
+    | "audioDurationMs"
+    | "audioError"
+>) {
     return (
         <Link
             href={`/${authorUsername ? authorUsername : userId}/${titleId}`}
