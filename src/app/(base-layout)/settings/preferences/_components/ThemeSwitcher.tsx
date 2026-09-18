@@ -1,40 +1,11 @@
 "use client";
 
-import { faMoon, faSun } from "@fortawesome/free-solid-svg-icons";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { useEffect, useState } from "react";
-import { themeChange } from "theme-change";
+import ThemeToggleButton from "@/components/ui/ThemeToggleButton";
 
 export default function ThemeSwitcher() {
-    const [theme, setTheme] = useState<string>(() =>
-        typeof window !== "undefined"
-            ? (localStorage.getItem("theme") as string) ?? ""
-            : "",
-    );
-    useEffect(() => {
-        themeChange(false);
-        // 👆 false parameter is required for react project
-    }, []);
-
     return (
-        <>
-            {theme === "dark" ? (
-                <button
-                    className="btn btn-neutral"
-                    data-set-theme="light"
-                    onClick={() => setTheme("light")}
-                >
-                    <FontAwesomeIcon icon={faSun} />
-                </button>
-            ) : (
-                <button
-                    className="btn btn-neutral"
-                    data-set-theme="dark"
-                    onClick={() => setTheme("dark")}
-                >
-                    <FontAwesomeIcon icon={faMoon} />
-                </button>
-            )}
-        </>
+        <ThemeToggleButton
+            className="btn btn-neutral btn-square h-10 min-h-10 w-10 rounded-field"
+        />
     );
 }
