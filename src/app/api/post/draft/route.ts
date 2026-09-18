@@ -4,8 +4,16 @@ import { auth } from "@/auth";
 import { NextRequest, NextResponse } from "next/server";
 
 import { getCloudinaryImage, uploadCloudinary } from "@/lib/cloudinary";
+import { readCustomization } from "@/modules/post-customization/validation";
 
 export async function POST(req: NextRequest) {
+    // ponytail: guard before req.formData() — see the note in /api/post.
+    // An anonymous caller must not be able to make the server buffer a
+    // multipart body it is going to throw away.
+    const session = await auth();
+    if (!session?.user) {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
     const body = await req.formData();
     const image_total = body.get("image_total")
         ? (body.get("image_total") as unknown as number)
@@ -23,7 +31,13 @@ export async function POST(req: NextRequest) {
         return imageFiles;
     };
     try {
-        const session = await auth();
+        const customization = readCustomization(body);
+        if (!customization.ok) {
+            return NextResponse.json(
+                { error: customization.message },
+                { status: 400 },
+            );
+        }
         const pastDraft = await prisma.user.findUnique({
             where: { id: session?.user.id },
             select: {
@@ -52,6 +66,7 @@ export async function POST(req: NextRequest) {
                             ).trim(),
                             tags: [...JSON.parse(body.get("tags") as string)],
                             content: JSON.parse(body.get("content") as string),
+                            ...customization.data,
                         },
                     },
                 },

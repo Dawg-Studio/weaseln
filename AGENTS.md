@@ -38,7 +38,7 @@ Running only one is **not** sufficient. The 26 pre-existing lint errors in `Tipt
 
 ## Cloudinary / cover images
 
-- **Cover image is optional.** `Post.coverImage` is `String?` in the schema, the `/api/post` route accepts no cover, and the renderers (`PostCard`, `PostContainer`, the post page) skip the cover `<figure>` entirely when null — no placeholder, no watermark. The composer still uploads a picked file to Cloudinary and stores the resulting URL on `Post.coverImage` when one is provided.
+- **Cover image is optional.** `Post.coverImage` is `String?` in the schema, the `/api/post` route accepts no cover, and the renderers (`PostContainer` and the post page) skip the cover `<figure>` entirely when null — no placeholder, no watermark. The composer still uploads a picked file to Cloudinary and stores the resulting URL on `Post.coverImage` when one is provided.
 - **QA bypass:** when `NEXT_PUBLIC_QA_NO_COVER=1`, the editor seeds `/covers/cover-1.svg` as the cover, sends it as a string in the FormData, and `/api/post` (and `/api/post/draft`) detect the URL prefix and store it directly without a Cloudinary round trip. This lets a QA run exercise the full publish path without external credentials.
 - The detection heuristic in both routes is:
   ```ts
@@ -46,6 +46,13 @@ Running only one is **not** sufficient. The 26 pre-existing lint errors in `Tipt
       typeof coverField === "string" &&
       (coverField.startsWith("/covers/") || coverField.startsWith("http"));
   ```
+
+## Post customization
+
+- **A post stores a palette SLUG, never a CSS colour.** `Post.backgroundColor` (and `PostDraft.backgroundColor`) holds one of the `POST_BACKGROUNDS` values — `default`, `clay`, `apricot`, … — from `src/modules/post-customization/types.ts`. The app flips its ink per `data-theme`, so a stored hex that reads at 12:1 in light can invert to unreadable in dark; a slug lets `globals.css` supply the light/dark pair and keeps contrast a property of the design system. Do not copy the free-form hex approach `src/modules/profile-customization` uses for profiles.
+- **`postSurfaceProps()` in `src/modules/post-customization/surface.ts` is the only place a customization becomes pixels.** Hand it a Prisma post row and spread the result onto the element that carries the background; it emits `data-post-bg` / `data-post-pattern` / `data-post-fit` and the inline `--post-image` property, and `{}` for an uncustomized post. Both live post render surfaces — `PostContainer` and the post page `src/app/(base-layout)/[userId]/[slug]/page.tsx` — spread it and do nothing else, which is why they cannot drift. The editor preview uses the same helper to reflect the published result. Never hand-write those attributes or add another post-rendering code path.
+- **The four columns are scalars on `Post` and `PostDraft`, not a relation**, so every existing `findMany`/`findUnique` already returns them — no `include` changes anywhere. Validate on the way in with `validatePostCustomizationInput` (throws, so a bad write is a 400) and on the way out with `normalizePostCustomization` (never throws, so one corrupt row degrades to the default instead of taking down a feed).
+- **Background images are allowlisted to `/covers/…` and `https://res.cloudinary.com/…`.** The stored URL is interpolated into a CSS `url("…")` token, so `validation.ts` also enforces a positive charset allowlist. Widening either list means revisiting both.
 
 ## UI / accessibility
 
@@ -66,7 +73,7 @@ Running only one is **not** sufficient. The 26 pre-existing lint errors in `Tipt
 ## Cross-references
 
 - `docs/CONCERNS.md` — known correctness/refactor issues, including the `socials` crash (A3), the `gemini-pro` shutdown (A5), and the load-bearing typo `StautsNotif` (A4).
-- `docs/QA.md` — seeded fixtures and per-user browser smoke checks, including post creation (§5).
+- `docs/QA.md` — seeded fixtures and per-user browser smoke checks, including post creation (§5) and post customization (§6).
 - `README.md` — local dev setup, dev-login flag, and seeded credentials.
 
 <!-- BEGIN:nextjs-agent-rules -->
