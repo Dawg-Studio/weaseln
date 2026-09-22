@@ -30,7 +30,17 @@ export default function PostContainer({
     backgroundPattern,
     backgroundImage,
     backgroundFit,
-}: Omit<Post, "content" | "updatedAt"> & {
+}: Omit<
+    Post,
+    | "content"
+    | "updatedAt"
+    | "audioUrl"
+    | "audioStatus"
+    | "audioProvider"
+    | "audioGeneratedAt"
+    | "audioDurationMs"
+    | "audioError"
+> & {
     _count?: {
         reactions: number;
         comments: number;
