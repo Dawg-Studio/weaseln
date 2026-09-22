@@ -10,6 +10,7 @@ import { getCloudinaryImage, uploadCloudinary } from "@/lib/cloudinary";
 import { revalidatePath } from "next/cache";
 import { postContainerInclude } from "@/utils/prismaQuery";
 import { rankContentForUser } from "@/utils/services/ranking";
+import { readCustomization } from "@/modules/post-customization/validation";
 import { buildWhere, buildOrderBy, paginate, ListPostsParams } from "./_query";
 //Promise<any> is a temporary fix
 
@@ -92,6 +93,15 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
+    // ponytail: this guard must precede req.formData(). Parsing first makes
+    // the server buffer an arbitrarily large multipart body on behalf of a
+    // caller we are about to reject, which turns the publish endpoint into an
+    // unauthenticated upload sink. Resolve the session first, reject, and
+    // only then read the body.
+    const session = await auth();
+    if (!session?.user) {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
     const body = await req.formData();
     const image_total = body.get("image_total")
         ? (body.get("image_total") as unknown as number)
@@ -113,9 +123,29 @@ export async function POST(req: NextRequest) {
         return randomBytes(2).toString("base64url").slice(0, 4);
     }
     try {
-        const session = await auth();
+        // Resolve a caller-supplied ID from the stored row before deciding
+        // whether this request updates or creates a post. The update below
+        // repeats this owner predicate in its actual write, so a concurrent
+        // ownership change cannot turn this check into an authorization gap.
+        const postId = (body.get("postId") as string) ?? "";
+        const existing = postId
+            ? await prisma.post.findUnique({
+                where: { id: postId },
+                select: { userId: true },
+            })
+            : null;
+        if (existing && existing.userId !== session.user.id) {
+            return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+        }
+        const customization = readCustomization(body);
+        if (!customization.ok) {
+            return NextResponse.json(
+                { error: customization.message },
+                { status: 400 },
+            );
+        }
         const author = await prisma.user.findUnique({
-            where: { id: session?.user.id },
+            where: { id: session.user.id },
             select: {
                 draft: true,
                 name: true,
@@ -125,53 +155,57 @@ export async function POST(req: NextRequest) {
         if (author?.draft) {
             await prisma.postDraft.delete({
                 where: {
-                    userId: session?.user.id,
+                    userId: session.user.id,
                 },
             });
         }
         const orgId = body.get("orgId") as string;
-        const post = await prisma.post.upsert({
-            where: { id: (body.get("postId") as string) ?? "" },
-            update: {
-                title: (body.get("title") as string).trim(),
-                description: (body.get("description") as string).trim(),
-                tags: [...JSON.parse(body.get("tags") as string)],
-                content: JSON.parse(body.get("content") as string),
-                readPerMinute: parseInt(body.get("readPerMinute") as string),
-                published:
-                    (body.get("published") as string) === "true" ? true : false,
-            },
-            create: {
-                author: author?.name ?? "",
-                authorImage: author?.image ?? "",
-                title: (body.get("title") as string).trim(),
-                titleId: `${(body.get("title") as string)
-                    .replace(/[^a-zA-Z0-9 ]/g, "")
-                    .trim()
-                    .split(" ")
-                    .join("-")}-${generateRandomCode()}`,
-                description: (body.get("description") as string).trim(),
-                tags: [...JSON.parse(body.get("tags") as string)],
-                content: JSON.parse(body.get("content") as string),
-                readPerMinute: parseInt(body.get("readPerMinute") as string),
-                authorUsername: body.get("username") as string,
-                published:
-                    (body.get("published") as string) === "true" ? true : false,
-                user: {
-                    connect: { id: session?.user.id },
-                },
-                ...(orgId && {
-                    organization: {
-                        connect: { id: orgId },
-                    },
-                }),
-            },
-            select: {
-                id: true,
-                content: true,
-                titleId: true,
-            },
-        });
+        const postData = {
+            title: (body.get("title") as string).trim(),
+            description: (body.get("description") as string).trim(),
+            tags: [...JSON.parse(body.get("tags") as string)],
+            content: JSON.parse(body.get("content") as string),
+            readPerMinute: parseInt(body.get("readPerMinute") as string),
+            published:
+                (body.get("published") as string) === "true" ? true : false,
+            ...customization.data,
+        };
+        const post = existing
+            ? await prisma.post.update({
+                  where: { id: postId, userId: session.user.id },
+                  data: postData,
+                  select: {
+                      id: true,
+                      content: true,
+                      titleId: true,
+                  },
+              })
+            : await prisma.post.create({
+                  data: {
+                      author: author?.name ?? "",
+                      authorImage: author?.image ?? "",
+                      titleId: `${(body.get("title") as string)
+                          .replace(/[^a-zA-Z0-9 ]/g, "")
+                          .trim()
+                          .split(" ")
+                          .join("-")}-${generateRandomCode()}`,
+                      authorUsername: body.get("username") as string,
+                      user: {
+                          connect: { id: session.user.id },
+                      },
+                      ...postData,
+                      ...(orgId && {
+                          organization: {
+                              connect: { id: orgId },
+                          },
+                      }),
+                  },
+                  select: {
+                      id: true,
+                      content: true,
+                      titleId: true,
+                  },
+              });
         //deletes the draft if new post has been inserted completely
         if (post && image_total === 0 && body.get("coverImage") === "undefined")
             return NextResponse.json({ data: post.titleId }, { status: 200 }); //if no new images and cover images detected
@@ -208,13 +242,20 @@ export async function POST(req: NextRequest) {
                                 folder: uploaded[parseInt(index)].folder,
                                 public_id: uploaded[parseInt(index)].public_id,
                             });
-                            if (!image.attrs?.src) return;
+                            if (!image.attrs?.src) {
+                                return NextResponse.json(
+                                    {
+                                        error: "Post content image is missing a source",
+                                    },
+                                    { status: 400 },
+                                );
+                            }
                             image.attrs.src = imageAddr;
                         }
                     }
                 }
                 await prisma.post.update({
-                    where: { id: post.id },
+                    where: { id: post.id, userId: session.user.id },
                     data: {
                         content: content,
                     },
@@ -234,7 +275,7 @@ export async function POST(req: NextRequest) {
                     coverField.startsWith("http"));
             if (coverIsUrl) {
                 const coverImage = await prisma.post.update({
-                    where: { id: post.id },
+                    where: { id: post.id, userId: session.user.id },
                     data: { coverImage: coverField as string },
                 });
                 if (coverImage) {
@@ -257,7 +298,7 @@ export async function POST(req: NextRequest) {
                         folder: cloudinary.metadata.folder,
                     });
                     const coverImage = await prisma.post.update({
-                        where: { id: post.id },
+                        where: { id: post.id, userId: session.user.id },
                         data: {
                             coverImage: imageAddr, //always output coverImage of 1920 1080
                         },
@@ -272,10 +313,8 @@ export async function POST(req: NextRequest) {
                 }
             }
         }
-        if (post) {
-            revalidatePath("/new", "page");
-            return NextResponse.json({ data: post.titleId }, { status: 200 });
-        }
+        revalidatePath("/new", "page");
+        return NextResponse.json({ data: post.titleId }, { status: 200 });
     } catch (err) {
         console.log(err);
         return NextResponse.json({ err }, { status: 500 });

@@ -27,6 +27,7 @@ import { cn } from "@/utils/cn";
 import tiptapExtensions from "@/utils/tiptapExt";
 import { formatPostDate } from "@/utils/formatPostDate";
 import PostList from "@/components/post/PostList";
+import { postSurfaceProps } from "@/modules/post-customization/surface";
 import PostAudioPlayer from "@/components/post/PostAudioPlayer";
 import { buildSynthesisText } from "@/modules/tts/extractText";
 
@@ -114,7 +115,13 @@ export default async function PostPage({
     }).slice(0, 5000);
     return (
         <PostSlugWatcher postId={post.id}>
-            <main className={prose}>
+            {/* ponytail: the customization surface for the detail view. It
+                belongs on <main> — the comment thread is inside, and the
+                Read Next <section> is a sibling outside, so a tinted page
+                never nests a tinted card within itself. postSurfaceProps()
+                returns {} for an uncustomized post, which is what keeps this
+                element identical to what it rendered before the feature. */}
+            <main {...postSurfaceProps(post)} className={prose}>
                 {isPublisher && (
                     <div className="not-prose mb-6 flex items-center justify-end gap-3">
                         <Link
@@ -295,7 +302,10 @@ export default async function PostPage({
                             <div className="flex items-center gap-2">
                                 <div className="flex items-center gap-2">
                                     <ReactionButton
-                                        target={{ id: post.id, authorId: post.userId }}
+                                        target={{
+                                            id: post.id,
+                                            authorId: post.userId,
+                                        }}
                                         targetType="post"
                                         initialReactionCount={
                                             post._count.reactions

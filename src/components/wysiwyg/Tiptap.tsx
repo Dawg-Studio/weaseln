@@ -19,11 +19,13 @@ import { useAutosave } from "./hooks/useAutosave";
 import ImageUploadForm from "./ImageUploadForm";
 import TagInput from "./TagInput";
 import PostStatusBanner from "./PostStatusBanner";
+import PostBackgroundPicker from "@/components/post/PostBackgroundPicker";
+import { type PostCustomization } from "@/modules/post-customization/types";
 import {
-    PreviewEditor,
-    urlToFile,
-    collectEditorImages,
-} from "./previewUtils";
+    DEFAULT_POST_CUSTOMIZATION,
+    normalizePostCustomization,
+} from "@/modules/post-customization/validation";
+import { PreviewEditor, urlToFile, collectEditorImages } from "./previewUtils";
 
 // `measure` (68ch) replaces the old `max-w-md`, which pinned the composer to a
 // 28rem phone column on desktop. Matches the reading page exactly, so what the
@@ -63,8 +65,7 @@ export default function Tiptap({
     // QA_NO_COVER is set and no draft cover exists, so the publish gate
     // passes without a manual upload.
     const initialCover =
-        editOrDraft?.coverImage ??
-        (QA_NO_COVER ? DEFAULT_QA_COVERS[0] : "");
+        editOrDraft?.coverImage ?? (QA_NO_COVER ? DEFAULT_QA_COVERS[0] : "");
     const [coverImage, setCoverImage] = useState<string>(initialCover);
     const [preview, setPreview] = useState<boolean>(false);
     const [publishState, setPublishState] = useState<boolean>(false);
@@ -72,6 +73,15 @@ export default function Tiptap({
         editOrDraft?.tags ?? [],
     );
     const [isSavingDraft, setIsSavingDraft] = useState<boolean>(false);
+    // ponytail: the draft row carries the four background columns, so a
+    // background picked mid-compose survives an autosave and a reload.
+    // normalizePostCustomization is the READ path — a row written by an older
+    // deploy degrades to the default appearance instead of throwing here.
+    const [customization, setCustomization] = useState<PostCustomization>(() =>
+        editOrDraft
+            ? normalizePostCustomization(editOrDraft)
+            : DEFAULT_POST_CUSTOMIZATION,
+    );
 
     const draftTags = editOrDraft?.tags;
     const tagList = useMemo(() => {
@@ -115,7 +125,9 @@ export default function Tiptap({
             StarterKit,
         ],
         content: `<h1>${editOrDraft?.title ?? ""}</h1>`,
-        editorProps: { attributes: { class: prose, "aria-label": "Post title" } },
+        editorProps: {
+            attributes: { class: prose, "aria-label": "Post title" },
+        },
     });
 
     const editorDescription = useEditor({
@@ -172,6 +184,7 @@ export default function Tiptap({
             formData.append("description", editorDescription?.getText() ?? "");
             formData.append("content", content);
             formData.append("tags", JSON.stringify(inputTags));
+            formData.append("customization", JSON.stringify(customization));
             formData.append("org", JSON.stringify(selectedOrg));
 
             await fetch("/api/post/draft", {
@@ -184,6 +197,9 @@ export default function Tiptap({
             editorTitle,
             editorDescription,
             inputTags,
+            // Without this the autosave would keep posting the background the
+            // author had picked one change ago.
+            customization,
             selectedOrg,
             publishState,
         ],
@@ -232,6 +248,19 @@ export default function Tiptap({
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [inputTags]);
 
+    // Same init-ref guard as the two effects above: seeding the state from a
+    // draft must not schedule a save, but every later pick must.
+    const customizationInitRef = useRef(true);
+    useEffect(() => {
+        if (customizationInitRef.current) {
+            customizationInitRef.current = false;
+            return;
+        }
+        if (!editor) return;
+        save(JSON.stringify(editor.getJSON()));
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [customization]);
+
     function togglePreview() {
         setPreview((prev) => !prev);
     }
@@ -261,10 +290,7 @@ export default function Tiptap({
 
         const images = await collectEditorImages(editorRef.current);
         if (images.length !== 0) {
-            formData.append(
-                "image_total",
-                images.length as unknown as string,
-            );
+            formData.append("image_total", images.length as unknown as string);
             for (const [index, image] of Object.entries(images)) {
                 formData.append(`image_${index}`, image);
             }
@@ -278,6 +304,7 @@ export default function Tiptap({
         formData.append("content", JSON.stringify(json));
         formData.append("series", "test");
         formData.append("tags", JSON.stringify(inputTags));
+        formData.append("customization", JSON.stringify(customization));
         const readPerMinute = Math.round(
             (editor?.storage.characterCount.words() ?? 0) / 238,
         );
@@ -314,7 +341,8 @@ export default function Tiptap({
     }
 
     async function checkPostRequirements() {
-        const wordsRequired = (editor?.storage.characterCount.words() ?? 0) >= 50;
+        const wordsRequired =
+            (editor?.storage.characterCount.words() ?? 0) >= 50;
         // ponytail: cover is optional — see AGENTS.md.
         const required: { [key: string]: boolean } = {
             title: !!editorTitle?.getText(),
@@ -359,6 +387,13 @@ export default function Tiptap({
                 <div className="flex flex-wrap justify-center p-2">
                     <div className="flex items-center overflow-auto gap-3">
                         <ImageUploadForm onUpload={setCoverImage} />
+                        {/* One control, not an inline swatch strip: this bar
+                            already holds four and would fold onto a second row
+                            on a 360px screen. */}
+                        <PostBackgroundPicker
+                            value={customization}
+                            onChange={setCustomization}
+                        />
                         <button
                             className={cn(
                                 "btn h-11 min-h-11 rounded-field px-5 text-sm font-semibold press",
@@ -411,6 +446,7 @@ export default function Tiptap({
                     editorDescription={editorDescription}
                     coverImage={coverImage}
                     inputTags={inputTags}
+                    customization={customization}
                 />
             ) : (
                 <>

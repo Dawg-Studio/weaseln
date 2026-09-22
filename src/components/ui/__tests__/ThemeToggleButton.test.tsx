@@ -1,65 +1,117 @@
-import { describe, it, expect, beforeEach, vi } from "vitest";
-
-vi.mock("next-auth", () => ({
-    default: vi.fn(() => ({
-        handlers: {},
-        auth: vi.fn(),
-        signIn: vi.fn(),
-        signOut: vi.fn(),
-    })),
-    auth: vi.fn(),
-    handlers: { GET: vi.fn(), POST: vi.fn() },
-}));
-
-vi.mock("next-auth/react", () => ({
-    signIn: vi.fn(),
-    signOut: vi.fn(),
-    useSession: () => ({ data: null, status: "unauthenticated" }),
-    SessionProvider: ({ children }: { children: React.ReactNode }) => children,
-}));
-
-import { render, screen, fireEvent, cleanup } from "@testing-library/react";
-import { ThemeToggleButton } from "../Navigation";
+import { beforeEach, describe, expect, it } from "vitest";
+import {
+    act,
+    fireEvent,
+    render,
+    screen,
+    waitFor,
+} from "@testing-library/react";
+import { renderToString } from "react-dom/server";
+import ThemeProvider from "@/components/provider/ThemeProvider";
+import ThemeToggleButton from "../ThemeToggleButton";
 
 describe("ThemeToggleButton", () => {
     beforeEach(() => {
-        cleanup();
+        window.localStorage.clear();
         document.documentElement.dataset.theme = "light";
     });
 
-    it("renders a button with the dark-mode switch label when current theme is light", () => {
-        document.documentElement.dataset.theme = "light";
-        render(<ThemeToggleButton />);
+    it("switches both the document and persisted theme in either direction", () => {
+        render(
+            <>
+                <ThemeProvider />
+                <ThemeToggleButton />
+            </>,
+        );
+
+        fireEvent.click(
+            screen.getByRole("checkbox", { name: /switch to dark theme/i }),
+        );
+
+        expect(document.documentElement).toHaveAttribute("data-theme", "dark");
+        expect(window.localStorage.getItem("theme")).toBe("dark");
+
+        fireEvent.click(
+            screen.getByRole("checkbox", { name: /switch to light theme/i }),
+        );
+
+        expect(document.documentElement).toHaveAttribute("data-theme", "light");
+        expect(window.localStorage.getItem("theme")).toBe("light");
+    });
+
+    it("restores a saved dark theme before interaction", () => {
+        window.localStorage.setItem("theme", "dark");
+
+        render(
+            <>
+                <ThemeProvider />
+                <ThemeToggleButton />
+            </>,
+        );
+
+        expect(document.documentElement).toHaveAttribute("data-theme", "dark");
         expect(
-            screen.getByRole("button", { name: /switch to dark theme/i }),
-        ).toBeInTheDocument();
+            screen.getByRole("checkbox", { name: /switch to light theme/i }),
+        ).toBeChecked();
     });
 
-    it("renders a button with the light-mode switch label when current theme is dark", () => {
+    it("keeps its initial markup stable when the browser is already dark", () => {
+        window.localStorage.setItem("theme", "dark");
         document.documentElement.dataset.theme = "dark";
-        render(<ThemeToggleButton />);
+
+        const markup = renderToString(<ThemeToggleButton />);
+
+        expect(markup).toContain('aria-label="Switch to dark theme"');
+    });
+
+    it("falls back to light when storage contains an unsupported value", () => {
+        window.localStorage.setItem("theme", "sepia");
+
+        render(
+            <>
+                <ThemeProvider />
+                <ThemeToggleButton />
+            </>,
+        );
+
+        expect(document.documentElement).toHaveAttribute("data-theme", "light");
         expect(
-            screen.getByRole("button", { name: /switch to light theme/i }),
-        ).toBeInTheDocument();
+            screen.getByRole("checkbox", { name: /switch to dark theme/i }),
+        ).not.toBeChecked();
     });
 
-    it("sets data-set-theme to the opposite of the current theme", () => {
-        document.documentElement.dataset.theme = "light";
-        render(<ThemeToggleButton />);
-        const btn = screen.getByRole("button", { name: /switch to dark theme/i });
-        expect(btn.dataset.setTheme).toBe("dark");
+    it("keeps every mounted theme control synchronized", async () => {
+        render(
+            <>
+                <ThemeProvider />
+                <ThemeToggleButton />
+                <ThemeToggleButton />
+            </>,
+        );
 
-        cleanup();
-        document.documentElement.dataset.theme = "dark";
-        render(<ThemeToggleButton />);
-        const btn2 = screen.getByRole("button", { name: /switch to light theme/i });
-        expect(btn2.dataset.setTheme).toBe("light");
-    });
+        const toggles = screen.getAllByRole("checkbox", {
+            name: /switch to dark theme/i,
+        });
+        fireEvent.click(toggles[0]);
 
-    it("does not throw when clicked", () => {
-        document.documentElement.dataset.theme = "light";
-        render(<ThemeToggleButton />);
-        const btn = screen.getByRole("button", { name: /switch to dark theme/i });
-        expect(() => fireEvent.click(btn)).not.toThrow();
+        await waitFor(() => {
+            expect(
+                screen.getAllByRole("checkbox", {
+                    name: /switch to light theme/i,
+                }),
+            ).toHaveLength(2);
+        });
+
+        act(() => {
+            document.documentElement.dataset.theme = "light";
+        });
+
+        await waitFor(() => {
+            expect(
+                screen.getAllByRole("checkbox", {
+                    name: /switch to dark theme/i,
+                }),
+            ).toHaveLength(2);
+        });
     });
 });

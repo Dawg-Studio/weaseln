@@ -74,10 +74,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         },
     },
     theme: {
-        // The mark, not the lockup: Auth.js caps theme.logo at 20px, where the
-        // lockup's baked-in wordmark and tagline are unreadable. `pages` below
+        // The mark, not the full logo: Auth.js caps theme.logo at 20px, where
+        // the baked-in wordmark and tagline are unreadable. `pages` below
         // replaces every built-in screen except sign-out, which still uses it.
-        logo: "/icons/weasln-mark.png",
+        logo: "/icons/weaseln-mark.png",
     },
     pages: {
         // Replaces the stock Auth.js sign-in screen with the branded page in

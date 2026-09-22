@@ -1,6 +1,7 @@
 import "dotenv/config";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient, Prisma } from "../src/generated/prisma/client";
+import type { PostCustomization } from "../src/modules/post-customization/types";
 
 const prisma = new PrismaClient({
     adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL }),
@@ -26,6 +27,34 @@ const SEEDED_FOLLOWS: ReadonlyArray<readonly [string, string]> = [
     ["alice", "carol"], // carol follows alice
     ["bob", "carol"], // carol follows bob
 ];
+
+// ponytail: issue #21 — per-post visual customization, keyed by titleId.
+// Only two of the ten posts get one. A QA run has to see a customized and an
+// uncustomized post side by side in the same feed to confirm that a post
+// without a customization still renders exactly as it did before the feature,
+// so the other eight are deliberately left on the schema defaults.
+//
+// Every value is a palette SLUG, never a CSS colour — globals.css supplies the
+// theme-correct pair per data-theme. See src/modules/post-customization.
+const SEEDED_CUSTOMIZATIONS: Record<string, PostCustomization> = {
+    // Tint plus texture: exercises data-post-bg and data-post-pattern.
+    "designing-for-readers": {
+        backgroundColor: "moss",
+        backgroundPattern: "dots",
+        backgroundImage: null,
+        backgroundFit: "cover",
+    },
+    // A bundled cover as the surface image: exercises data-post-fit and the
+    // inline --post-image property with no Cloudinary credentials in play.
+    // Deliberately a different file from this post's own coverImage
+    // (cover-3.svg) so QA can tell the surface apart from the cover figure.
+    "the-state-of-blogging": {
+        backgroundColor: "dusk",
+        backgroundPattern: "none",
+        backgroundImage: "/covers/cover-2.svg",
+        backgroundFit: "cover",
+    },
+};
 
 const avatar = (seed: string) =>
     `https://api.dicebear.com/7.x/avataaars/svg?seed=${seed}`;
@@ -139,6 +168,9 @@ async function main() {
                     published: p.published,
                     organizationId: p.orgId,
                     coverImage: p.cover,
+                    // undefined for the eight posts left at their defaults,
+                    // and spreading undefined is a no-op.
+                    ...SEEDED_CUSTOMIZATIONS[p.titleId],
                 },
             }),
         ),
@@ -225,7 +257,7 @@ async function main() {
     });
 
     console.log(
-        `Seeded: 3 users, 1 org, ${posts.length} posts, 4 comments, 4 reactions, follows, 2 bookmarks.`,
+        `Seeded: 3 users, 1 org, ${posts.length} posts (2 customized), 4 comments, 4 reactions, follows, 2 bookmarks.`,
     );
 }
 
