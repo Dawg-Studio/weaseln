@@ -80,6 +80,12 @@ model User {
   ownedOrganizations    Organization[]            @relation("UserOwnsOrganizations")
   adminInOrganizations  Organization[]            @relation("UserAdminOfOrganizations")
   oAuthClients           OAuthClient[]
+  skills                String[]
+  resumeUrl             String?
+  resumePublicId        String?
+  resumePublic          Boolean                   @default(false)
+  showcases             PortfolioShowcase[]
+  experience            UserExperience[]
 
   @@index([name])
   @@schema("users")
@@ -423,3 +429,69 @@ model OAuthRefreshToken {
 
   @@schema("oauth")
 }
+
+// A showcase is a user-named container ("Photography", "Shipped apps").
+// `layout` decides how its items render; the user invents the kinds.
+model PortfolioShowcase {
+  id          String          @id @default(cuid())
+  userId      String
+  user        User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title       String
+  slug        String
+  description String?
+  layout      String          @default("grid") // grid | gallery | list | timeline
+  order       Int             @default(0)
+  items       PortfolioItem[]
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  @@unique([userId, slug])
+  @@index([userId])
+  @@schema("users")
+}
+
+// No `userId` here: ownership of an item is expressed through its showcase,
+// so there is no denormalized owner column to keep in sync.
+model PortfolioItem {
+  id          String            @id @default(cuid())
+  showcaseId  String
+  showcase    PortfolioShowcase @relation(fields: [showcaseId], references: [id], onDelete: Cascade)
+  title       String
+  slug        String
+  summary     String?
+  description String?
+  coverImage  String?
+  gallery     String[]
+  link        String?
+  tags        String[]
+  date        String?
+  order       Int               @default(0)
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+
+  @@unique([showcaseId, slug])
+  @@schema("users")
+}
+
+// Dates are "YYYY" or "YYYY-MM" strings: a resume that says "Mar 2023" must
+// not become March 1st.
+model UserExperience {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  kind        String   @default("work") // work | education
+  org         String
+  role        String
+  location    String?
+  startDate   String?
+  endDate     String?
+  isCurrent   Boolean  @default(false)
+  description String?
+  order       Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([userId])
+  @@schema("users")
+}
+

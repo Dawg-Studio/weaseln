@@ -60,4 +60,21 @@ describe("Prisma schema shape", () => {
             expect(userRel).not.toMatch(/fields:\s*\[[^\]]*userImage/);
         }
     });
+
+    it("portfolio models exist and have no denormalized owner on items", () => {
+        const item = extractModel(SCHEMA, "PortfolioItem");
+        expect(item).not.toMatch(/^\s*userId\s/m);
+        expect(getFieldLine(extractModel(SCHEMA, "PortfolioShowcase"), "layout")).toMatch(
+            /@default\("grid"\)/,
+        );
+        for (const name of ["PortfolioShowcase", "PortfolioItem", "UserExperience"]) {
+            expect(extractModel(SCHEMA, name)).toMatch(/@@schema\("users"\)/);
+        }
+    });
+
+    it("User carries the resume columns and resumePublic defaults to off", () => {
+        const user = extractModel(SCHEMA, "User");
+        expect(getFieldLine(user, "resumePublic")).toMatch(/@default\(false\)/);
+        expect(getFieldLine(user, "resumePublicId")).toMatch(/String\?/);
+    });
 });
