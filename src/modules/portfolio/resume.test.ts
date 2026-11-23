@@ -249,6 +249,29 @@ describe("resume removal and skills", () => {
         expect(rows.map((row) => row.order)).toEqual([3, 4]);
     });
 
+    it("fills an empty social with the confirmed link", async () => {
+        mockFindUnique.mockResolvedValue({
+            resumePublicId: null,
+            resumePublic: false,
+            socials: [{ name: "Personal Website", url: "" }],
+        });
+        await applyResumeProposal(actor, {
+            headline: null,
+            summary: null,
+            location: null,
+            links: [{ label: "Personal Website", url: "https://alice.dev" }],
+            skills: [],
+            experience: [],
+        });
+        const socials = mockUpdate.mock.calls[0][0].data.socials as {
+            name: string;
+            url: string;
+        }[];
+        expect(socials.find((s) => s.name === "Personal Website")?.url).toBe(
+            "https://alice.dev",
+        );
+    });
+
     it("leaves curated skills alone when the resume found none", async () => {
         await applyResumeProposal(actor, {
             headline: null,

@@ -293,8 +293,17 @@ function mergeSocials(existing: unknown, links: ResumeLink[]): StoredSocial[] {
         ? [...(existing as StoredSocial[])]
         : [];
     for (const link of links) {
-        if (!merged.some((entry) => entry.name === link.label)) {
+        const index = merged.findIndex((entry) => entry.name === link.label);
+        if (index === -1) {
             merged.push({ name: link.label, url: link.url });
+            continue;
+        }
+        // The profile form always writes its three social fields, leaving an
+        // empty URL for the ones the owner never filled in. A confirmed link
+        // fills that gap; a real value is never overwritten.
+        const current = merged[index];
+        if (!current.url) {
+            merged[index] = { ...current, url: link.url };
         }
     }
     return merged;
