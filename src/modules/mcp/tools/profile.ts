@@ -20,7 +20,9 @@ export const profileUpdateSchema = z.strictObject({
     address: z.string().nullable().optional(),
     occupation: z.string().nullable().optional(),
     email: z.string().nullable().optional(),
-    image: z.string().nullable().optional(),
+    // `User.image` is required, so a null here would reach Prisma and fail
+    // there instead of being refused as the caller's mistake.
+    image: z.string().optional(),
     socials: z
         .array(z.object({ name: z.string(), url: z.string() }))
         .optional(),

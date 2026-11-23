@@ -100,4 +100,15 @@ describe("profile tools", () => {
             true,
         );
     });
+
+    it("refuses null for the column that cannot be null", () => {
+        // `User.image` is a required column, so a null here would reach Prisma
+        // and come back as an internal failure for a call the schema allowed.
+        expect(profileUpdateSchema.safeParse({ image: null }).success).toBe(
+            false,
+        );
+        expect(
+            profileUpdateSchema.safeParse({ image: "https://img" }).success,
+        ).toBe(true);
+    });
 });
