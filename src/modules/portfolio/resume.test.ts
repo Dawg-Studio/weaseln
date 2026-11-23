@@ -272,6 +272,20 @@ describe("resume removal and skills", () => {
         );
     });
 
+    it("refuses a malformed experience payload instead of writing nothing", async () => {
+        await expect(
+            applyResumeProposal(actor, {
+                headline: null,
+                summary: null,
+                location: null,
+                links: [],
+                skills: [],
+                experience: "nope",
+            }),
+        ).rejects.toThrow(/experience/);
+        expect(mockUpdate).not.toHaveBeenCalled();
+    });
+
     it("leaves curated skills alone when the resume found none", async () => {
         await applyResumeProposal(actor, {
             headline: null,

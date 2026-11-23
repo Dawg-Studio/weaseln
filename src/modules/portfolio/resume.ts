@@ -324,9 +324,15 @@ export async function applyResumeProposal(
 
     const { experience, ...factInput } = input as Record<string, unknown>;
     const facts = validateResumeFacts(factInput);
-    const entries = Array.isArray(experience)
-        ? experience.map(validateExperienceInput)
-        : [];
+    // A proposal always carries an experience array. A payload without one is
+    // malformed, and answering it as "added nothing" would report a silent
+    // no-op as a success.
+    if (!Array.isArray(experience)) {
+        throw new Error(
+            "Invalid portfolio input: experience must be an array",
+        );
+    }
+    const entries = experience.map(validateExperienceInput);
 
     const current = await prisma.user.findUnique({
         where: { id: actor.userId },
