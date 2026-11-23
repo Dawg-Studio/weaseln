@@ -3,6 +3,7 @@ import {
     applyResumeProposal,
     assertResumeBytes,
     getResumeDownloadUrl,
+    getResumeState,
     parseResumePdf,
     removeResume,
     ResumeError,
@@ -346,6 +347,35 @@ describe("resume storage", () => {
         expect(await getResumeDownloadUrl({ userId: "bob" }, { userId: "alice" })).toBe(
             "https://api.cloudinary.com/v1_1/leindfraust/raw/download?signed",
         );
+    });
+
+    it("gives the owner a download link even when the resume is private", async () => {
+        mockFindUnique.mockResolvedValue({ resumePublic: false, resumePublicId: "p" });
+        const before = Math.floor(Date.now() / 1000);
+
+        const state = await getResumeState(actor);
+
+        expect(state).toEqual({
+            hasResume: true,
+            isPublic: false,
+            downloadUrl: expect.any(String),
+        });
+        const request = mockDownloadUrl.mock.calls[0][0];
+        expect(request.folder).toBe("postdevfy/portfolio");
+        expect(request.format).toBe("pdf");
+        expect(request.expiresAt).toBeGreaterThanOrEqual(before + 60);
+        expect(request.expiresAt).toBeLessThanOrEqual(before + 61);
+    });
+
+    it("reports no resume when the owner has none", async () => {
+        mockFindUnique.mockResolvedValue({ resumePublic: false, resumePublicId: null });
+
+        expect(await getResumeState(actor)).toEqual({
+            hasResume: false,
+            isPublic: false,
+            downloadUrl: null,
+        });
+        expect(mockDownloadUrl).not.toHaveBeenCalled();
     });
 
     it("applies only the facts it is given and leaves nulls alone", async () => {

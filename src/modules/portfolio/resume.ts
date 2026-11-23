@@ -394,6 +394,39 @@ export async function getResumeDownloadUrl(
     });
 }
 
+export type ResumeState = {
+    hasResume: boolean;
+    isPublic: boolean;
+    downloadUrl: string | null;
+};
+
+/**
+ * The owner's own view of the resume: the link is the owner's, so it is
+ * given whether the resume is public or not. The visibility rule belongs to
+ * `getResumeDownloadUrl`, which serves a visitor.
+ */
+export async function getResumeState(
+    actor: PortfolioActor,
+): Promise<ResumeState> {
+    const row = await prisma.user.findUnique({
+        where: { id: actor.userId },
+        select: { resumePublic: true, resumePublicId: true },
+    });
+    if (!row?.resumePublicId) {
+        return { hasResume: false, isPublic: false, downloadUrl: null };
+    }
+    return {
+        hasResume: true,
+        isPublic: row.resumePublic,
+        downloadUrl: await getPrivateDownloadUrl({
+            public_id: row.resumePublicId,
+            folder: RESUME_FOLDER,
+            format: RESUME_FORMAT,
+            expiresAt: Math.floor(Date.now() / 1000) + 60,
+        }),
+    };
+}
+
 type StoredSocial = { name?: string; url?: string };
 
 function mergeSocials(existing: unknown, links: ResumeLink[]): StoredSocial[] {

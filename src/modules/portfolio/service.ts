@@ -23,6 +23,8 @@ export type ShowcaseRow = {
     order: number;
 };
 
+export type ItemRow = ItemInput & { id: string; slug: string; order: number };
+
 export async function listShowcases(
     actor: PortfolioActor,
 ): Promise<ShowcaseRow[]> {
@@ -38,6 +40,22 @@ export async function listShowcases(
             order: true,
         },
     }) as Promise<ShowcaseRow[]>;
+}
+
+export type PortfolioShowcaseRow = ShowcaseRow & { items: ItemRow[] };
+
+/**
+ * The owner's showcases with their items, both ordered - the shape the public
+ * profile page loads.
+ */
+export async function listPortfolio(
+    actor: PortfolioActor,
+): Promise<PortfolioShowcaseRow[]> {
+    return prisma.portfolioShowcase.findMany({
+        where: { userId: actor.userId },
+        orderBy: { order: "asc" },
+        include: { items: { orderBy: { order: "asc" } } },
+    }) as Promise<PortfolioShowcaseRow[]>;
 }
 
 export async function createShowcase(
@@ -121,8 +139,6 @@ export async function moveShowcase(
         }),
     ]);
 }
-
-export type ItemRow = ItemInput & { id: string; slug: string; order: number };
 
 export type ExperienceRow = ExperienceInput & { id: string; order: number };
 
