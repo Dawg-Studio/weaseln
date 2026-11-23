@@ -149,12 +149,18 @@ export const uploadImageScopeChallenge: ScopeChallengeHandler = ({
     authInfo,
 }) => {
     const scopes = authInfo?.scopes ?? [];
-    const required = ["posts:write", "org:write", "design:write"];
+    const required = [
+        "posts:write",
+        "org:write",
+        "design:write",
+        "portfolio:write",
+        "profile:write",
+    ];
     if (required.some((scope) => scopes.includes(scope))) return undefined;
     return {
         scopes: required as [string, ...string[]],
         errorDescription:
-            "This tool needs one of posts:write, org:write or design:write.",
+            "This tool needs one of posts:write, org:write, design:write, portfolio:write or profile:write.",
     };
 };
 
@@ -257,6 +263,7 @@ export function registerDesignTools(server: McpServer) {
                     "post_background",
                     "profile",
                     "organization",
+                    "portfolio",
                 ]),
             }),
             scopeChallenge: uploadImageScopeChallenge,

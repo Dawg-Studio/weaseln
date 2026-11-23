@@ -9,6 +9,7 @@ import {
     deleteItem,
     deleteShowcase,
     listExperience,
+    listPortfolio,
     listShowcases,
     moveExperience,
     moveItem,
@@ -178,6 +179,29 @@ describe("showcase service", () => {
             where: { userId: "alice" },
             orderBy: { order: "asc" },
         });
+    });
+
+    it("lists the showcases with their items in order", async () => {
+        mockFindMany.mockResolvedValue([
+            {
+                id: "showcase-1",
+                title: "Work",
+                slug: "work",
+                description: null,
+                layout: "grid",
+                order: 0,
+                items: [{ id: "item-1", title: "Harbour", order: 0 }],
+            },
+        ]);
+
+        const rows = await listPortfolio(actor);
+
+        expect(mockFindMany).toHaveBeenCalledWith({
+            where: { userId: "alice" },
+            orderBy: { order: "asc" },
+            include: { items: { orderBy: { order: "asc" } } },
+        });
+        expect(rows[0].items[0].id).toBe("item-1");
     });
 });
 

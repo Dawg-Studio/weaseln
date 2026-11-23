@@ -28,4 +28,72 @@ describe("tool errors", () => {
         expect(result.content[0].text).toBe("Internal server error");
         expect(result.content[0].text).not.toContain("prisma");
     });
+
+    it("reports an error that carries a caller status as it is", () => {
+        const error = Object.assign(new Error("Resume must be a PDF"), {
+            status: 415,
+        });
+
+        const result = toolError(error);
+
+        expect(result.content[0].text).toBe("Resume must be a PDF");
+        expect(result.isError).toBe(true);
+    });
+
+    it("keeps a server status internal", () => {
+        const error = Object.assign(new Error("Upload failed"), { status: 502 });
+
+        const result = toolError(error);
+
+        expect(result.content[0].text).toBe("Internal server error");
+    });
+
+    it("reports a portfolio validation error as it is", () => {
+        const result = toolError(
+            new Error("Invalid portfolio input: gallery holds at most 12 images"),
+        );
+
+        expect(result.content[0].text).toContain("Invalid portfolio input");
+    });
+
+    it("reports a missing portfolio row as it is", () => {
+        const result = toolError(new Error("Showcase not found"));
+
+        expect(result.content[0].text).toBe("Showcase not found");
+    });
+
+    it("reports the lowest caller status as it is", () => {
+        const error = Object.assign(new Error("Bad request"), { status: 400 });
+
+        const result = toolError(error);
+
+        expect(result.content[0].text).toBe("Bad request");
+        expect(result.isError).toBe(true);
+    });
+
+    it("keeps the lowest server status internal", () => {
+        const error = Object.assign(new Error("Server failed"), { status: 500 });
+
+        const result = toolError(error);
+
+        expect(result.content[0].text).toBe("Internal server error");
+    });
+
+    it("keeps a server status internal even on a caller message", () => {
+        const error = Object.assign(new Error("Showcase not found"), {
+            status: 500,
+        });
+
+        const result = toolError(error);
+
+        expect(result.content[0].text).toBe("Internal server error");
+    });
+
+    it("keeps a caller status with no message internal", () => {
+        const error = Object.assign(new Error(""), { status: 400 });
+
+        const result = toolError(error);
+
+        expect(result.content[0].text).toBe("Internal server error");
+    });
 });

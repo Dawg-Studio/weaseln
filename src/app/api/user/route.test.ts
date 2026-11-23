@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { PATCH } from "./route";
 
 const mockUpdate = vi.fn();
@@ -41,10 +41,19 @@ describe("PATCH /api/user", () => {
         mockAuth.mockReset();
         mockUpdate.mockReset();
         mockUpdateMany.mockReset();
+        mockTransaction.mockReset();
         mockAuth.mockResolvedValue({ user: { id: "alice" } });
         mockUpdate.mockResolvedValue({ id: "alice" });
         mockUpdateMany.mockResolvedValue({ count: 0 });
         mockFindUnique.mockResolvedValue({ socials: [] });
+        // The route logs a failure it does not hand to the client. The spy is
+        // restored in afterEach, so a failing assertion cannot leave it
+        // silencing the tests that follow.
+        vi.spyOn(console, "error").mockImplementation(() => {});
+    });
+
+    afterEach(() => {
+        vi.restoreAllMocks();
     });
 
     it("refuses to write a resume field through the profile endpoint", async () => {
@@ -131,5 +140,28 @@ describe("PATCH /api/user", () => {
     it("refuses an anonymous caller", async () => {
         mockAuth.mockResolvedValue(null);
         expect((await patch({ name: "Alice" })).status).toBe(401);
+    });
+
+    it("answers a taken username with the field the form points at", async () => {
+        mockUpdate.mockRejectedValue({ code: "P2002" });
+
+        const res = await patch({ username: "alice" });
+
+        expect(res.status).toBe(409);
+        expect(await res.json()).toEqual({
+            error: {
+                message: "Username already taken",
+                meta: { target: ["username"] },
+            },
+        });
+    });
+
+    it("does not leak the failure to the client", async () => {
+        mockUpdate.mockRejectedValue(new Error("prisma exploded"));
+
+        const res = await patch({ name: "Alice" });
+
+        expect(res.status).toBe(500);
+        expect(await res.text()).not.toContain("prisma");
     });
 });

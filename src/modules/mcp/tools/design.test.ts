@@ -119,8 +119,14 @@ describe("design tools", () => {
         );
     });
 
-    it("accepts an upload with posts:write, org:write or design:write", () => {
-        for (const scope of ["posts:write", "org:write", "design:write"]) {
+    it("accepts an upload with any of the writing permissions", () => {
+        for (const scope of [
+            "posts:write",
+            "org:write",
+            "design:write",
+            "portfolio:write",
+            "profile:write",
+        ]) {
             const challenge = uploadImageScopeChallenge({
                 request: { params: {} },
                 authInfo: { scopes: [scope] } as never,
@@ -135,6 +141,8 @@ describe("design tools", () => {
             "posts:write",
             "org:write",
             "design:write",
+            "portfolio:write",
+            "profile:write",
         ]);
     });
 

@@ -3,6 +3,7 @@ import {
     applyResumeProposal,
     assertResumeBytes,
     getResumeDownloadUrl,
+    getResumeState,
     parseResumePdf,
     removeResume,
     ResumeError,
@@ -290,11 +291,13 @@ describe("resume storage", () => {
         mockFindUnique.mockReset();
         mockUpdate.mockReset();
         mockExperienceCreateMany.mockReset();
+        mockExperienceFindMany.mockReset();
         mockUpload.mockReset();
         mockDestroy.mockReset();
         mockDownloadUrl.mockReset();
 
         mockFindUnique.mockResolvedValue({ resumePublicId: null, resumePublic: false, socials: [] });
+        mockExperienceFindMany.mockResolvedValue([]);
         mockUpdate.mockResolvedValue({ id: "alice" });
         mockExperienceCreateMany.mockResolvedValue({ count: 0 });
         mockExperienceFindMany.mockResolvedValue([]);
@@ -348,6 +351,35 @@ describe("resume storage", () => {
         );
     });
 
+    it("gives the owner a download link even when the resume is private", async () => {
+        mockFindUnique.mockResolvedValue({ resumePublic: false, resumePublicId: "p" });
+        const before = Math.floor(Date.now() / 1000);
+
+        const state = await getResumeState(actor);
+
+        expect(state).toEqual({
+            hasResume: true,
+            isPublic: false,
+            downloadUrl: expect.any(String),
+        });
+        const request = mockDownloadUrl.mock.calls[0][0];
+        expect(request.folder).toBe("postdevfy/portfolio");
+        expect(request.format).toBe("pdf");
+        expect(request.expiresAt).toBeGreaterThanOrEqual(before + 60);
+        expect(request.expiresAt).toBeLessThanOrEqual(before + 61);
+    });
+
+    it("reports no resume when the owner has none", async () => {
+        mockFindUnique.mockResolvedValue({ resumePublic: false, resumePublicId: null });
+
+        expect(await getResumeState(actor)).toEqual({
+            hasResume: false,
+            isPublic: false,
+            downloadUrl: null,
+        });
+        expect(mockDownloadUrl).not.toHaveBeenCalled();
+    });
+
     it("applies only the facts it is given and leaves nulls alone", async () => {
         const result = await applyResumeProposal(actor, {
             headline: "Engineer",
@@ -392,6 +424,56 @@ describe("resume storage", () => {
                 { kind: "work", org: "Acme", role: "Engineer", location: null, startDate: "2021-01", endDate: null, isCurrent: true, description: null },
             ],
         });
+        expect(mockExperienceCreateMany.mock.calls[0][0].data).toHaveLength(1);
+        expect(result.experience).toBe(1);
+    });
+
+    it("does not append a row the profile already has", async () => {
+        mockExperienceFindMany.mockResolvedValue([
+            { kind: "work", org: "Acme", role: "Engineer", startDate: "2021-01" },
+        ]);
+
+        const result = await applyResumeProposal(actor, {
+            headline: null,
+            summary: null,
+            location: null,
+            links: [],
+            skills: [],
+            experience: [
+                { kind: "work", org: "Acme", role: "Engineer", location: null, startDate: "2021-01", endDate: null, isCurrent: true, description: null },
+                { kind: "work", org: "Acme", role: "Engineer", location: null, startDate: "2022-01", endDate: null, isCurrent: true, description: null },
+            ],
+        });
+
+        const created = mockExperienceCreateMany.mock.calls[0][0].data as {
+            startDate: string;
+        }[];
+        expect(created).toHaveLength(1);
+        expect(created[0].startDate).toBe("2022-01");
+        expect(result.experience).toBe(1);
+    });
+
+    it("does not append the same entry twice from one proposal", async () => {
+        const entry = {
+            kind: "work",
+            org: "Acme",
+            role: "Engineer",
+            location: null,
+            startDate: "2021-01",
+            endDate: null,
+            isCurrent: true,
+            description: null,
+        };
+
+        const result = await applyResumeProposal(actor, {
+            headline: null,
+            summary: null,
+            location: null,
+            links: [],
+            skills: [],
+            experience: [entry, entry],
+        });
+
         expect(mockExperienceCreateMany.mock.calls[0][0].data).toHaveLength(1);
         expect(result.experience).toBe(1);
     });
