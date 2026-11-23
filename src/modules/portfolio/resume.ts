@@ -427,9 +427,27 @@ export async function getResumeState(
     };
 }
 
-type StoredSocial = { name?: string; url?: string };
+/**
+ * What identifies an experience row: the same role at the same organization
+ * starting the same month is one entry, however many times a resume lists it.
+ * JSON rather than a delimiter, so a role with a separator in it cannot
+ * collide with another pair.
+ */
+function experienceKey(entry: {
+    kind: string;
+    org: string;
+    role: string;
+    startDate: string | null;
+}): string {
+    return JSON.stringify([
+        entry.kind,
+        entry.org,
+        entry.role,
+        entry.startDate,
+    ]);
+}
 
-function mergeSocials(existing: unknown, links: ResumeLink[]): StoredSocial[] {
+type StoredSocial = { name?: string; url?: string };function mergeSocials(existing: unknown, links: ResumeLink[]): StoredSocial[] {
     // A stored entry that is not renderable is dropped: a row written before
     // the request was validated can hold a non-string url, and the profile
     // calls `.includes` on it.
@@ -493,6 +511,7 @@ export async function applyResumeProposal(
     // The merge reads the column and writes it back, so both happen inside
     // the transaction: a retry re-reads instead of replaying a stale merge,
     // and a profile save landing at the same moment cannot lose a link.
+    let created = 0;
     await serializable(async (tx) => {
         const current = await tx.user.findUnique({
             where: { id: actor.userId },
@@ -506,27 +525,49 @@ export async function applyResumeProposal(
         await tx.user.update({ where: { id: actor.userId }, data });
 
         if (entries.length > 0) {
-            // The applied rows go after the ones already on the profile.
-            // Starting at zero would give them the same order values as
-            // existing rows, and moving a row then swaps two equal values,
-            // which looks like nothing happened once the page reloads.
-            const last = await tx.userExperience.findMany({
+            // A retried apply must not append the profile's history twice, so
+            // a row the profile already holds is skipped. The same read gives
+            // the highest order, so one query answers both questions.
+            const existing = await tx.userExperience.findMany({
                 where: { userId: actor.userId },
-                orderBy: { order: "desc" },
-                take: 1,
-                select: { order: true },
+                select: {
+                    order: true,
+                    kind: true,
+                    org: true,
+                    role: true,
+                    startDate: true,
+                },
             });
-            const baseOrder = (last[0]?.order ?? -1) + 1;
+            const seen = new Set(existing.map(experienceKey));
+            const fresh = entries.filter((entry) => {
+                const key = experienceKey(entry);
+                if (seen.has(key)) return false;
+                seen.add(key);
+                return true;
+            });
+            created = fresh.length;
 
-            await tx.userExperience.createMany({
-                data: entries.map((entry, index) => ({
-                    ...entry,
-                    userId: actor.userId,
-                    order: baseOrder + index,
-                })),
-            });
+            if (fresh.length > 0) {
+                // The applied rows go after the ones already on the profile.
+                // Starting at zero would give them the same order values as
+                // existing rows, and moving a row then swaps two equal values,
+                // which looks like nothing happened once the page reloads.
+                const baseOrder =
+                    existing.reduce(
+                        (highest, row) => Math.max(highest, row.order),
+                        -1,
+                    ) + 1;
+
+                await tx.userExperience.createMany({
+                    data: fresh.map((entry, index) => ({
+                        ...entry,
+                        userId: actor.userId,
+                        order: baseOrder + index,
+                    })),
+                });
+            }
         }
     });
 
-    return { experience: entries.length };
+    return { experience: created };
 }

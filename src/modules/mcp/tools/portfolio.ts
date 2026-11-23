@@ -503,7 +503,7 @@ export function registerPortfolioTools(server: McpServer) {    server.registerTo
         "apply_resume",
         {
             description:
-                "Write the resume facts you confirmed: headline, summary, location, links, skills and experience. A field you leave null keeps the stored value.",
+                "Write the resume facts you confirmed: headline, summary, location, links, skills and experience. A field you leave null keeps the stored value, and an experience entry the profile already has is skipped, so a retry is safe.",
             inputSchema: resumeProposalSchema,
             // It writes the profile text as well as the experience rows, so
             // both permissions are required.

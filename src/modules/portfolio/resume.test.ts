@@ -291,11 +291,13 @@ describe("resume storage", () => {
         mockFindUnique.mockReset();
         mockUpdate.mockReset();
         mockExperienceCreateMany.mockReset();
+        mockExperienceFindMany.mockReset();
         mockUpload.mockReset();
         mockDestroy.mockReset();
         mockDownloadUrl.mockReset();
 
         mockFindUnique.mockResolvedValue({ resumePublicId: null, resumePublic: false, socials: [] });
+        mockExperienceFindMany.mockResolvedValue([]);
         mockUpdate.mockResolvedValue({ id: "alice" });
         mockExperienceCreateMany.mockResolvedValue({ count: 0 });
         mockExperienceFindMany.mockResolvedValue([]);
@@ -422,6 +424,56 @@ describe("resume storage", () => {
                 { kind: "work", org: "Acme", role: "Engineer", location: null, startDate: "2021-01", endDate: null, isCurrent: true, description: null },
             ],
         });
+        expect(mockExperienceCreateMany.mock.calls[0][0].data).toHaveLength(1);
+        expect(result.experience).toBe(1);
+    });
+
+    it("does not append a row the profile already has", async () => {
+        mockExperienceFindMany.mockResolvedValue([
+            { kind: "work", org: "Acme", role: "Engineer", startDate: "2021-01" },
+        ]);
+
+        const result = await applyResumeProposal(actor, {
+            headline: null,
+            summary: null,
+            location: null,
+            links: [],
+            skills: [],
+            experience: [
+                { kind: "work", org: "Acme", role: "Engineer", location: null, startDate: "2021-01", endDate: null, isCurrent: true, description: null },
+                { kind: "work", org: "Acme", role: "Engineer", location: null, startDate: "2022-01", endDate: null, isCurrent: true, description: null },
+            ],
+        });
+
+        const created = mockExperienceCreateMany.mock.calls[0][0].data as {
+            startDate: string;
+        }[];
+        expect(created).toHaveLength(1);
+        expect(created[0].startDate).toBe("2022-01");
+        expect(result.experience).toBe(1);
+    });
+
+    it("does not append the same entry twice from one proposal", async () => {
+        const entry = {
+            kind: "work",
+            org: "Acme",
+            role: "Engineer",
+            location: null,
+            startDate: "2021-01",
+            endDate: null,
+            isCurrent: true,
+            description: null,
+        };
+
+        const result = await applyResumeProposal(actor, {
+            headline: null,
+            summary: null,
+            location: null,
+            links: [],
+            skills: [],
+            experience: [entry, entry],
+        });
+
         expect(mockExperienceCreateMany.mock.calls[0][0].data).toHaveLength(1);
         expect(result.experience).toBe(1);
     });
