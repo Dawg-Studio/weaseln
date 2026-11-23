@@ -206,13 +206,17 @@ export async function handleUpdatePost(
             { userId: caller.userId },
             { postId: args.id },
         );
-        const unsupported = findUnsupportedNodes(stored.content);
-        if (unsupported.length > 0 && !args.allowFlatten) {
-            return toolError(
-                new Error(
-                    `This post contains ${unsupported.join(", ")}, which cannot be represented in markdown. Pass allowFlatten to replace it.`,
-                ),
-            );
+        // The refusal only applies when the body is being replaced: an update
+        // that leaves the body alone cannot flatten it.
+        if (args.contentMarkdown !== undefined) {
+            const unsupported = findUnsupportedNodes(stored.content);
+            if (unsupported.length > 0 && !args.allowFlatten) {
+                return toolError(
+                    new Error(
+                        `This post contains ${unsupported.join(", ")}, which cannot be represented in markdown. Pass allowFlatten to replace it.`,
+                    ),
+                );
+            }
         }
         const post = await updatePost(
             { userId: caller.userId },

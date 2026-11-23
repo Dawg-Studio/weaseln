@@ -174,6 +174,37 @@ describe("post tools", () => {
         expect(updatePost).not.toHaveBeenCalled();
     });
 
+    it("allows an update that leaves the body alone", async () => {
+        vi.mocked(getPost).mockResolvedValue({
+            id: "post-1",
+            title: "A post",
+            description: "",
+            tags: [],
+            content: {
+                type: "doc",
+                content: [{ type: "youtube", attrs: { src: "x" } }],
+            },
+            published: true,
+            readPerMinute: 3,
+            organizationId: null,
+            authorUsername: "alice",
+            createdAt: new Date(),
+        });
+        vi.mocked(updatePost).mockResolvedValue({
+            id: "post-1",
+            titleId: "a-post-ab12",
+            content: { type: "doc" },
+        });
+
+        const result = await handleUpdatePost(
+            { id: "post-1", title: "A new title" },
+            context,
+        );
+
+        expect(result.isError).toBeUndefined();
+        expect(updatePost).toHaveBeenCalledTimes(1);
+    });
+
     it("allows that update when allowFlatten is set", async () => {
         vi.mocked(getPost).mockResolvedValue({
             id: "post-1",
