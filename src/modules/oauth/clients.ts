@@ -18,6 +18,7 @@ export type OAuthClientRecord = {
     id: string;
     clientId: string;
     clientSecretHash: string;
+    name: string;
     redirectUris: string[];
     scopes: string[];
     userId: string;
@@ -107,6 +108,7 @@ export async function findOAuthClient(
             id: true,
             clientId: true,
             clientSecretHash: true,
+            name: true,
             redirectUris: true,
             scopes: true,
             userId: true,
@@ -118,6 +120,7 @@ export async function findOAuthClient(
         id: client.id,
         clientId: client.clientId,
         clientSecretHash: client.clientSecretHash,
+        name: client.name,
         redirectUris: toStringArray(client.redirectUris),
         scopes: client.scopes,
         userId: client.userId,
