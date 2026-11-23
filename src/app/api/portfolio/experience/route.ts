@@ -4,6 +4,7 @@ import { auth } from "@/auth";
 import {
     createExperience,
     deleteExperience,
+    moveExperience,
     updateExperience,
 } from "@/modules/portfolio/service";
 import { validateExperienceInput } from "@/modules/portfolio/validation";
@@ -47,9 +48,25 @@ export async function PATCH(req: Request) {
     const body = await readBody(req);
     if (!body) return badRequest("Expected an object body");
 
-    const { experienceId, ...rest } = body;
+    const { experienceId, direction, ...rest } = body;
     if (typeof experienceId !== "string") {
         return badRequest("experienceId is required");
+    }
+
+    // Reordering rides on the same endpoint: one id and a direction, no body.
+    if (direction !== undefined) {
+        if (direction !== 1 && direction !== -1) {
+            return badRequest("direction must be 1 or -1");
+        }
+        try {
+            await moveExperience(
+                { userId: session.user.id },
+                { experienceId, direction },
+            );
+            return NextResponse.json({ status: 200 });
+        } catch (err) {
+            return errorResponse("portfolio experience move", err);
+        }
     }
 
     let input;

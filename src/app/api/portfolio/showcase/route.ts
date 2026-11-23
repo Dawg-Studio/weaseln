@@ -4,6 +4,7 @@ import { auth } from "@/auth";
 import {
     createShowcase,
     deleteShowcase,
+    moveShowcase,
     updateShowcase,
 } from "@/modules/portfolio/service";
 import { validateShowcaseInput } from "@/modules/portfolio/validation";
@@ -47,9 +48,24 @@ export async function PATCH(req: Request) {
     const body = await readBody(req);
     if (!body) return badRequest("Expected an object body");
 
-    const { showcaseId, ...rest } = body;
+    const { showcaseId, direction, ...rest } = body;
     if (typeof showcaseId !== "string") {
         return badRequest("showcaseId is required");
+    }
+
+    if (direction !== undefined) {
+        if (direction !== 1 && direction !== -1) {
+            return badRequest("direction must be 1 or -1");
+        }
+        try {
+            await moveShowcase(
+                { userId: session.user.id },
+                { showcaseId, direction },
+            );
+            return NextResponse.json({ status: 200 });
+        } catch (err) {
+            return errorResponse("portfolio showcase move", err);
+        }
     }
 
     let input;

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { auth } from "@/auth";
-import { createItem, deleteItem, updateItem } from "@/modules/portfolio/service";
+import { createItem, deleteItem, moveItem, updateItem } from "@/modules/portfolio/service";
 import { validateItemInput } from "@/modules/portfolio/validation";
 import {
     badRequest,
@@ -48,9 +48,21 @@ export async function PATCH(req: Request) {
     const body = await readBody(req);
     if (!body) return badRequest("Expected an object body");
 
-    const { itemId, ...rest } = body;
+    const { itemId, direction, ...rest } = body;
     if (typeof itemId !== "string") {
         return badRequest("itemId is required");
+    }
+
+    if (direction !== undefined) {
+        if (direction !== 1 && direction !== -1) {
+            return badRequest("direction must be 1 or -1");
+        }
+        try {
+            await moveItem({ userId: session.user.id }, { itemId, direction });
+            return NextResponse.json({ status: 200 });
+        } catch (err) {
+            return errorResponse("portfolio item move", err);
+        }
     }
 
     let input;
