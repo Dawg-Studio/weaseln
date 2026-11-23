@@ -33,6 +33,16 @@ export default function ExperienceList({ initial }: { initial: ExperienceRow[] }
     const [editingId, setEditingId] = useState<string | null>(null);
     const [busy, setBusy] = useState(false);
 
+    // Rows the server added - a resume applied next to this list - arrive as a
+    // new prop. React recommends adjusting the state during render for that,
+    // so the list keeps the copy it started with only until the server sends
+    // a new one.
+    const [syncedInitial, setSyncedInitial] = useState(initial);
+    if (initial !== syncedInitial) {
+        setSyncedInitial(initial);
+        setRows(initial);
+    }
+
     function startEditing(row: ExperienceRow) {
         setEditingId(row.id);
         setDraft({

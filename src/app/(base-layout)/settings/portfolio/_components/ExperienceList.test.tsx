@@ -48,6 +48,14 @@ describe("ExperienceList", () => {
         expect(await screen.findByText("Dev · Acme")).toBeInTheDocument();
     });
 
+    it("shows rows the server added after a refresh", () => {
+        const { rerender } = render(<ExperienceList initial={[]} />);
+
+        rerender(<ExperienceList initial={[row]} />);
+
+        expect(screen.getByText("Dev · Acme")).toBeInTheDocument();
+    });
+
     it("keeps the row when the server refuses the delete", async () => {
         const { toast } = await import("react-hot-toast");
         fetchMock.mockResolvedValueOnce({
