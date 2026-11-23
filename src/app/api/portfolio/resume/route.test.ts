@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { DELETE, POST } from "./route";
 import { ResumeError } from "@/modules/portfolio/resume";
+import { MAX_RESUME_BYTES } from "@/modules/portfolio/types";
 
 const mockAuth = vi.fn();
 const mockUpload = vi.fn();
@@ -69,6 +70,14 @@ describe("POST /api/portfolio/resume", () => {
         const res = await POST(multipart(new File(["%PDF-1.4"], "r.pdf")));
         expect(res.status).toBe(201);
         expect(mockUpload).toHaveBeenCalledTimes(1);
+    });
+
+    it("refuses an oversized file before reading it", async () => {
+        const file = new File(["%PDF-1.4"], "big.pdf");
+        Object.defineProperty(file, "size", { value: MAX_RESUME_BYTES + 1 });
+        const res = await POST(multipart(file));
+        expect(res.status).toBe(413);
+        expect(mockUpload).not.toHaveBeenCalled();
     });
 
     it("answers a refused removal with the status the service used", async () => {

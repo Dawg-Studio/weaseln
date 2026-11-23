@@ -8,6 +8,7 @@ import {
     setResumeVisibility,
     uploadResume,
 } from "@/modules/portfolio/resume";
+import { MAX_RESUME_BYTES } from "@/modules/portfolio/types";
 import {
     badRequest,
     errorResponse,
@@ -29,6 +30,15 @@ export async function POST(req: Request) {
     const form = await req.formData();
     const file = form.get("resume");
     if (!(file instanceof File)) return badRequest("No resume file found");
+
+    // The cap is checked on the declared size, before the bytes are copied
+    // into memory. Reading first would hold the file twice.
+    if (file.size > MAX_RESUME_BYTES) {
+        return NextResponse.json(
+            { error: "Resume must be 5 MiB or smaller" },
+            { status: 413 },
+        );
+    }
 
     const bytes = new Uint8Array(await file.arrayBuffer());
 
