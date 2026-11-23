@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { NextRequest } from "next/server";
 
 import { PATCH } from "./route";
 
@@ -36,7 +37,7 @@ function organizationRequest(
     return new Request("http://localhost/api/organization", {
         method: "PATCH",
         body,
-    });
+    }) as unknown as NextRequest;
 }
 
 describe("PATCH /api/organization", () => {
