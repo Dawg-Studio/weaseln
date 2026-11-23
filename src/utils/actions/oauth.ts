@@ -1,3 +1,5 @@
+"use server";
+
 import { randomBytes } from "crypto";
 
 import { redirect } from "next/navigation";
