@@ -91,6 +91,46 @@ describe("parseResumePdf", () => {
         expect(proposal.skills).toEqual(["TypeScript"]);
     });
 
+    it("reads a proposal with no experience list as no entries", async () => {
+        const proposal = await parseResumePdf(pdf(), {
+            generate: async () =>
+                JSON.stringify({
+                    headline: "Backend dev",
+                    summary: "Builds things",
+                    location: "Berlin",
+                    links: [{ label: "GitHub", url: "https://github.com/alice" }],
+                    skills: ["Go"],
+                    experience: null,
+                }),
+        });
+        expect(proposal.experience).toEqual([]);
+        expect(proposal.skills).toEqual(["Go"]);
+        expect(proposal.headline).toBe("Backend dev");
+    });
+
+    it("reads a current role the parser marked only in the date as current", async () => {
+        const proposal = await parseResumePdf(pdf(), {
+            generate: async () =>
+                JSON.stringify({
+                    ...validProposal,
+                    experience: [
+                        {
+                            kind: "work",
+                            org: "Acme",
+                            role: "Dev",
+                            location: null,
+                            startDate: "2021-01",
+                            endDate: "Present",
+                            isCurrent: false,
+                            description: null,
+                        },
+                    ],
+                }),
+        });
+        expect(proposal.experience[0].isCurrent).toBe(true);
+        expect(proposal.experience[0].endDate).toBeNull();
+    });
+
     it("reads a current role the parser marked in words as current", async () => {
         const proposal = await parseResumePdf(pdf(), {
             generate: async () =>

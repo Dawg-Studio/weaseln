@@ -144,6 +144,11 @@ function normaliseProposal(input: unknown): unknown {
         proposal.skills =
             typeof proposal.skills === "string" ? [proposal.skills] : [];
     }
+    // A proposal without an experience list has no entries; that is not a
+    // reason to lose the headline, skills and links the parser did read.
+    if (proposal.experience === null || proposal.experience === undefined) {
+        proposal.experience = [];
+    }
 
     if (Array.isArray(proposal.links)) {
         proposal.links = proposal.links.filter((link) => {
@@ -172,7 +177,7 @@ function normaliseProposal(input: unknown): unknown {
             .map((entry) => {
                 const row = { ...(entry as Record<string, unknown>) };
                 if (typeof row.isCurrent === "string") {
-                    row.isCurrent = row.isCurrent.toLowerCase() === "true";
+                    row.isCurrent = row.isCurrent.trim().toLowerCase() === "true";
                 }
                 // A current role has no end date, and the model often answers
                 // "Present" for one.
@@ -180,9 +185,12 @@ function normaliseProposal(input: unknown): unknown {
                     row.endDate = null;
                 } else if (
                     typeof row.endDate === "string" &&
-                    PRESENT_WORDS.has(row.endDate.toLowerCase())
+                    PRESENT_WORDS.has(row.endDate.trim().toLowerCase())
                 ) {
+                    // The resume said the role runs to now, so it is current
+                    // even when the model left the flag off.
                     row.endDate = null;
+                    row.isCurrent = true;
                 }
                 if (
                     typeof row.kind !== "string" ||
