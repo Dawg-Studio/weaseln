@@ -12,6 +12,7 @@ import {
     getProfileCustomization,
     setProfileCustomization,
 } from "@/modules/profile-customization/service";
+import { DEFAULT_PROFILE_CUSTOMIZATION } from "@/modules/profile-customization/validation";
 import { getPost, setPostCustomization } from "@/modules/posts/service";
 import type { ProfileCustomizationInput } from "@/modules/profile-customization/validation";
 
@@ -108,11 +109,11 @@ export async function handleResetProfileDesign(
 ) {
     try {
         const caller = callerOf(ctx);
-        // The reset goes through the same write as a set, so a user who never
-        // customized their profile still ends up with a row.
+        // The reset has to name every field, because the write merges over
+        // the stored row: an empty input would change nothing.
         const design = await setProfileCustomization(
             { userId: caller.userId },
-            {},
+            { ...DEFAULT_PROFILE_CUSTOMIZATION },
         );
         return text({ data: design });
     } catch (error) {

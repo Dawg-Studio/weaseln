@@ -5,10 +5,12 @@ import {
     getProfileCustomization,
     setProfileCustomization,
 } from "@/modules/profile-customization/service";
+import { DEFAULT_PROFILE_CUSTOMIZATION } from "@/modules/profile-customization/validation";
 import { getPost, setPostCustomization } from "@/modules/posts/service";
 
 import {
     handleGetProfileDesign,
+    handleResetProfileDesign,
     handleSetPostDesign,
     handleSetProfileDesign,
     handleUploadImage,
@@ -133,6 +135,15 @@ describe("design tools", () => {
             "org:write",
             "design:write",
         ]);
+    });
+
+    it("resets the profile design to the defaults", async () => {
+        await handleResetProfileDesign({}, context);
+
+        expect(setProfileCustomization).toHaveBeenCalledWith(
+            { userId: "alice" },
+            DEFAULT_PROFILE_CUSTOMIZATION,
+        );
     });
 
     it("reads the profile design of this account", async () => {
