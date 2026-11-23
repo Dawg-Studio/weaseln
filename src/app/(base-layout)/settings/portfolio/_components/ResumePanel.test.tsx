@@ -25,6 +25,9 @@ const proposal = {
 let fetchMock: ReturnType<typeof vi.fn>;
 
 beforeEach(() => {
+    // The toast mock is shared by every test in this file, so its calls have
+    // to be cleared or a later test passes on an earlier test's toast.
+    vi.clearAllMocks();
     fetchMock = vi.fn(async (url: string) => {
         if (url === "/api/portfolio/resume") {
             return {
@@ -115,6 +118,20 @@ describe("ResumePanel", () => {
             status: 401,
             json: async () => ({ error: "Unauthorized" }),
         });
+        render(<ResumePanel initialPublic={false} hasResume />);
+        const toggle = screen.getByRole("checkbox", {
+            name: /show a download link/i,
+        });
+
+        await userEvent.click(toggle);
+
+        await waitFor(() => expect(toast.error).toHaveBeenCalled());
+        expect(toggle).not.toBeChecked();
+    });
+
+    it("puts the publish toggle back when the request fails outright", async () => {
+        const { toast } = await import("react-hot-toast");
+        fetchMock.mockRejectedValueOnce(new Error("network down"));
         render(<ResumePanel initialPublic={false} hasResume />);
         const toggle = screen.getByRole("checkbox", {
             name: /show a download link/i,

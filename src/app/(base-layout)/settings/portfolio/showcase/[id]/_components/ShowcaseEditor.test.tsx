@@ -13,6 +13,9 @@ vi.mock("react-hot-toast", () => ({
 let fetchMock: ReturnType<typeof vi.fn>;
 
 beforeEach(() => {
+    // The toast mock is shared by every test in this file, so its calls have
+    // to be cleared or a later test passes on an earlier test's toast.
+    vi.clearAllMocks();
     fetchMock = vi.fn(async () => ({
         ok: true,
         status: 200,
@@ -43,6 +46,24 @@ const item = {
 };
 
 describe("ShowcaseEditor", () => {
+    it("keeps the item when the request fails outright", async () => {
+        const { toast } = await import("react-hot-toast");
+        fetchMock.mockRejectedValueOnce(new Error("network down"));
+        render(
+            <ShowcaseEditor
+                showcase={showcase}
+                items={[item]}
+                userId="alice"
+                username="alice"
+            />,
+        );
+
+        await userEvent.click(screen.getByRole("button", { name: /delete harbour/i }));
+
+        await waitFor(() => expect(toast.error).toHaveBeenCalled());
+        expect(screen.getByText("Harbour")).toBeInTheDocument();
+    });
+
     it("keeps the item when the server refuses the delete", async () => {
         const { toast } = await import("react-hot-toast");
         fetchMock.mockResolvedValueOnce({

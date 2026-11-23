@@ -64,11 +64,16 @@ export default function ShowcaseEditor({
 
     async function deleteShowcase() {
         if (!window.confirm("Delete this showcase and its items?")) return;
-        const response = await fetch("/api/portfolio/showcase", {
-            method: "DELETE",
-            body: JSON.stringify({ showcaseId: showcase.id }),
-        });
-        if (!response.ok) {
+        try {
+            const response = await fetch("/api/portfolio/showcase", {
+                method: "DELETE",
+                body: JSON.stringify({ showcaseId: showcase.id }),
+            });
+            if (!response.ok) {
+                toast.error("Could not delete this showcase.");
+                return;
+            }
+        } catch {
             toast.error("Could not delete this showcase.");
             return;
         }
@@ -76,12 +81,17 @@ export default function ShowcaseEditor({
     }
 
     async function deleteItem(itemId: string) {
-        const response = await fetch("/api/portfolio/item", {
-            method: "DELETE",
-            body: JSON.stringify({ itemId }),
-        });
-        if (!response.ok) {
-            // The item is still on the server, so it stays in the list.
+        try {
+            const response = await fetch("/api/portfolio/item", {
+                method: "DELETE",
+                body: JSON.stringify({ itemId }),
+            });
+            if (!response.ok) {
+                // The item is still on the server, so it stays in the list.
+                toast.error("Could not delete that item.");
+                return;
+            }
+        } catch {
             toast.error("Could not delete that item.");
             return;
         }

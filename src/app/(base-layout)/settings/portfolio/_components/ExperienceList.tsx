@@ -86,12 +86,18 @@ export default function ExperienceList({ initial }: { initial: ExperienceRow[] }
     }
 
     async function remove(id: string) {
-        const response = await fetch("/api/portfolio/experience", {
-            method: "DELETE",
-            body: JSON.stringify({ experienceId: id }),
-        });
-        if (!response.ok) {
-            // The row is still on the server, so it stays on screen.
+        try {
+            const response = await fetch("/api/portfolio/experience", {
+                method: "DELETE",
+                body: JSON.stringify({ experienceId: id }),
+            });
+            if (!response.ok) {
+                // The row is still on the server, so it stays on screen.
+                toast.error("Could not delete that entry.");
+                return;
+            }
+        } catch {
+            // The request never arrived, so the row is still there.
             toast.error("Could not delete that entry.");
             return;
         }

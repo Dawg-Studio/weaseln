@@ -13,6 +13,9 @@ vi.mock("react-hot-toast", () => ({
 let fetchMock: ReturnType<typeof vi.fn>;
 
 beforeEach(() => {
+    // The toast mock is shared by every test in this file, so its calls have
+    // to be cleared or a later test passes on an earlier test's toast.
+    vi.clearAllMocks();
     fetchMock = vi.fn(async () => ({
         ok: true,
         status: 201,
@@ -52,6 +55,17 @@ describe("ExperienceList", () => {
             status: 404,
             json: async () => ({ error: "Experience not found" }),
         });
+        render(<ExperienceList initial={[row]} />);
+
+        await userEvent.click(screen.getByRole("button", { name: /delete acme/i }));
+
+        await waitFor(() => expect(toast.error).toHaveBeenCalled());
+        expect(screen.getByText("Dev · Acme")).toBeInTheDocument();
+    });
+
+    it("keeps the row when the request fails outright", async () => {
+        const { toast } = await import("react-hot-toast");
+        fetchMock.mockRejectedValueOnce(new Error("network down"));
         render(<ExperienceList initial={[row]} />);
 
         await userEvent.click(screen.getByRole("button", { name: /delete acme/i }));
