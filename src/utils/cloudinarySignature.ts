@@ -1,9 +1,20 @@
 import crypto from "crypto";
 
-const generateSignature = (id: string, apiSecret: string, folder: string, timestamp: number) => {
-    return `folder=${folder}&format=jpg&public_id=${id}&timestamp=${timestamp}${apiSecret}`;
-};
-
-export default function cloudinarySignature(id: string, apiSecret: string, folder: string, timestamp: number) {
-    return crypto.createHash("sha1").update(generateSignature(id, apiSecret, folder, timestamp)).digest("hex");
+/**
+ * Cloudinary signs the parameters in alphabetical order, then appends the API
+ * secret. The order is part of the contract: reordering silently breaks every
+ * upload.
+ */
+export function cloudinarySignature(
+    params: Record<string, string>,
+    apiSecret: string,
+) {
+    const payload = Object.keys(params)
+        .sort()
+        .map((key) => `${key}=${params[key]}`)
+        .join("&");
+    return crypto
+        .createHash("sha1")
+        .update(`${payload}${apiSecret}`)
+        .digest("hex");
 }
