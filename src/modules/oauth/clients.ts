@@ -136,10 +136,22 @@ export async function revokeOAuthClient(
     actor: { userId: string },
     input: { clientId: string },
 ): Promise<void> {
-    await prisma.oAuthClient.update({
-        where: { clientId: input.clientId, userId: actor.userId },
-        data: { revokedAt: new Date() },
-    });
+    try {
+        await prisma.oAuthClient.update({
+            where: { clientId: input.clientId, userId: actor.userId },
+            data: { revokedAt: new Date() },
+        });
+    } catch (error) {
+        if (
+            typeof error === "object" &&
+            error !== null &&
+            "code" in error &&
+            (error as { code?: unknown }).code === "P2025"
+        ) {
+            throw new Error("Not authorized");
+        }
+        throw error;
+    }
     await prisma.oAuthRefreshToken.updateMany({
         where: { clientId: input.clientId },
         data: { revokedAt: new Date() },

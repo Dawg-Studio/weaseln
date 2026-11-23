@@ -13,6 +13,17 @@ function isLoopback(url: URL): boolean {
 }
 
 /**
+ * A redirect URI a client may register: https, or a loopback address for a
+ * native client that cannot hold a certificate.
+ */
+export function isAllowedRedirectUri(uri: string): boolean {
+    const url = parse(uri);
+    if (!url) return false;
+    if (url.protocol === "https:") return true;
+    return isLoopback(url);
+}
+
+/**
  * A redirect URI has to match what the client registered. The one exception
  * is a loopback URI, where the port may change because a native client picks
  * an ephemeral one: RFC 8252 lets the path match and the port differ. Every

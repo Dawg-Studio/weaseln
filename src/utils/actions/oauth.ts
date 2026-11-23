@@ -5,8 +5,20 @@ import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import prisma from "@/db";
 import { findOAuthClient, hashSecret } from "@/modules/oauth/clients";
-import { matchesRedirectUri } from "@/modules/oauth/redirect-uri";
-import { isScopeSubset, parseScopes } from "@/modules/oauth/scopes";
+import {
+    isAllowedRedirectUri,
+    matchesRedirectUri,
+} from "@/modules/oauth/redirect-uri";
+import {
+    isScopeSubset,
+    OAUTH_SCOPES,
+    parseScopes,
+} from "@/modules/oauth/scopes";
+import {
+    listOAuthClients,
+    registerOAuthClient,
+    revokeOAuthClient,
+} from "@/modules/oauth/clients";
 
 const CODE_TTL_SECONDS = 60;
 
@@ -64,6 +76,52 @@ export async function approveAuthorization(
     url.searchParams.set("code", code);
     url.searchParams.set("state", input.state);
     redirect(url.toString());
+}
+
+/**
+ * Registering a client for the settings page. The redirect URI has to be
+ * https or a loopback address, and the scopes have to be ones the app knows.
+ */
+export async function createMcpClient(input: {
+    name: string;
+    redirectUris: string[];
+    scopes: string[];
+}): Promise<{ clientId: string; clientSecret: string }> {
+    const session = await auth();
+    if (!session?.user) throw new Error("Not authenticated");
+
+    for (const uri of input.redirectUris) {
+        if (!isAllowedRedirectUri(uri)) {
+            throw new Error("Invalid redirect URI");
+        }
+    }
+    const scopes = input.scopes.filter((scope) =>
+        (OAUTH_SCOPES as readonly string[]).includes(scope),
+    );
+    if (scopes.length !== input.scopes.length) {
+        throw new Error("Invalid scope");
+    }
+
+    return registerOAuthClient(
+        { userId: session.user.id },
+        { name: input.name, redirectUris: input.redirectUris, scopes },
+    );
+}
+
+export async function revokeMcpClient(input: {
+    clientId: string;
+}): Promise<void> {
+    const session = await auth();
+    if (!session?.user) throw new Error("Not authenticated");
+    await revokeOAuthClient({ userId: session.user.id }, input);
+}
+
+export async function listMcpClients(): Promise<
+    Awaited<ReturnType<typeof listOAuthClients>>
+> {
+    const session = await auth();
+    if (!session?.user) throw new Error("Not authenticated");
+    return listOAuthClients({ userId: session.user.id });
 }
 
 /**
