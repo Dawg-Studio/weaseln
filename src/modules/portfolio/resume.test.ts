@@ -301,6 +301,58 @@ describe("resume removal and skills", () => {
         expect(mockUpdate).not.toHaveBeenCalled();
     });
 
+    it("re-reads the socials inside the transaction so a retry does not replay a stale merge", async () => {
+        mockFindUnique
+            .mockResolvedValueOnce({
+                socials: [{ name: "Facebook", url: "https://old" }],
+            })
+            .mockResolvedValueOnce({
+                socials: [{ name: "Twitter", url: "https://new" }],
+            });
+        mockUpdate.mockRejectedValueOnce(
+            Object.assign(new Error("could not serialize access"), {
+                code: "P2034",
+            }),
+        );
+
+        await applyResumeProposal(actor, {
+            headline: null,
+            summary: null,
+            location: null,
+            links: [{ label: "GitHub", url: "https://github.com/alice" }],
+            skills: [],
+            experience: [],
+        });
+
+        const written = mockUpdate.mock.calls.at(-1)![0].data.socials as {
+            name: string;
+        }[];
+        expect(written.map((entry) => entry.name)).toContain("Twitter");
+    });
+
+    it("keeps a stored social it cannot read", async () => {
+        mockFindUnique.mockResolvedValue({
+            resumePublicId: null,
+            resumePublic: false,
+            socials: [null, { name: "Facebook", url: "https://fb" }],
+        });
+
+        await applyResumeProposal(actor, {
+            headline: null,
+            summary: null,
+            location: null,
+            links: [{ label: "GitHub", url: "https://github.com/alice" }],
+            skills: [],
+            experience: [],
+        });
+
+        const written = mockUpdate.mock.calls[0][0].data.socials as {
+            name?: string;
+        }[];
+        expect(written.some((entry) => entry?.name === "Facebook")).toBe(true);
+        expect(written.some((entry) => entry === null)).toBe(false);
+    });
+
     it("leaves curated skills alone when the resume found none", async () => {
         await applyResumeProposal(actor, {
             headline: null,

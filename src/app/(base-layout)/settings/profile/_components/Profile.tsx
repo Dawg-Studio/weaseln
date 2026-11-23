@@ -256,17 +256,32 @@ export default function ProfileSettingsComponent({
             });
             router.refresh();
         } else {
-            const error = await update.json();
-            const errorFields = (await error.error.meta.target) as string[];
-            errorFields.forEach((field: string) => {
-                const fieldError =
-                    field.charAt(0).toUpperCase() + field.slice(1);
-                form.setError(fieldError, {
-                    type: "uniqueConstraint",
-                    message: `${fieldError} already registered.`,
+            // A refusal is either a unique-constraint error, which names the
+            // fields, or a plain message. The second kind used to throw here
+            // and the owner never heard about it.
+            const body = (await update.json().catch(() => null)) as {
+                error?: unknown;
+            } | null;
+            const errorFields = (
+                body?.error as { meta?: { target?: string[] } } | undefined
+            )?.meta?.target;
+            if (Array.isArray(errorFields)) {
+                errorFields.forEach((field: string) => {
+                    const fieldError =
+                        field.charAt(0).toUpperCase() + field.slice(1);
+                    form.setError(fieldError, {
+                        type: "uniqueConstraint",
+                        message: `${fieldError} already registered.`,
+                    });
+                    form.setFocus(fieldError);
                 });
-                form.setFocus(fieldError);
-            });
+                return;
+            }
+            toast.error(
+                typeof body?.error === "string"
+                    ? body.error
+                    : "Could not save the profile.",
+            );
         }
     });
 

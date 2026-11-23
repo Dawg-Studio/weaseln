@@ -10,9 +10,15 @@ export function mergeSocialsByName(
     existing: unknown,
     sent: StoredSocial[],
 ): StoredSocial[] {
-    const current = Array.isArray(existing)
-        ? (existing as StoredSocial[])
-        : [];
+    // A stored entry that is not an object is not a social. Rows written
+    // before the request was validated can hold one, and keeping it would
+    // break the profile that renders the column.
+    const current = (
+        Array.isArray(existing) ? existing : []
+    ).filter(
+        (entry): entry is StoredSocial =>
+            Boolean(entry) && typeof entry === "object",
+    );
     const sentNames = new Set(sent.map((entry) => entry.name ?? ""));
     return [
         ...sent,

@@ -290,9 +290,14 @@ export async function getResumeDownloadUrl(
 type StoredSocial = { name?: string; url?: string };
 
 function mergeSocials(existing: unknown, links: ResumeLink[]): StoredSocial[] {
-    const merged: StoredSocial[] = Array.isArray(existing)
-        ? [...(existing as StoredSocial[])]
-        : [];
+    // A stored entry that is not an object is not a social; a row written
+    // before the request was validated can hold one.
+    const merged: StoredSocial[] = (
+        Array.isArray(existing) ? existing : []
+    ).filter(
+        (entry): entry is StoredSocial =>
+            Boolean(entry) && typeof entry === "object",
+    );
     for (const link of links) {
         const index = merged.findIndex((entry) => entry.name === link.label);
         if (index === -1) {
@@ -335,14 +340,7 @@ export async function applyResumeProposal(
     }
     const entries = experience.map(validateExperienceInput);
 
-    const current = await prisma.user.findUnique({
-        where: { id: actor.userId },
-        select: { socials: true },
-    });
-
-    const data: Prisma.UserUpdateInput = {
-        socials: mergeSocials(current?.socials, facts.links) as Prisma.InputJsonValue[],
-    };
+    const data: Prisma.UserUpdateInput = {};
     // An empty array from the parser means "the resume did not list skills",
     // not "delete the ones you typed" — same rule as a null field.
     if (facts.skills.length > 0) data.skills = facts.skills;
@@ -350,10 +348,19 @@ export async function applyResumeProposal(
     if (facts.summary !== null) data.bio = facts.summary;
     if (facts.location !== null) data.address = facts.location;
 
-    // The merge reads the column and writes it back, so it runs at the
-    // serializable isolation level: a profile save landing at the same moment
-    // cannot lose a link.
+    // The merge reads the column and writes it back, so both happen inside
+    // the transaction: a retry re-reads instead of replaying a stale merge,
+    // and a profile save landing at the same moment cannot lose a link.
     await serializable(async (tx) => {
+        const current = await tx.user.findUnique({
+            where: { id: actor.userId },
+            select: { socials: true },
+        });
+        data.socials = mergeSocials(
+            current?.socials,
+            facts.links,
+        ) as Prisma.InputJsonValue[];
+
         await tx.user.update({ where: { id: actor.userId }, data });
 
         if (entries.length > 0) {

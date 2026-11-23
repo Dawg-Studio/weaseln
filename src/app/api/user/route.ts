@@ -136,7 +136,9 @@ export async function PATCH(req: Request) {
             (entry) =>
                 !entry ||
                 typeof entry !== "object" ||
-                typeof (entry as { name?: unknown }).name !== "string",
+                typeof (entry as { name?: unknown }).name !== "string" ||
+                ((entry as { url?: unknown }).url !== undefined &&
+                    typeof (entry as { url?: unknown }).url !== "string"),
         );
         if (malformed) {
             return NextResponse.json(

@@ -44,6 +44,27 @@ const user = {
 } as unknown as User;
 
 describe("profile settings", () => {
+    it("tells the owner when the server refuses the save for another reason", async () => {
+        const { toast } = await import("react-hot-toast");
+        fetchMock.mockResolvedValueOnce({
+            ok: false,
+            status: 400,
+            json: async () => ({
+                error: "socials must be a list of { name, url } objects",
+            }),
+        });
+        render(<ProfileSettingsComponent {...user} />);
+
+        await userEvent.click(
+            screen.getByRole("button", { name: /update profile information/i }),
+        );
+
+        await waitFor(() => expect(toast.error).toHaveBeenCalled());
+        expect(toast.error).toHaveBeenCalledWith(
+            "socials must be a list of { name, url } objects",
+        );
+    });
+
     it("sends only the social fields the owner changed", async () => {
         render(<ProfileSettingsComponent {...user} />);
 

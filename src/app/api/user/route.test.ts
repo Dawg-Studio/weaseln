@@ -67,6 +67,15 @@ describe("PATCH /api/user", () => {
         );
     });
 
+    it("refuses a social whose url is not a string", async () => {
+        const res = await patch({
+            name: "Alice",
+            socials: [{ name: "Facebook", url: 42 }],
+        });
+        expect(res.status).toBe(400);
+        expect(mockUpdate).not.toHaveBeenCalled();
+    });
+
     it("refuses a malformed socials entry with 400", async () => {
         const res = await patch({ name: "Alice", socials: [null] });
         expect(res.status).toBe(400);
