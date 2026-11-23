@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import {
     ImageUploadError,
+    MAX_UPLOAD_BYTES,
     uploadImage,
 } from "@/modules/images/service";
 import { badRequest, unauthorized } from "../_helpers";
@@ -14,6 +15,14 @@ export async function POST(req: Request) {
     const form = await req.formData();
     const file = form.get("image");
     if (!(file instanceof File)) return badRequest("No image file found");
+
+    // Checked on the declared size, before the bytes are copied into memory.
+    if (file.size > MAX_UPLOAD_BYTES) {
+        return NextResponse.json(
+            { error: "Image must be 3 MiB or smaller" },
+            { status: 413 },
+        );
+    }
 
     const data = Buffer.from(await file.arrayBuffer()).toString("base64");
 
