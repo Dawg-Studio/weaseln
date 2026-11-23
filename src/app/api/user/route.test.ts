@@ -132,4 +132,29 @@ describe("PATCH /api/user", () => {
         mockAuth.mockResolvedValue(null);
         expect((await patch({ name: "Alice" })).status).toBe(401);
     });
+
+    it("answers a taken username with the field the form points at", async () => {
+        mockUpdate.mockRejectedValue({ code: "P2002" });
+
+        const res = await patch({ username: "alice" });
+
+        expect(res.status).toBe(409);
+        expect(await res.json()).toEqual({
+            error: {
+                message: "Username already taken",
+                meta: { target: ["username"] },
+            },
+        });
+    });
+
+    it("does not leak the failure to the client", async () => {
+        const logged = vi.spyOn(console, "error").mockImplementation(() => {});
+        mockUpdate.mockRejectedValue(new Error("prisma exploded"));
+
+        const res = await patch({ name: "Alice" });
+
+        expect(res.status).toBe(500);
+        expect(await res.text()).not.toContain("prisma");
+        logged.mockRestore();
+    });
 });
