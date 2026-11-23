@@ -18,6 +18,7 @@ import {
     generateVerificationCode,
     getCurrentEmailVerificationCodeDate,
 } from "@/utils/actions/verification";
+import { mergeProfileSocials } from "@/utils/socials";
 
 export default function ProfileSettingsComponent({
     username,
@@ -223,12 +224,12 @@ export default function ProfileSettingsComponent({
     };
 
     const updateDetails = form.handleSubmit(async (data) => {
-        let socials: FormSocials[] = [];
-        socialForms.forEach((social) =>
-            socials.push({
+        const socials = mergeProfileSocials(
+            socialData,
+            socialForms.map((social) => ({
                 name: social.name,
                 url: data[social.name],
-            }),
+            })),
         );
         const update = await fetch("/api/user", {
             method: "PATCH",
