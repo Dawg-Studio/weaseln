@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import ResumePanel from "./ResumePanel";
 
@@ -106,6 +106,24 @@ describe("ResumePanel", () => {
         expect(
             screen.getByRole("button", { name: /remove resume/i }),
         ).toBeInTheDocument();
+    });
+
+    it("puts the publish toggle back when the server refuses", async () => {
+        const { toast } = await import("react-hot-toast");
+        fetchMock.mockResolvedValueOnce({
+            ok: false,
+            status: 401,
+            json: async () => ({ error: "Unauthorized" }),
+        });
+        render(<ResumePanel initialPublic={false} hasResume />);
+        const toggle = screen.getByRole("checkbox", {
+            name: /show a download link/i,
+        });
+
+        await userEvent.click(toggle);
+
+        await waitFor(() => expect(toast.error).toHaveBeenCalled());
+        expect(toggle).not.toBeChecked();
     });
 
     it("sends the public toggle as a boolean", async () => {        render(<ResumePanel initialPublic={false} hasResume />);

@@ -144,11 +144,18 @@ export default function ResumePanel({
     }
 
     async function setVisibility(next: boolean) {
+        const previous = isPublic;
         setIsPublic(next);
-        await fetch("/api/portfolio/resume", {
+        const response = await fetch("/api/portfolio/resume", {
             method: "PATCH",
             body: JSON.stringify({ isPublic: next }),
         });
+        if (!response.ok) {
+            // The write did not happen, so the switch goes back where it was.
+            setIsPublic(previous);
+            toast.error("Could not change who can see your resume.");
+            return;
+        }
         router.refresh();
     }
 
