@@ -337,11 +337,23 @@ export async function applyResumeProposal(
     await prisma.user.update({ where: { id: actor.userId }, data });
 
     if (entries.length > 0) {
+        // The applied rows go after the ones already on the profile. Starting
+        // at zero would give them the same order values as existing rows, and
+        // moving a row then swaps two equal values, which looks like nothing
+        // happened once the page reloads.
+        const last = await prisma.userExperience.findMany({
+            where: { userId: actor.userId },
+            orderBy: { order: "desc" },
+            take: 1,
+            select: { order: true },
+        });
+        const baseOrder = (last[0]?.order ?? -1) + 1;
+
         await prisma.userExperience.createMany({
             data: entries.map((entry, index) => ({
                 ...entry,
                 userId: actor.userId,
-                order: index,
+                order: baseOrder + index,
             })),
         });
     }

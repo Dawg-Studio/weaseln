@@ -13,6 +13,7 @@ import { MAX_RESUME_BYTES } from "./types";
 const mockFindUnique = vi.fn();
 const mockUpdate = vi.fn();
 const mockExperienceCreateMany = vi.fn();
+const mockExperienceFindMany = vi.fn();
 const mockUpload = vi.fn();
 const mockDestroy = vi.fn();
 const mockDownloadUrl = vi.fn();
@@ -25,6 +26,7 @@ vi.mock("@/db", () => ({
         },
         userExperience: {
             createMany: (...args: unknown[]) => mockExperienceCreateMany(...args),
+            findMany: (...args: unknown[]) => mockExperienceFindMany(...args),
         },
     },
 }));
@@ -100,6 +102,7 @@ describe("resume storage", () => {
         mockFindUnique.mockResolvedValue({ resumePublicId: null, resumePublic: false, socials: [] });
         mockUpdate.mockResolvedValue({ id: "alice" });
         mockExperienceCreateMany.mockResolvedValue({ count: 0 });
+        mockExperienceFindMany.mockResolvedValue([]);
         mockUpload.mockResolvedValue({
             upload: { ok: true },
             metadata: { timestamp: 1700000000, folder: "postdevfy/portfolio", public_id: "alice-1", resourceType: "raw", type: "private" },
@@ -227,6 +230,23 @@ describe("resume removal and skills", () => {
         mockDestroy.mockResolvedValue(false);
         await expect(removeResume(actor)).rejects.toThrow(/could not delete/i);
         expect(mockUpdate).not.toHaveBeenCalled();
+    });
+
+    it("puts applied rows after the ones already on the profile", async () => {
+        mockExperienceFindMany.mockResolvedValueOnce([{ order: 2 }]);
+        await applyResumeProposal(actor, {
+            headline: null,
+            summary: null,
+            location: null,
+            links: [],
+            skills: [],
+            experience: [
+                { kind: "work", org: "Acme", role: "Engineer", location: null, startDate: "2021-01", endDate: null, isCurrent: true, description: null },
+                { kind: "work", org: "Beta", role: "Engineer", location: null, startDate: "2019-01", endDate: null, isCurrent: true, description: null },
+            ],
+        });
+        const rows = mockExperienceCreateMany.mock.calls[0][0].data as { order: number }[];
+        expect(rows.map((row) => row.order)).toEqual([3, 4]);
     });
 
     it("leaves curated skills alone when the resume found none", async () => {
