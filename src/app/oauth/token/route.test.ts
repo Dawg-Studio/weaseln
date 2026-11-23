@@ -6,16 +6,20 @@ const {
     findClientMock,
     findCodeMock,
     updateCodeMock,
+    updateManyCodeMock,
     findRefreshMock,
     createRefreshMock,
     updateRefreshMock,
+    updateManyRefreshMock,
 } = vi.hoisted(() => ({
     findClientMock: vi.fn(),
     findCodeMock: vi.fn(),
     updateCodeMock: vi.fn(),
+    updateManyCodeMock: vi.fn(),
     findRefreshMock: vi.fn(),
     createRefreshMock: vi.fn(),
     updateRefreshMock: vi.fn(),
+    updateManyRefreshMock: vi.fn(),
 }));
 
 vi.mock("@/db", () => ({
@@ -24,11 +28,13 @@ vi.mock("@/db", () => ({
         oAuthAuthorizationCode: {
             findUnique: findCodeMock,
             update: updateCodeMock,
+            updateMany: updateManyCodeMock,
         },
         oAuthRefreshToken: {
             findUnique: findRefreshMock,
             create: createRefreshMock,
             update: updateRefreshMock,
+            updateMany: updateManyRefreshMock,
         },
     },
 }));
@@ -90,12 +96,16 @@ describe("POST /oauth/token", () => {
         findClientMock.mockReset();
         findCodeMock.mockReset();
         updateCodeMock.mockReset();
+        updateManyCodeMock.mockReset();
         findRefreshMock.mockReset();
         createRefreshMock.mockReset();
         updateRefreshMock.mockReset();
+        updateManyRefreshMock.mockReset();
         findClientMock.mockResolvedValue(client);
         findCodeMock.mockResolvedValue(code);
         updateCodeMock.mockResolvedValue(code);
+        updateManyCodeMock.mockResolvedValue({ count: 1 });
+        updateManyRefreshMock.mockResolvedValue({ count: 1 });
         createRefreshMock.mockResolvedValue({ id: "refresh-row-2" });
     });
 
@@ -110,8 +120,20 @@ describe("POST /oauth/token", () => {
         expect(body.refresh_token).toBeTruthy();
         expect(body.scope).toBe("posts:read");
         // The code is spent, so it cannot be replayed.
-        expect(updateCodeMock).toHaveBeenCalledTimes(1);
+        expect(updateManyCodeMock).toHaveBeenCalledTimes(1);
         expect(createRefreshMock).toHaveBeenCalledTimes(1);
+    });
+
+    it("refuses a code another request spent first", async () => {
+        // Two concurrent redemptions of one code both read it as unused. The
+        // spend has to be the thing that decides, not the read.
+        updateManyCodeMock.mockResolvedValue({ count: 0 });
+
+        const res = await POST(tokenRequest(exchange));
+
+        expect(res.status).toBe(400);
+        expect(await res.json()).toEqual({ error: "invalid_grant" });
+        expect(createRefreshMock).not.toHaveBeenCalled();
     });
 
     it("rejects a replayed code", async () => {
@@ -168,6 +190,32 @@ describe("POST /oauth/token", () => {
         expect(await res.json()).toEqual({ error: "unsupported_grant_type" });
     });
 
+    it("refuses a refresh token another request spent first", async () => {
+        findRefreshMock.mockResolvedValue({
+            id: "refresh-row-1",
+            tokenHash: hashSecret("the-refresh"),
+            clientId: "client-1",
+            userId: "alice",
+            scopes: ["posts:read"],
+            expiresAt: new Date(Date.now() + 60_000),
+            revokedAt: null,
+        });
+        updateManyRefreshMock.mockResolvedValue({ count: 0 });
+
+        const res = await POST(
+            tokenRequest({
+                grant_type: "refresh_token",
+                client_id: "client-1",
+                client_secret: CLIENT_SECRET,
+                refresh_token: "the-refresh",
+            }),
+        );
+
+        expect(res.status).toBe(400);
+        expect(await res.json()).toEqual({ error: "invalid_grant" });
+        expect(createRefreshMock).not.toHaveBeenCalled();
+    });
+
     it("rotates the refresh token", async () => {
         findRefreshMock.mockResolvedValue({
             id: "refresh-row-1",
@@ -193,7 +241,7 @@ describe("POST /oauth/token", () => {
         expect(body.access_token).toBeTruthy();
         expect(body.refresh_token).toBeTruthy();
         // The old refresh token is spent and a new one is minted.
-        expect(updateRefreshMock).toHaveBeenCalledTimes(1);
+        expect(updateManyRefreshMock).toHaveBeenCalledTimes(1);
         expect(createRefreshMock).toHaveBeenCalledTimes(1);
     });
 });
