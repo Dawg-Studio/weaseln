@@ -395,6 +395,32 @@ describe("portfolio tools", () => {
         expect(result.content[0].text).toBe("Item not found");
     });
 
+    it("refuses to move a showcase that is not the caller's", async () => {
+        vi.mocked(listShowcases).mockResolvedValue([]);
+
+        const result = await handleMoveShowcase(
+            { showcaseId: "other", direction: "up" },
+            context,
+        );
+
+        expect(result.isError).toBe(true);
+        expect(result.content[0].text).toBe("Showcase not found");
+        expect(moveShowcase).not.toHaveBeenCalled();
+    });
+
+    it("refuses to move a project that is not the caller's", async () => {
+        vi.mocked(listPortfolio).mockResolvedValue([]);
+
+        const result = await handleMoveItem(
+            { itemId: "other", direction: "down" },
+            context,
+        );
+
+        expect(result.isError).toBe(true);
+        expect(result.content[0].text).toBe("Item not found");
+        expect(moveItem).not.toHaveBeenCalled();
+    });
+
     it("moves a project down", async () => {
         await handleMoveItem({ itemId: "item-1", direction: "down" }, context);
 
@@ -497,6 +523,19 @@ describe("experience tools", () => {
         );
 
         expect(result.content[0].text).toBe("Experience not found");
+    });
+
+    it("refuses to move an experience entry that is not the caller's", async () => {
+        vi.mocked(listExperience).mockResolvedValue([]);
+
+        const result = await handleMoveExperience(
+            { experienceId: "other", direction: "up" },
+            context,
+        );
+
+        expect(result.isError).toBe(true);
+        expect(result.content[0].text).toBe("Experience not found");
+        expect(moveExperience).not.toHaveBeenCalled();
     });
 
     it("moves an experience entry up", async () => {

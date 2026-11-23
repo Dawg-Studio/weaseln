@@ -286,6 +286,13 @@ export async function handleMoveShowcase(
 ) {
     try {
         const caller = callerOf(ctx);
+        // The service swaps a row with its neighbour and returns quietly when
+        // the id is not the caller's, so the check has to happen here or the
+        // tool reports a move that never happened.
+        const showcases = await listShowcases({ userId: caller.userId });
+        if (!showcases.some((row) => row.id === args.showcaseId)) {
+            throw new Error("Showcase not found");
+        }
         await moveShowcase({ userId: caller.userId }, {
             showcaseId: args.showcaseId,
             direction: toDirection(args.direction),
@@ -366,6 +373,11 @@ export async function handleMoveItem(
 ) {
     try {
         const caller = callerOf(ctx);
+        const showcases = await listPortfolio({ userId: caller.userId });
+        const found = showcases.some((showcase) =>
+            showcase.items.some((item) => item.id === args.itemId),
+        );
+        if (!found) throw new Error("Item not found");
         await moveItem({ userId: caller.userId }, {
             itemId: args.itemId,
             direction: toDirection(args.direction),
@@ -445,6 +457,10 @@ export async function handleMoveExperience(
 ) {
     try {
         const caller = callerOf(ctx);
+        const rows = await listExperience({ userId: caller.userId });
+        if (!rows.some((row) => row.id === args.experienceId)) {
+            throw new Error("Experience not found");
+        }
         await moveExperience({ userId: caller.userId }, {
             experienceId: args.experienceId,
             direction: toDirection(args.direction),
