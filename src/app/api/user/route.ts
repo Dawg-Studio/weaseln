@@ -131,15 +131,16 @@ export async function PATCH(req: Request) {
     // Socials are merged by name rather than replaced: a link the caller did
     // not send is kept. A resume adds links to this column, and a form that
     // only knows three of them must not delete the rest.
-    if (Array.isArray(body.socials)) {
-        const malformed = body.socials.some(
-            (entry) =>
-                !entry ||
-                typeof entry !== "object" ||
-                typeof (entry as { name?: unknown }).name !== "string" ||
-                ((entry as { url?: unknown }).url !== undefined &&
-                    typeof (entry as { url?: unknown }).url !== "string"),
-        );
+    if (body.socials !== undefined) {
+        const malformed =
+            !Array.isArray(body.socials) ||
+            body.socials.some(
+                (entry) =>
+                    !entry ||
+                    typeof entry !== "object" ||
+                    typeof (entry as { name?: unknown }).name !== "string" ||
+                    typeof (entry as { url?: unknown }).url !== "string",
+            );
         if (malformed) {
             return NextResponse.json(
                 { error: "socials must be a list of { name, url } objects" },

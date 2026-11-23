@@ -67,6 +67,21 @@ describe("PATCH /api/user", () => {
         );
     });
 
+    it("refuses a social without a url", async () => {
+        const res = await patch({ name: "Alice", socials: [{ name: "Facebook" }] });
+        expect(res.status).toBe(400);
+        expect(mockUpdate).not.toHaveBeenCalled();
+    });
+
+    it("refuses socials that are not a list", async () => {
+        const res = await patch({
+            name: "Alice",
+            socials: { name: "Facebook", url: "https://fb" },
+        });
+        expect(res.status).toBe(400);
+        expect(mockUpdate).not.toHaveBeenCalled();
+    });
+
     it("refuses a social whose url is not a string", async () => {
         const res = await patch({
             name: "Alice",

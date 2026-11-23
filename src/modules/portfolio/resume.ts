@@ -290,14 +290,16 @@ export async function getResumeDownloadUrl(
 type StoredSocial = { name?: string; url?: string };
 
 function mergeSocials(existing: unknown, links: ResumeLink[]): StoredSocial[] {
-    // A stored entry that is not an object is not a social; a row written
-    // before the request was validated can hold one.
+    // A stored entry that is not renderable is dropped: a row written before
+    // the request was validated can hold a non-string url, and the profile
+    // calls `.includes` on it.
     const merged: StoredSocial[] = (
         Array.isArray(existing) ? existing : []
-    ).filter(
-        (entry): entry is StoredSocial =>
-            Boolean(entry) && typeof entry === "object",
-    );
+    ).filter((entry): entry is StoredSocial => {
+        if (!entry || typeof entry !== "object") return false;
+        const url = (entry as { url?: unknown }).url;
+        return url === undefined || url === null || typeof url === "string";
+    });
     for (const link of links) {
         const index = merged.findIndex((entry) => entry.name === link.label);
         if (index === -1) {
