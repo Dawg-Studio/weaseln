@@ -3,6 +3,7 @@ import { McpServer, type AuthInfo } from "@modelcontextprotocol/server";
 import { registerDesignTools } from "@/modules/mcp/tools/design";
 import { registerIdentityTools } from "@/modules/mcp/tools/identity";
 import { registerOrganizationTools } from "@/modules/mcp/tools/organization";
+import { registerPortfolioTools } from "@/modules/mcp/tools/portfolio";
 import { registerPostTools } from "@/modules/mcp/tools/posts";
 import { registerProfileTools } from "@/modules/mcp/tools/profile";
 
@@ -20,5 +21,6 @@ export function buildServer(_authInfo: AuthInfo | undefined): McpServer {
     registerPostTools(server);
     registerOrganizationTools(server);
     registerDesignTools(server);
+    registerPortfolioTools(server);
     return server;
 }
