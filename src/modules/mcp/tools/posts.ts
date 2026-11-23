@@ -75,7 +75,11 @@ type WritePostArgs = {
     allowFlatten?: boolean;
 };
 
-type UpdatePostArgs = WritePostArgs & { id: string };
+type UpdatePostArgs = Omit<WritePostArgs, "title" | "contentMarkdown"> & {
+    id: string;
+    title?: string;
+    contentMarkdown?: string;
+};
 
 type DeletePostArgs = { id: string };
 
@@ -126,20 +130,8 @@ export const listPostsScopeChallenge: ScopeChallengeHandler = ({
 export async function handleListPosts(args: ListPostsArgs, ctx: ToolContext) {
     try {
         const caller = callerOf(ctx);
-        if (args.orgId) {
-            const organizations = await listOrganizations({
-                userId: caller.userId,
-            });
-            const organization = organizations.find(
-                (entry) => entry.id === args.orgId,
-            );
-            if (!organization) {
-                return text({
-                    data: [],
-                    message: "You do not belong to that organization.",
-                });
-            }
-        }
+        // The organization membership check is in the service, so every path
+        // to the posts is covered by it.
         const posts = await listPosts(
             { userId: caller.userId },
             {
@@ -226,11 +218,21 @@ export async function handleUpdatePost(
             { userId: caller.userId },
             {
                 postId: args.id,
-                title: args.title,
-                description: args.description ?? "",
-                content: markdownToTiptap(args.contentMarkdown),
-                tags: args.tags ?? [],
-                readPerMinute: readPerMinute(args.contentMarkdown),
+                // A field the caller did not name keeps the value it had. The
+                // body is only converted when it is given, so an update that
+                // changes the tags does not round-trip the writing through
+                // markdown.
+                title: args.title ?? stored.title,
+                description: args.description ?? stored.description,
+                content:
+                    args.contentMarkdown !== undefined
+                        ? markdownToTiptap(args.contentMarkdown)
+                        : stored.content,
+                tags: args.tags ?? stored.tags,
+                readPerMinute:
+                    args.contentMarkdown !== undefined
+                        ? readPerMinute(args.contentMarkdown)
+                        : stored.readPerMinute,
                 published: args.published ?? stored.published,
                 organizationId: args.orgId,
                 customization: args.design,
@@ -314,9 +316,14 @@ export function registerPostTools(server: McpServer) {
                 "Replace a post. The body is markdown; an update that would drop an embedded video refuses unless allowFlatten is set.",
             inputSchema: z.object({
                 id: z.string(),
-                title: z.string(),
+                title: z.string().optional(),
                 description: z.string().optional(),
-                contentMarkdown: z.string(),
+                contentMarkdown: z
+                    .string()
+                    .optional()
+                    .describe(
+                        "The new body in markdown. Leave it out to keep the body as it is.",
+                    ),
                 tags: z.array(z.string()).optional(),
                 orgId: z.string().optional(),
                 published: z.boolean().optional(),

@@ -62,13 +62,13 @@ describe("post tools", () => {
         );
     });
 
-    it("refuses an organization the caller does not belong to", async () => {
-        vi.mocked(listOrganizations).mockResolvedValue([]);
+    it("passes an organization filter through to the service", async () => {
+        await handleListPosts({ orgId: "org-1" }, context);
 
-        const result = await handleListPosts({ orgId: "org-1" }, context);
-
-        expect(result.content[0].text).toContain("do not belong");
-        expect(listPosts).not.toHaveBeenCalled();
+        expect(listPosts).toHaveBeenCalledWith(
+            { userId: "alice" },
+            expect.objectContaining({ organizationId: "org-1" }),
+        );
     });
 
     it("asks for org:read as well when an organization is named", () => {

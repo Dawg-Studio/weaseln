@@ -14,6 +14,7 @@ const mockPostFindMany = vi.fn();
 const mockPostFindUnique = vi.fn();
 const mockPostDelete = vi.fn();
 const mockUserFindUnique = vi.fn();
+const mockOrganizationFindUnique = vi.fn();
 
 vi.mock("@/db", () => ({
     default: {
@@ -26,6 +27,10 @@ vi.mock("@/db", () => ({
         },
         user: {
             findUnique: (...args: unknown[]) => mockUserFindUnique(...args),
+        },
+        organization: {
+            findUnique: (...args: unknown[]) =>
+                mockOrganizationFindUnique(...args),
         },
     },
 }));
@@ -134,6 +139,37 @@ describe("post service", () => {
         expect(mockPostFindMany.mock.calls[0][0].where).toMatchObject({
             userId: "alice",
         });
+    });
+
+    it("lists the organization's posts to a member", async () => {
+        mockOrganizationFindUnique.mockResolvedValue({
+            ownerId: "bob",
+            admins: [],
+            members: [{ id: "alice" }],
+        });
+        mockPostFindMany.mockResolvedValue([]);
+
+        await listPosts({ userId: "alice" }, { organizationId: "org-1" });
+
+        expect(mockPostFindMany.mock.calls[0][0].where).toEqual({
+            organizationId: "org-1",
+        });
+    });
+
+    it("returns nothing for an organization the caller does not belong to", async () => {
+        mockOrganizationFindUnique.mockResolvedValue({
+            ownerId: "bob",
+            admins: [],
+            members: [],
+        });
+
+        const posts = await listPosts(
+            { userId: "alice" },
+            { organizationId: "org-1" },
+        );
+
+        expect(posts).toEqual([]);
+        expect(mockPostFindMany).not.toHaveBeenCalled();
     });
 
     it("sorts by the requested metric", async () => {
