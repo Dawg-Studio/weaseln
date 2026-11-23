@@ -19,6 +19,19 @@ function oauthError(error: string, status: number) {
 }
 
 /**
+ * A percent escape that is malformed is not a credential, but it is not a
+ * crash either: the value is used as it came, and the secret check then
+ * refuses it.
+ */
+function decode(value: string): string {
+    try {
+        return decodeURIComponent(value);
+    } catch {
+        return value;
+    }
+}
+
+/**
  * A confidential client authenticates with HTTP Basic, or with the two form
  * fields, and both spellings are accepted by the spec.
  */
@@ -34,8 +47,8 @@ function readClientCredentials(
         const separator = decoded.indexOf(":");
         if (separator === -1) return null;
         return {
-            clientId: decodeURIComponent(decoded.slice(0, separator)),
-            clientSecret: decodeURIComponent(decoded.slice(separator + 1)),
+            clientId: decode(decoded.slice(0, separator)),
+            clientSecret: decode(decoded.slice(separator + 1)),
         };
     }
 

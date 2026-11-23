@@ -136,6 +136,28 @@ describe("POST /oauth/token", () => {
         expect(createRefreshMock).not.toHaveBeenCalled();
     });
 
+    it("answers 401 for a malformed client credential", async () => {
+        const res = await POST(
+            new Request("http://localhost/oauth/token", {
+                method: "POST",
+                headers: {
+                    "content-type": "application/x-www-form-urlencoded",
+                    // A percent escape that is not a percent escape.
+                    authorization: `Basic ${Buffer.from("client%ZZ:secret").toString("base64")}`,
+                },
+                body: new URLSearchParams({
+                    grant_type: "authorization_code",
+                    code: "the-code",
+                    redirect_uri: "http://127.0.0.1:19876/callback",
+                    code_verifier: "the-verifier",
+                }).toString(),
+            }),
+        );
+
+        expect(res.status).toBe(401);
+        expect(await res.json()).toEqual({ error: "invalid_client" });
+    });
+
     it("rejects a replayed code", async () => {
         findCodeMock.mockResolvedValue({ ...code, usedAt: new Date() });
 

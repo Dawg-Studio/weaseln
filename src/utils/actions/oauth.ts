@@ -134,6 +134,8 @@ export async function denyAuthorization(input: {
     redirectUri: string;
     state: string;
 }): Promise<void> {
+    const session = await auth();
+    if (!session?.user) throw new Error("Not authenticated");
     const client = await findOAuthClient(input.clientId);
     if (!client) throw new Error("Invalid client");
     if (!matchesRedirectUri(client.redirectUris, input.redirectUri)) {

@@ -16,10 +16,6 @@ export function parseScopes(value: string | undefined): string[] {
         .filter(Boolean);
 }
 
-export function hasScope(scopes: string[], required: string): boolean {
-    return scopes.includes(required);
-}
-
 /**
  * A client may only ask for scopes it was registered with, so a token can
  * never carry a capability the credential was not granted.

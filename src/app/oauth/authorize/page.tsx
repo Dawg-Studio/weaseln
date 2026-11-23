@@ -39,6 +39,7 @@ export default async function AuthorizePage({
     const scope = query.get("scope") ?? "";
     const codeChallenge = query.get("code_challenge") ?? "";
     const codeChallengeMethod = query.get("code_challenge_method") ?? "";
+    const responseType = query.get("response_type") ?? "";
 
     const client = clientId ? await findOAuthClient(clientId) : null;
     const scopes = parseScopes(scope);
@@ -50,6 +51,7 @@ export default async function AuthorizePage({
         codeChallengeMethod,
         codeChallenge,
         scopes,
+        responseType,
     });
     if (failure || !client) {
         return (
@@ -87,7 +89,11 @@ function consentFailure(input: {
     codeChallengeMethod: string;
     codeChallenge: string;
     scopes: string[];
+    responseType: string;
 }): string | null {
+    if (input.responseType !== "code") {
+        return "This server only supports the authorization code flow.";
+    }
     if (!input.client || input.client.revokedAt) {
         return "This client is not registered.";
     }
