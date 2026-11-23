@@ -4,6 +4,7 @@ import { registerDesignTools } from "@/modules/mcp/tools/design";
 import { registerIdentityTools } from "@/modules/mcp/tools/identity";
 import { registerOrganizationTools } from "@/modules/mcp/tools/organization";
 import { registerPostTools } from "@/modules/mcp/tools/posts";
+import { registerProfileTools } from "@/modules/mcp/tools/profile";
 
 /**
  * The MCP server for one caller. The tools are added in the tasks that own
@@ -15,6 +16,7 @@ export function buildServer(_authInfo: AuthInfo | undefined): McpServer {
         { capabilities: { tools: {} } },
     );
     registerIdentityTools(server);
+    registerProfileTools(server);
     registerPostTools(server);
     registerOrganizationTools(server);
     registerDesignTools(server);
