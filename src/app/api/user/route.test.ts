@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { PATCH } from "./route";
 
 const mockUpdate = vi.fn();
@@ -41,10 +41,19 @@ describe("PATCH /api/user", () => {
         mockAuth.mockReset();
         mockUpdate.mockReset();
         mockUpdateMany.mockReset();
+        mockTransaction.mockReset();
         mockAuth.mockResolvedValue({ user: { id: "alice" } });
         mockUpdate.mockResolvedValue({ id: "alice" });
         mockUpdateMany.mockResolvedValue({ count: 0 });
         mockFindUnique.mockResolvedValue({ socials: [] });
+        // The route logs a failure it does not hand to the client. The spy is
+        // restored in afterEach, so a failing assertion cannot leave it
+        // silencing the tests that follow.
+        vi.spyOn(console, "error").mockImplementation(() => {});
+    });
+
+    afterEach(() => {
+        vi.restoreAllMocks();
     });
 
     it("refuses to write a resume field through the profile endpoint", async () => {
@@ -148,13 +157,11 @@ describe("PATCH /api/user", () => {
     });
 
     it("does not leak the failure to the client", async () => {
-        const logged = vi.spyOn(console, "error").mockImplementation(() => {});
         mockUpdate.mockRejectedValue(new Error("prisma exploded"));
 
         const res = await patch({ name: "Alice" });
 
         expect(res.status).toBe(500);
         expect(await res.text()).not.toContain("prisma");
-        logged.mockRestore();
     });
 });

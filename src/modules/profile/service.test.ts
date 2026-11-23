@@ -121,6 +121,60 @@ describe("profile service", () => {
         ).rejects.toMatchObject({ status: 409, field: "username" });
     });
 
+    it("names the email that was taken, not the username", async () => {
+        mockUpdate.mockRejectedValue({
+            code: "P2002",
+            meta: { target: ["email"] },
+        });
+
+        await expect(
+            updateOwnProfile(actor, {
+                username: "alice",
+                email: "taken@test.com",
+            }),
+        ).rejects.toMatchObject({
+            status: 409,
+            field: "email",
+            message: "Email already taken",
+        });
+    });
+
+    it("reads the email out of the Postgres constraint name", async () => {
+        mockUpdate.mockRejectedValue({
+            code: "P2002",
+            meta: { target: ["User_email_key"] },
+        });
+
+        await expect(
+            updateOwnProfile(actor, {
+                username: "alice",
+                email: "taken@test.com",
+            }),
+        ).rejects.toMatchObject({
+            status: 409,
+            field: "email",
+            message: "Email already taken",
+        });
+    });
+
+    it("names the username that was taken, not the email", async () => {
+        mockUpdate.mockRejectedValue({
+            code: "P2002",
+            meta: { target: ["username"] },
+        });
+
+        await expect(
+            updateOwnProfile(actor, {
+                username: "alice",
+                email: "alice@test.com",
+            }),
+        ).rejects.toMatchObject({
+            status: 409,
+            field: "username",
+            message: "Username already taken",
+        });
+    });
+
     it("leaves the posts alone when the name did not change", async () => {
         await updateOwnProfile(actor, { bio: "hi" });
 

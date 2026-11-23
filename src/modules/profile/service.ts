@@ -77,9 +77,11 @@ function isUniqueViolation(error: unknown): boolean {
 }
 
 /**
- * The column Prisma tripped on is in the error's meta. The input is the
- * fallback: the settings form always sends a username and an email, so the
- * input alone cannot say which one of the two was taken.
+ * The field Prisma tripped on is in the error's meta. Postgres names the
+ * constraint (`User_email_key`) and the other engines name the column
+ * (`email`); both spellings name the same field. The input is the fallback:
+ * the settings form always sends a username and an email, so the input alone
+ * cannot say which one of the two was taken.
  */
 function conflictField(
     error: unknown,
@@ -87,8 +89,13 @@ function conflictField(
 ): "username" | "email" | null {
     const target = (error as { meta?: { target?: unknown } }).meta?.target;
     const named = Array.isArray(target) ? target : [];
-    if (named.includes("username")) return "username";
-    if (named.includes("email")) return "email";
+    const names = named.filter(
+        (entry): entry is string => typeof entry === "string",
+    );
+    const targetNames = (field: "username" | "email") =>
+        names.some((entry) => entry.toLowerCase().split("_").includes(field));
+    if (targetNames("username")) return "username";
+    if (targetNames("email")) return "email";
     if ("username" in input) return "username";
     if ("email" in input) return "email";
     return null;
@@ -155,19 +162,6 @@ export async function updateOwnProfile(
                 data,
             });
         });
-
-        // The posts carry the owner's name and username, and only the fields
-        // this request named: a save that changed nothing but the bio must
-        // not stamp the account id onto every post the owner has.
-        const postData: Prisma.PostUpdateManyMutationInput = {};
-        if (typeof input.name === "string") postData.author = input.name;
-        if (username !== undefined) postData.authorUsername = username;
-        if (Object.keys(postData).length > 0) {
-            await prisma.post.updateMany({
-                where: { userId: actor.userId },
-                data: postData,
-            });
-        }
     } catch (err) {
         if (isUniqueViolation(err)) {
             const field = conflictField(err, input);
@@ -182,6 +176,21 @@ export async function updateOwnProfile(
             }
         }
         throw err;
+    }
+
+    // The posts carry the owner's name and username, and only the fields
+    // this request named: a save that changed nothing but the bio must not
+    // stamp the account id onto every post the owner has. The sync is
+    // outside the write's error handling: a failure here is not a conflict
+    // on the account's own columns.
+    const postData: Prisma.PostUpdateManyMutationInput = {};
+    if (typeof input.name === "string") postData.author = input.name;
+    if (username !== undefined) postData.authorUsername = username;
+    if (Object.keys(postData).length > 0) {
+        await prisma.post.updateMany({
+            where: { userId: actor.userId },
+            data: postData,
+        });
     }
 
     return getOwnProfile(actor);
