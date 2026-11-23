@@ -1,7 +1,19 @@
 import { GoogleGenAI } from "@google/genai";
 
-import { MAX_RESUME_BYTES, type ResumeProposal } from "./types";
-import { validateResumeProposal } from "./validation";
+import prisma from "@/db";
+import {
+    destroyCloudinaryAsset,
+    getPrivateDownloadUrl,
+    uploadCloudinary,
+} from "@/lib/cloudinary";
+import type { Prisma } from "@/generated/prisma/client";
+import type { PortfolioActor } from "@/modules/portfolio/service";
+import { MAX_RESUME_BYTES, type ResumeLink, type ResumeProposal } from "./types";
+import {
+    validateExperienceInput,
+    validateResumeFacts,
+    validateResumeProposal,
+} from "./validation";
 
 /**
  * The status travels with the error so the route keeps its own 415, 422 and
@@ -132,4 +144,199 @@ export async function parseResumePdf(
         const detail = err instanceof Error ? err.message : "unknown shape";
         throw new ResumeError(`Could not read this resume: ${detail}`, 422);
     }
+}
+
+const RESUME_FOLDER = "postdevfy/portfolio";
+const RESUME_UPLOAD_FOLDER = "portfolio";
+const RESUME_FORMAT = "pdf";
+
+type ResumeUploadResult = {
+    url: string;
+    proposal: ResumeProposal | null;
+    error: string | null;
+};
+
+function resumeDeliveryUrl(metadata: {
+    timestamp: number;
+    folder: string;
+    public_id: string;
+}): string {
+    const cloud = process.env.NEXT_CLOUDINARY_NAME;
+    return `https://res.cloudinary.com/${cloud}/raw/private/v${metadata.timestamp}/${metadata.folder}/${metadata.public_id}.pdf`;
+}
+
+/**
+ * The file is written before it is parsed, so a parse failure still leaves the
+ * owner with the PDF they uploaded. A replacement destroys the previous asset,
+ * which is why a retry after a failed parse cannot leave orphans.
+ */
+export async function uploadResume(
+    actor: PortfolioActor,
+    options: { bytes: Uint8Array; generate?: ResumeGenerate },
+): Promise<ResumeUploadResult> {
+    assertResumeBytes(options.bytes);
+
+    const previous = await prisma.user.findUnique({
+        where: { id: actor.userId },
+        select: { resumePublicId: true },
+    });
+
+    const cloudinary = await uploadCloudinary({
+        file: new File([options.bytes], "resume.pdf", {
+            type: "application/pdf",
+        }),
+        folder: RESUME_UPLOAD_FOLDER,
+        public_id: `${actor.userId}-${Date.now()}`,
+        resourceType: "raw",
+        type: "private",
+    });
+    if (!cloudinary.upload.ok) {
+        throw new ResumeError("Upload failed", 502);
+    }
+
+    const url = resumeDeliveryUrl(cloudinary.metadata);
+
+    await prisma.user.update({
+        where: { id: actor.userId },
+        data: {
+            resumeUrl: url,
+            resumePublicId: cloudinary.metadata.public_id,
+        },
+    });
+
+    if (previous?.resumePublicId) {
+        await destroyCloudinaryAsset({
+            public_id: previous.resumePublicId,
+            folder: RESUME_FOLDER,
+        });
+    }
+
+    try {
+        const proposal = await parseResumePdf(options.bytes, {
+            generate: options.generate,
+        });
+        return { url, proposal, error: null };
+    } catch (err) {
+        const message =
+            err instanceof Error ? err.message : "Could not read this resume";
+        return { url, proposal: null, error: message };
+    }
+}
+
+export async function setResumeVisibility(
+    actor: PortfolioActor,
+    options: { isPublic: boolean },
+): Promise<void> {
+    await prisma.user.update({
+        where: { id: actor.userId },
+        data: { resumePublic: options.isPublic },
+    });
+}
+
+// The asset is destroyed before the columns are cleared: a failed destroy
+// throws while the owner still sees their resume, instead of a resume that
+// looks gone but is still reachable by URL with no id left to delete it.
+export async function removeResume(actor: PortfolioActor): Promise<void> {
+    const row = await prisma.user.findUnique({
+        where: { id: actor.userId },
+        select: { resumePublicId: true },
+    });
+
+    if (row?.resumePublicId) {
+        await destroyCloudinaryAsset({
+            public_id: row.resumePublicId,
+            folder: RESUME_FOLDER,
+        });
+    }
+
+    await prisma.user.update({
+        where: { id: actor.userId },
+        data: {
+            resumeUrl: null,
+            resumePublicId: null,
+            resumePublic: false,
+        },
+    });
+}
+
+export async function getResumeDownloadUrl(
+    actor: PortfolioActor | null,
+    options: { userId: string },
+): Promise<string | null> {
+    const row = await prisma.user.findUnique({
+        where: { id: options.userId },
+        select: { resumePublic: true, resumePublicId: true },
+    });
+    if (!row?.resumePublicId) return null;
+
+    const isOwner = actor?.userId === options.userId;
+    if (!row.resumePublic && !isOwner) return null;
+
+    return getPrivateDownloadUrl({
+        public_id: row.resumePublicId,
+        folder: RESUME_FOLDER,
+        format: RESUME_FORMAT,
+        expiresAt: Math.floor(Date.now() / 1000) + 60,
+    });
+}
+
+type StoredSocial = { name?: string; url?: string };
+
+function mergeSocials(existing: unknown, links: ResumeLink[]): StoredSocial[] {
+    const merged: StoredSocial[] = Array.isArray(existing)
+        ? [...(existing as StoredSocial[])]
+        : [];
+    for (const link of links) {
+        if (!merged.some((entry) => entry.name === link.label)) {
+            merged.push({ name: link.label, url: link.url });
+        }
+    }
+    return merged;
+}
+
+/**
+ * Writes only what the owner confirmed. A null field leaves the stored value
+ * alone: a resume that omits a summary must not blank the profile it merges
+ * into.
+ */
+export async function applyResumeProposal(
+    actor: PortfolioActor,
+    input: unknown,
+): Promise<{ experience: number }> {
+    if (input === null || typeof input !== "object") {
+        throw new Error("Invalid portfolio input: resume facts must be an object");
+    }
+
+    const { experience, ...factInput } = input as Record<string, unknown>;
+    const facts = validateResumeFacts(factInput);
+    const entries = Array.isArray(experience)
+        ? experience.map(validateExperienceInput)
+        : [];
+
+    const current = await prisma.user.findUnique({
+        where: { id: actor.userId },
+        select: { socials: true },
+    });
+
+    const data: Prisma.UserUpdateInput = {
+        socials: mergeSocials(current?.socials, facts.links) as Prisma.InputJsonValue[],
+        skills: facts.skills,
+    };
+    if (facts.headline !== null) data.occupation = facts.headline;
+    if (facts.summary !== null) data.bio = facts.summary;
+    if (facts.location !== null) data.address = facts.location;
+
+    await prisma.user.update({ where: { id: actor.userId }, data });
+
+    if (entries.length > 0) {
+        await prisma.userExperience.createMany({
+            data: entries.map((entry, index) => ({
+                ...entry,
+                userId: actor.userId,
+                order: index,
+            })),
+        });
+    }
+
+    return { experience: entries.length };
 }

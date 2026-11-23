@@ -1,6 +1,42 @@
-import { describe, expect, it } from "vitest";
-import { assertResumeBytes, parseResumePdf, ResumeError } from "./resume";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import {
+    applyResumeProposal,
+    assertResumeBytes,
+    getResumeDownloadUrl,
+    parseResumePdf,
+    removeResume,
+    ResumeError,
+    uploadResume,
+} from "./resume";
 import { MAX_RESUME_BYTES } from "./types";
+
+const mockFindUnique = vi.fn();
+const mockUpdate = vi.fn();
+const mockExperienceCreateMany = vi.fn();
+const mockUpload = vi.fn();
+const mockDestroy = vi.fn();
+const mockDownloadUrl = vi.fn();
+
+vi.mock("@/db", () => ({
+    default: {
+        user: {
+            findUnique: (...args: unknown[]) => mockFindUnique(...args),
+            update: (...args: unknown[]) => mockUpdate(...args),
+        },
+        userExperience: {
+            createMany: (...args: unknown[]) => mockExperienceCreateMany(...args),
+        },
+    },
+}));
+
+vi.mock("@/lib/cloudinary", () => ({
+    uploadCloudinary: (...args: unknown[]) => mockUpload(...args),
+    destroyCloudinaryAsset: (...args: unknown[]) => mockDestroy(...args),
+    getPrivateDownloadUrl: (...args: unknown[]) => mockDownloadUrl(...args),
+}));
+
+const actor = { userId: "alice" };
+const unreadable = async () => "not json";
 
 const pdf = () => new TextEncoder().encode("%PDF-1.4\n1 0 obj\n");
 
@@ -48,5 +84,130 @@ describe("parseResumePdf", () => {
         await expect(parseResumePdf(pdf(), { generate: async () => "I cannot read this" })).rejects.toThrow(
             /could not read/i,
         );
+    });
+});
+
+describe("resume storage", () => {
+    beforeEach(() => {
+        vi.stubEnv("NEXT_CLOUDINARY_NAME", "leindfraust");
+        mockFindUnique.mockReset();
+        mockUpdate.mockReset();
+        mockExperienceCreateMany.mockReset();
+        mockUpload.mockReset();
+        mockDestroy.mockReset();
+        mockDownloadUrl.mockReset();
+
+        mockFindUnique.mockResolvedValue({ resumePublicId: null, resumePublic: false, socials: [] });
+        mockUpdate.mockResolvedValue({ id: "alice" });
+        mockExperienceCreateMany.mockResolvedValue({ count: 0 });
+        mockUpload.mockResolvedValue({
+            upload: { ok: true },
+            metadata: { timestamp: 1700000000, folder: "postdevfy/portfolio", public_id: "alice-1", resourceType: "raw", type: "private" },
+        });
+        mockDestroy.mockResolvedValue(true);
+        mockDownloadUrl.mockReturnValue("https://api.cloudinary.com/v1_1/leindfraust/raw/download?signed");
+    });
+
+    it("keeps the stored file when parsing fails", async () => {
+        const result = await uploadResume(actor, { bytes: pdf(), generate: unreadable });
+        expect(result.url).toMatch(/^https:\/\/res\.cloudinary\.com\//);
+        expect(result.proposal).toBeNull();
+        expect(result.error).toMatch(/could not read/i);
+    });
+
+    it("stores the private public_id so the asset can be destroyed later", async () => {
+        await uploadResume(actor, { bytes: pdf(), generate: unreadable });
+        expect(mockUpdate.mock.calls[0][0].data).toMatchObject({ resumePublicId: "alice-1" });
+    });
+
+    it("destroys the previous asset when a resume is replaced", async () => {
+        mockFindUnique.mockResolvedValue({ resumePublicId: "old", resumePublic: false, socials: [] });
+        await uploadResume(actor, { bytes: pdf(), generate: unreadable });
+        expect(mockDestroy).toHaveBeenCalledWith(expect.objectContaining({ public_id: "old" }));
+    });
+
+    it("removes the columns and destroys the asset", async () => {
+        mockFindUnique.mockResolvedValue({ resumePublicId: "old", resumePublic: true, socials: [] });
+        await removeResume(actor);
+        expect(mockDestroy).toHaveBeenCalled();
+        expect(mockUpdate.mock.calls[0][0].data).toEqual({
+            resumeUrl: null,
+            resumePublicId: null,
+            resumePublic: false,
+        });
+    });
+
+    it("gives a stranger no download URL when the resume is private", async () => {
+        mockFindUnique.mockResolvedValue({ resumePublic: false, resumePublicId: "p", resumeUrl: "u" });
+        expect(await getResumeDownloadUrl({ userId: "bob" }, { userId: "alice" })).toBeNull();
+        expect(mockDownloadUrl).not.toHaveBeenCalled();
+    });
+
+    it("gives a stranger a signed URL when the owner published it", async () => {
+        mockFindUnique.mockResolvedValue({ resumePublic: true, resumePublicId: "p", resumeUrl: "u" });
+        expect(await getResumeDownloadUrl({ userId: "bob" }, { userId: "alice" })).toBe(
+            "https://api.cloudinary.com/v1_1/leindfraust/raw/download?signed",
+        );
+    });
+
+    it("applies only the facts it is given and leaves nulls alone", async () => {
+        const result = await applyResumeProposal(actor, {
+            headline: "Engineer",
+            summary: null,
+            location: null,
+            links: [],
+            skills: ["TS"],
+            experience: [],
+        });
+        expect(mockUpdate.mock.calls[0][0].data).not.toHaveProperty("bio");
+        expect(mockUpdate.mock.calls[0][0].data).toMatchObject({ occupation: "Engineer", skills: ["TS"] });
+        expect(result.experience).toBe(0);
+    });
+
+    it("merges resume links without dropping an existing social", async () => {
+        mockFindUnique.mockResolvedValue({
+            resumePublicId: null,
+            resumePublic: false,
+            socials: [{ name: "GitHub", url: "https://github.com/old" }],
+        });
+        await applyResumeProposal(actor, {
+            headline: null,
+            summary: null,
+            location: null,
+            links: [{ label: "GitHub", url: "https://github.com/new" }, { label: "Site", url: "https://alice.dev" }],
+            skills: [],
+            experience: [],
+        });
+        const socials = mockUpdate.mock.calls[0][0].data.socials as { name: string; url: string }[];
+        expect(socials.find((s) => s.name === "GitHub")?.url).toBe("https://github.com/old");
+        expect(socials.find((s) => s.name === "Site")?.url).toBe("https://alice.dev");
+    });
+
+    it("inserts the confirmed experience rows and reports the count", async () => {
+        const result = await applyResumeProposal(actor, {
+            headline: null,
+            summary: null,
+            location: null,
+            links: [],
+            skills: [],
+            experience: [
+                { kind: "work", org: "Acme", role: "Engineer", location: null, startDate: "2021-01", endDate: null, isCurrent: true, description: null },
+            ],
+        });
+        expect(mockExperienceCreateMany.mock.calls[0][0].data).toHaveLength(1);
+        expect(result.experience).toBe(1);
+    });
+
+    it("refuses an unvalidated experience row", async () => {
+        await expect(
+            applyResumeProposal(actor, {
+                headline: null,
+                summary: null,
+                location: null,
+                links: [],
+                skills: [],
+                experience: [{ kind: "sidequest", org: "Acme", role: "Engineer" }],
+            }),
+        ).rejects.toThrow(/kind/);
     });
 });
