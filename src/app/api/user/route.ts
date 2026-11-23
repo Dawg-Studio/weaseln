@@ -126,6 +126,25 @@ export async function PATCH(req: Request) {
         data.username = body.username.replace(/\s/g, "");
     }
 
+    // Socials are merged by name rather than replaced: a link the caller did
+    // not send is kept. A resume adds links to this column, and a form that
+    // only knows three of them must not delete the rest.
+    if (Array.isArray(body.socials)) {
+        const current = await prisma.user.findUnique({
+            where: { id: session.user.id },
+            select: { socials: true },
+        });
+        const sent = body.socials as { name?: string; url?: string }[];
+        const sentNames = new Set(sent.map((entry) => entry.name));
+        const existing = Array.isArray(current?.socials)
+            ? (current.socials as { name?: string; url?: string }[])
+            : [];
+        data.socials = [
+            ...sent,
+            ...existing.filter((entry) => !sentNames.has(entry.name)),
+        ] as Prisma.InputJsonValue[];
+    }
+
     try {
         await prisma.user.update({
             where: { id: session.user.id },

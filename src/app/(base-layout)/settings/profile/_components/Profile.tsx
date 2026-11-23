@@ -18,7 +18,6 @@ import {
     generateVerificationCode,
     getCurrentEmailVerificationCodeDate,
 } from "@/utils/actions/verification";
-import { mergeProfileSocials } from "@/utils/socials";
 
 export default function ProfileSettingsComponent({
     username,
@@ -224,13 +223,12 @@ export default function ProfileSettingsComponent({
     };
 
     const updateDetails = form.handleSubmit(async (data) => {
-        const socials = mergeProfileSocials(
-            socialData,
-            socialForms.map((social) => ({
-                name: social.name,
-                url: data[social.name],
-            })),
-        );
+        // Only the socials this form owns are sent. The server keeps the ones
+        // it was not told about, so a link a resume added survives this save.
+        const socials: FormSocials[] = socialForms.map((social) => ({
+            name: social.name,
+            url: data[social.name],
+        }));
         const update = await fetch("/api/user", {
             method: "PATCH",
             body: JSON.stringify({

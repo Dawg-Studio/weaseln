@@ -44,7 +44,7 @@ const user = {
 } as unknown as User;
 
 describe("profile settings", () => {
-    it("keeps a social the form does not own when the profile is saved", async () => {
+    it("sends only the social fields the form owns", async () => {
         render(<ProfileSettingsComponent {...user} />);
 
         await userEvent.click(
@@ -54,10 +54,13 @@ describe("profile settings", () => {
         await waitFor(() => expect(fetchMock).toHaveBeenCalled());
         const body = JSON.parse(
             (fetchMock.mock.calls[0][1] as RequestInit).body as string,
-        ) as { socials: { name: string; url: string }[] };
-        expect(body.socials).toContainEqual({
-            name: "GitHub",
-            url: "https://github.com/alice",
-        });
+        ) as { socials: { name: string }[] };
+        // The server keeps the socials the caller did not send, so the form
+        // must not send a stale copy of them.
+        expect(body.socials.map((entry) => entry.name)).toEqual([
+            "Facebook",
+            "Twitter",
+            "Personal Website",
+        ]);
     });
 });
