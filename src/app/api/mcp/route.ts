@@ -10,10 +10,13 @@ import {
 } from "@/modules/mcp/verifier";
 
 /**
- * A base64 image is a third larger than the image, so a 3 MiB upload becomes
- * roughly 4 MiB of request body.
+ * A base64 image is a third larger than the image, and a full size resume
+ * PDF is 5 MiB, so the body has to hold 7 MiB of base64 plus the envelope.
+ * The app's own cap sits above the platform's: a Vercel function refuses a
+ * body over 4.5 MB, so there the ceiling is lower and this is not the
+ * bottleneck.
  */
-const MAX_BODY_BYTES = 5 * 1024 * 1024;
+export const MAX_BODY_BYTES = 8 * 1024 * 1024;
 
 const handler = createMcpHandler((ctx) => buildServer(ctx.authInfo), {
     maxRequestBodySize: MAX_BODY_BYTES,

@@ -89,4 +89,24 @@ describe("POST /api/mcp", () => {
             expect(body).toContain(name);
         }
     });
+
+    it("takes a body that holds a full size resume", async () => {
+        const cursor = "x".repeat(6 * 1024 * 1024);
+
+        const res = await POST(
+            mcpRequest({ ...toolsList, params: { cursor } }, tokenFor()),
+        );
+
+        expect(res.status, await res.clone().text()).toBe(200);
+    });
+
+    it("refuses a body above the cap", async () => {
+        const cursor = "x".repeat(9 * 1024 * 1024);
+
+        const res = await POST(
+            mcpRequest({ ...toolsList, params: { cursor } }, tokenFor()),
+        );
+
+        expect(res.status).toBe(413);
+    });
 });
