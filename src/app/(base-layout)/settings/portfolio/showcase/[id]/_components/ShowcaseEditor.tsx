@@ -12,6 +12,7 @@ import {
     type ShowcaseLayout,
 } from "@/modules/portfolio/types";
 import ItemEditor from "./ItemEditor";
+import { requestOrToast } from "@/utils/requestOrToast";
 
 type ShowcaseEditable = {
     id: string;
@@ -42,19 +43,20 @@ export default function ShowcaseEditor({
     async function saveShowcase() {
         setBusy(true);
         try {
-            const response = await fetch("/api/portfolio/showcase", {
-                method: "PATCH",
-                body: JSON.stringify({
-                    showcaseId: showcase.id,
-                    title: draft.title,
-                    description: draft.description,
-                    layout: draft.layout,
-                }),
-            });
-            if (!response.ok) {
-                toast.error("Could not save this showcase");
-                return;
-            }
+            const response = await requestOrToast(
+                "/api/portfolio/showcase",
+                {
+                    method: "PATCH",
+                    body: JSON.stringify({
+                        showcaseId: showcase.id,
+                        title: draft.title,
+                        description: draft.description,
+                        layout: draft.layout,
+                    }),
+                },
+                "Could not save this showcase.",
+            );
+            if (!response) return;
             toast.success("Showcase saved.");
             router.refresh();
         } finally {
@@ -64,45 +66,41 @@ export default function ShowcaseEditor({
 
     async function deleteShowcase() {
         if (!window.confirm("Delete this showcase and its items?")) return;
-        try {
-            const response = await fetch("/api/portfolio/showcase", {
+        const response = await requestOrToast(
+            "/api/portfolio/showcase",
+            {
                 method: "DELETE",
                 body: JSON.stringify({ showcaseId: showcase.id }),
-            });
-            if (!response.ok) {
-                toast.error("Could not delete this showcase.");
-                return;
-            }
-        } catch {
-            toast.error("Could not delete this showcase.");
-            return;
-        }
+            },
+            "Could not delete this showcase.",
+        );
+        if (!response) return;
         router.push("/settings/portfolio/showcases");
     }
 
     async function deleteItem(itemId: string) {
-        try {
-            const response = await fetch("/api/portfolio/item", {
+        const response = await requestOrToast(
+            "/api/portfolio/item",
+            {
                 method: "DELETE",
                 body: JSON.stringify({ itemId }),
-            });
-            if (!response.ok) {
-                // The item is still on the server, so it stays in the list.
-                toast.error("Could not delete that item.");
-                return;
-            }
-        } catch {
-            toast.error("Could not delete that item.");
-            return;
-        }
+            },
+            "Could not delete that item.",
+        );
+        if (!response) return;
         router.refresh();
     }
 
     async function moveItem(itemId: string, direction: -1 | 1) {
-        await fetch("/api/portfolio/item", {
-            method: "PATCH",
-            body: JSON.stringify({ itemId, direction }),
-        });
+        const response = await requestOrToast(
+            "/api/portfolio/item",
+            {
+                method: "PATCH",
+                body: JSON.stringify({ itemId, direction }),
+            },
+            "Could not move that item.",
+        );
+        if (!response) return;
         router.refresh();
     }
 
@@ -221,12 +219,16 @@ export default function ShowcaseEditor({
 
             {editingItem ? (
                 <ItemEditor
+                    // The editor keeps its draft in state, so switching to
+                    // another item has to remount it. Without the key, saving
+                    // would write the previous item's content over this one.
+                    key={editingItem.id}
                     showcaseId={showcase.id}
                     item={editingItem}
                     onDone={() => setEditingItem(null)}
                 />
             ) : adding ? (
-                <ItemEditor showcaseId={showcase.id} onDone={() => setAdding(false)} />
+                <ItemEditor key="new" showcaseId={showcase.id} onDone={() => setAdding(false)} />
             ) : (
                 <button
                     type="button"

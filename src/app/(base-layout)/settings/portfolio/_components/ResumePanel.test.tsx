@@ -78,6 +78,16 @@ describe("ResumePanel", () => {
         expect(writes).toHaveLength(0);
     });
 
+    it("keeps the caret in a field while the owner corrects it", async () => {
+        await uploadAndOpenProposal();
+
+        const org = screen.getByLabelText("Organisation 1");
+        await userEvent.type(org, "X");
+
+        expect((org as HTMLInputElement).value).toBe("AcmeX");
+        expect(document.activeElement).toBe(org);
+    });
+
     it("does not publish a link the owner did not tick", async () => {
         await uploadAndOpenProposal();
 

@@ -7,6 +7,7 @@ import { toast } from "react-hot-toast";
 
 import type { ItemInput } from "@/modules/portfolio/types";
 import { MAX_GALLERY_IMAGES } from "@/modules/portfolio/types";
+import { requestOrToast } from "@/utils/requestOrToast";
 
 type EditableItem = ItemInput & { id: string };
 
@@ -69,16 +70,19 @@ export default function ItemEditor({
     async function save() {
         setBusy(true);
         try {
-            const response = await fetch("/api/portfolio/item", {
-                method: item ? "PATCH" : "POST",
-                body: JSON.stringify(
-                    item ? { itemId: item.id, ...draft } : { showcaseId, ...draft },
-                ),
-            });
-            if (!response.ok) {
-                toast.error("Could not save that item");
-                return;
-            }
+            const response = await requestOrToast(
+                "/api/portfolio/item",
+                {
+                    method: item ? "PATCH" : "POST",
+                    body: JSON.stringify(
+                        item
+                            ? { itemId: item.id, ...draft }
+                            : { showcaseId, ...draft },
+                    ),
+                },
+                "Could not save that item.",
+            );
+            if (!response) return;
             toast.success(item ? "Item updated." : "Item added.");
             if (!item) setDraft(EMPTY_ITEM);
             onDone?.();

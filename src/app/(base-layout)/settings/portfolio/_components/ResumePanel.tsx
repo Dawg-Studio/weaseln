@@ -9,6 +9,7 @@ import type {
     ResumeLink,
     ResumeProposal,
 } from "@/modules/portfolio/types";
+import { requestOrToast } from "@/utils/requestOrToast";
 
 type ProposalRow = ExperienceInput & { checked: boolean };
 
@@ -125,14 +126,15 @@ export default function ResumePanel({
 
         setBusy(true);
         try {
-            const response = await fetch("/api/portfolio/resume/apply", {
-                method: "POST",
-                body: JSON.stringify(payload),
-            });
-            if (!response.ok) {
-                toast.error("Could not add those entries");
-                return;
-            }
+            const response = await requestOrToast(
+                "/api/portfolio/resume/apply",
+                {
+                    method: "POST",
+                    body: JSON.stringify(payload),
+                },
+                "Could not add those entries",
+            );
+            if (!response) return;
             toast.success("Experience added to your profile.");
             setRows([]);
             setFacts(null);
@@ -146,23 +148,17 @@ export default function ResumePanel({
     async function setVisibility(next: boolean) {
         const previous = isPublic;
         setIsPublic(next);
-        try {
-            const response = await fetch("/api/portfolio/resume", {
+        const response = await requestOrToast(
+            "/api/portfolio/resume",
+            {
                 method: "PATCH",
                 body: JSON.stringify({ isPublic: next }),
-            });
-            if (!response.ok) {
-                // The write did not happen, so the switch goes back where it
-                // was.
-                setIsPublic(previous);
-                toast.error("Could not change who can see your resume.");
-                return;
-            }
-        } catch {
-            // The request never arrived, so the server still holds the old
-            // value.
+            },
+            "Could not change who can see your resume.",
+        );
+        if (!response) {
+            // The write did not happen, so the switch goes back where it was.
             setIsPublic(previous);
-            toast.error("Could not change who can see your resume.");
             return;
         }
         router.refresh();
@@ -172,10 +168,13 @@ export default function ResumePanel({
         if (!window.confirm("Remove your resume? The stored file is deleted.")) {
             return;
         }
-        const response = await fetch("/api/portfolio/resume", { method: "DELETE" });
-        if (!response.ok) {
+        const response = await requestOrToast(
+            "/api/portfolio/resume",
+            { method: "DELETE" },
+            "Could not remove the resume. Try again.",
+        );
+        if (!response) {
             // The server refused, so the file and the row are still there.
-            toast.error("Could not remove the resume. Try again.");
             return;
         }
         setStored(false);
@@ -248,7 +247,11 @@ export default function ResumePanel({
                     <ul className="space-y-3">
                         {rows.map((row, index) => (
                             <li
-                                key={`${row.org}-${row.role}-${index}`}
+                                // The proposal rows never reorder, so the index
+                                // is a stable key. A key built from the fields
+                                // the owner is editing would remount the row on
+                                // every keystroke and lose the caret.
+                                key={index}
                                 className="space-y-2 rounded-box bg-base-200/40 p-3"
                             >
                                 <label className="label cursor-pointer justify-start gap-2">

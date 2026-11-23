@@ -46,6 +46,24 @@ const item = {
 };
 
 describe("ShowcaseEditor", () => {
+    it("edits the item that was clicked, not the one before it", async () => {
+        const second = { ...item, id: "i2", slug: "market", title: "Market" };
+        render(
+            <ShowcaseEditor
+                showcase={showcase}
+                items={[item, second]}
+                userId="alice"
+                username="alice"
+            />,
+        );
+
+        await userEvent.click(screen.getByRole("button", { name: /edit harbour/i }));
+        await userEvent.click(screen.getByRole("button", { name: /edit market/i }));
+
+        const title = screen.getByLabelText("Item title") as HTMLInputElement;
+        expect(title.value).toBe("Market");
+    });
+
     it("keeps the item when the request fails outright", async () => {
         const { toast } = await import("react-hot-toast");
         fetchMock.mockRejectedValueOnce(new Error("network down"));

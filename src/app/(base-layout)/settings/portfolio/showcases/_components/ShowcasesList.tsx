@@ -3,12 +3,12 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { toast } from "react-hot-toast";
 
 import {
     SHOWCASE_LAYOUTS,
     type ShowcaseLayout,
 } from "@/modules/portfolio/types";
+import { requestOrToast } from "@/utils/requestOrToast";
 
 export type ShowcaseListItem = {
     id: string;
@@ -28,14 +28,15 @@ export default function ShowcasesList({ initial }: { initial: ShowcaseListItem[]
     async function create() {
         setBusy(true);
         try {
-            const response = await fetch("/api/portfolio/showcase", {
-                method: "POST",
-                body: JSON.stringify({ title, description: null, layout }),
-            });
-            if (!response.ok) {
-                toast.error("Could not create that showcase");
-                return;
-            }
+            const response = await requestOrToast(
+                "/api/portfolio/showcase",
+                {
+                    method: "POST",
+                    body: JSON.stringify({ title, description: null, layout }),
+                },
+                "Could not create that showcase.",
+            );
+            if (!response) return;
             const created = (await response.json()) as { id: string };
             router.push(`/settings/portfolio/showcase/${created.id}`);
         } finally {
@@ -44,10 +45,15 @@ export default function ShowcasesList({ initial }: { initial: ShowcaseListItem[]
     }
 
     async function move(showcaseId: string, direction: -1 | 1) {
-        await fetch("/api/portfolio/showcase", {
-            method: "PATCH",
-            body: JSON.stringify({ showcaseId, direction }),
-        });
+        const response = await requestOrToast(
+            "/api/portfolio/showcase",
+            {
+                method: "PATCH",
+                body: JSON.stringify({ showcaseId, direction }),
+            },
+            "Could not move that showcase.",
+        );
+        if (!response) return;
         router.refresh();
     }
 

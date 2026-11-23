@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "react-hot-toast";
 
 import type { ExperienceInput } from "@/modules/portfolio/types";
+import { requestOrToast } from "@/utils/requestOrToast";
 
 export type ExperienceRow = ExperienceInput & { id: string; order: number };
 
@@ -66,16 +67,19 @@ export default function ExperienceList({ initial }: { initial: ExperienceRow[] }
                 ...draft,
                 endDate: draft.isCurrent ? null : draft.endDate,
             };
-            const response = await fetch("/api/portfolio/experience", {
-                method: editingId ? "PATCH" : "POST",
-                body: JSON.stringify(
-                    editingId ? { experienceId: editingId, ...payload } : payload,
-                ),
-            });
-            if (!response.ok) {
-                toast.error("Could not save that entry");
-                return;
-            }
+            const response = await requestOrToast(
+                "/api/portfolio/experience",
+                {
+                    method: editingId ? "PATCH" : "POST",
+                    body: JSON.stringify(
+                        editingId
+                            ? { experienceId: editingId, ...payload }
+                            : payload,
+                    ),
+                },
+                "Could not save that entry",
+            );
+            if (!response) return;
             // router.refresh() re-renders the page but keeps this component's
             // state, so the list has to be updated here or the owner sees the
             // old rows and adds the entry twice.
@@ -102,31 +106,29 @@ export default function ExperienceList({ initial }: { initial: ExperienceRow[] }
     }
 
     async function remove(id: string) {
-        try {
-            const response = await fetch("/api/portfolio/experience", {
+        const response = await requestOrToast(
+            "/api/portfolio/experience",
+            {
                 method: "DELETE",
                 body: JSON.stringify({ experienceId: id }),
-            });
-            if (!response.ok) {
-                // The row is still on the server, so it stays on screen.
-                toast.error("Could not delete that entry.");
-                return;
-            }
-        } catch {
-            // The request never arrived, so the row is still there.
-            toast.error("Could not delete that entry.");
-            return;
-        }
+            },
+            "Could not delete that entry.",
+        );
+        if (!response) return;
         setRows((current) => current.filter((row) => row.id !== id));
         router.refresh();
     }
 
     async function move(id: string, direction: -1 | 1) {
-        const response = await fetch("/api/portfolio/experience", {
-            method: "PATCH",
-            body: JSON.stringify({ experienceId: id, direction }),
-        });
-        if (!response.ok) return;
+        const response = await requestOrToast(
+            "/api/portfolio/experience",
+            {
+                method: "PATCH",
+                body: JSON.stringify({ experienceId: id, direction }),
+            },
+            "Could not move that entry",
+        );
+        if (!response) return;
 
         setRows((current) => {
             const index = current.findIndex((row) => row.id === id);
