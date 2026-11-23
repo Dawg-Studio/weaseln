@@ -8,6 +8,7 @@ import {
 } from "@/lib/cloudinary";
 import type { Prisma } from "@/generated/prisma/client";
 import type { PortfolioActor } from "@/modules/portfolio/service";
+import { serializable } from "@/utils/serializable";
 import { MAX_RESUME_BYTES, type ResumeLink, type ResumeProposal } from "./types";
 import {
     validateExperienceInput,
@@ -349,29 +350,34 @@ export async function applyResumeProposal(
     if (facts.summary !== null) data.bio = facts.summary;
     if (facts.location !== null) data.address = facts.location;
 
-    await prisma.user.update({ where: { id: actor.userId }, data });
+    // The merge reads the column and writes it back, so it runs at the
+    // serializable isolation level: a profile save landing at the same moment
+    // cannot lose a link.
+    await serializable(async (tx) => {
+        await tx.user.update({ where: { id: actor.userId }, data });
 
-    if (entries.length > 0) {
-        // The applied rows go after the ones already on the profile. Starting
-        // at zero would give them the same order values as existing rows, and
-        // moving a row then swaps two equal values, which looks like nothing
-        // happened once the page reloads.
-        const last = await prisma.userExperience.findMany({
-            where: { userId: actor.userId },
-            orderBy: { order: "desc" },
-            take: 1,
-            select: { order: true },
-        });
-        const baseOrder = (last[0]?.order ?? -1) + 1;
+        if (entries.length > 0) {
+            // The applied rows go after the ones already on the profile.
+            // Starting at zero would give them the same order values as
+            // existing rows, and moving a row then swaps two equal values,
+            // which looks like nothing happened once the page reloads.
+            const last = await tx.userExperience.findMany({
+                where: { userId: actor.userId },
+                orderBy: { order: "desc" },
+                take: 1,
+                select: { order: true },
+            });
+            const baseOrder = (last[0]?.order ?? -1) + 1;
 
-        await prisma.userExperience.createMany({
-            data: entries.map((entry, index) => ({
-                ...entry,
-                userId: actor.userId,
-                order: baseOrder + index,
-            })),
-        });
-    }
+            await tx.userExperience.createMany({
+                data: entries.map((entry, index) => ({
+                    ...entry,
+                    userId: actor.userId,
+                    order: baseOrder + index,
+                })),
+            });
+        }
+    });
 
     return { experience: entries.length };
 }

@@ -3,6 +3,8 @@ import { NextResponse } from "next/server";
 import prisma from "@/db";
 import { auth } from "@/auth";
 import { Prisma, User } from "@/generated/prisma/client";
+import { mergeSocialsByName } from "@/utils/socials";
+import { serializable } from "@/utils/serializable";
 
 const PER_PAGE = 20;
 
@@ -145,27 +147,25 @@ export async function PATCH(req: Request) {
     }
 
     try {
-        if (Array.isArray(body.socials)) {
-            const current = await prisma.user.findUnique({
-                where: { id: session.user.id },
-                select: { socials: true },
-            });
-            const sent = body.socials as { name: string; url?: string }[];
-            const sentNames = new Set(sent.map((entry) => entry.name));
-            const existing = Array.isArray(current?.socials)
-                ? (current.socials as { name?: string; url?: string }[])
-                : [];
-            data.socials = [
-                ...sent,
-                ...existing.filter(
-                    (entry) => !sentNames.has(entry.name ?? ""),
-                ),
-            ] as Prisma.InputJsonValue[];
-        }
+        // The merge is a read-then-write, so it runs at the serializable
+        // isolation level: two requests that interleave on this row cannot
+        // lose a link between them.
+        await serializable(async (tx) => {
+            if (Array.isArray(body.socials)) {
+                const current = await tx.user.findUnique({
+                    where: { id: session.user.id },
+                    select: { socials: true },
+                });
+                data.socials = mergeSocialsByName(
+                    current?.socials,
+                    body.socials as { name: string; url?: string }[],
+                ) as Prisma.InputJsonValue[];
+            }
 
-        await prisma.user.update({
-            where: { id: session.user.id },
-            data,
+            await tx.user.update({
+                where: { id: session.user.id },
+                data,
+            });
         });
         await prisma.post.updateMany({
             where: { userId: session.user.id },

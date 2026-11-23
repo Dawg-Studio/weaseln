@@ -4,6 +4,7 @@ import { PATCH } from "./route";
 const mockUpdate = vi.fn();
 const mockUpdateMany = vi.fn();
 const mockFindUnique = vi.fn();
+const mockTransaction = vi.fn();
 const mockAuth = vi.fn();
 
 vi.mock("@/auth", () => ({ auth: () => mockAuth() }));
@@ -14,6 +15,21 @@ vi.mock("@/db", () => ({
             findUnique: (...a: unknown[]) => mockFindUnique(...a),
         },
         post: { updateMany: (...a: unknown[]) => mockUpdateMany(...a) },
+        // The interactive transaction form: the callback runs against a tx
+        // that offers the same models. The call is recorded so a test can see
+        // the isolation level it ran at.
+        $transaction: async (
+            fn: (_tx: unknown) => Promise<unknown>,
+            options?: unknown,
+        ) => {
+            mockTransaction(fn, options);
+            return fn({
+                user: {
+                    update: (...a: unknown[]) => mockUpdate(...a),
+                    findUnique: (...a: unknown[]) => mockFindUnique(...a),
+                },
+            });
+        },
     },
 }));
 
@@ -41,6 +57,14 @@ describe("PATCH /api/user", () => {
         await patch({ name: "Alice", bio: "hi" });
         const call = mockUpdate.mock.calls[0]?.[0] as { data: Record<string, unknown> } | undefined;
         expect(call?.data).toEqual({ name: "Alice", bio: "hi" });
+    });
+
+    it("merges the socials inside a serializable transaction", async () => {
+        await patch({ name: "Alice", socials: [{ name: "Facebook", url: "https://fb" }] });
+        expect(mockTransaction).toHaveBeenCalledWith(
+            expect.any(Function),
+            expect.objectContaining({ isolationLevel: "Serializable" }),
+        );
     });
 
     it("refuses a malformed socials entry with 400", async () => {

@@ -28,6 +28,21 @@ vi.mock("@/db", () => ({
             createMany: (...args: unknown[]) => mockExperienceCreateMany(...args),
             findMany: (...args: unknown[]) => mockExperienceFindMany(...args),
         },
+        // The interactive transaction form: the callback runs against a tx
+        // that offers the same models.
+        $transaction: async (fn: (_tx: unknown) => Promise<unknown>) =>
+            fn({
+                user: {
+                    findUnique: (...args: unknown[]) => mockFindUnique(...args),
+                    update: (...args: unknown[]) => mockUpdate(...args),
+                },
+                userExperience: {
+                    createMany: (...args: unknown[]) =>
+                        mockExperienceCreateMany(...args),
+                    findMany: (...args: unknown[]) =>
+                        mockExperienceFindMany(...args),
+                },
+            }),
     },
 }));
 
