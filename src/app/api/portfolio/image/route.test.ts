@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { POST } from "./route";
 import { MAX_UPLOAD_BYTES } from "@/modules/images/service";
+import { MULTIPART_ENVELOPE_BYTES } from "@/modules/portfolio/types";
 
 const mockAuth = vi.fn();
 const mockUpload = vi.fn();
@@ -18,10 +19,13 @@ vi.mock("@/modules/images/service", () => ({
     uploadImage: (...args: unknown[]) => mockUpload(...args),
 }));
 
-const multipart = (file: File) => {
+const multipart = (file: File, headers?: Record<string, string>) => {
     const body = new FormData();
     body.append("image", file);
-    return { formData: async () => body } as unknown as Request;
+    return {
+        formData: async () => body,
+        headers: new Headers(headers ?? {}),
+    } as unknown as Request;
 };
 
 describe("POST /api/portfolio/image", () => {
@@ -36,6 +40,16 @@ describe("POST /api/portfolio/image", () => {
         mockAuth.mockResolvedValue(null);
         const res = await POST(multipart(new File(["x"], "a.png")));
         expect(res.status).toBe(401);
+        expect(mockUpload).not.toHaveBeenCalled();
+    });
+
+    it("refuses an oversized request before reading the body", async () => {
+        const res = await POST(
+            multipart(new File(["x"], "a.png"), {
+                "content-length": String(MAX_UPLOAD_BYTES + MULTIPART_ENVELOPE_BYTES + 1),
+            }),
+        );
+        expect(res.status).toBe(413);
         expect(mockUpload).not.toHaveBeenCalled();
     });
 

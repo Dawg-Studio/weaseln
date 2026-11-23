@@ -8,7 +8,10 @@ import {
     setResumeVisibility,
     uploadResume,
 } from "@/modules/portfolio/resume";
-import { MAX_RESUME_BYTES } from "@/modules/portfolio/types";
+import {
+    MAX_RESUME_BYTES,
+    MULTIPART_ENVELOPE_BYTES,
+} from "@/modules/portfolio/types";
 import {
     badRequest,
     errorResponse,
@@ -26,6 +29,16 @@ function resumeErrorResponse(err: unknown) {
 export async function POST(req: Request) {
     const session = await auth();
     if (!session?.user) return unauthorized();
+
+    // Checked before the body is parsed: formData() reads the whole request
+    // into memory, so an oversized upload has to be refused before that.
+    const declaredLength = Number(req.headers.get("content-length") ?? "0");
+    if (declaredLength > MAX_RESUME_BYTES + MULTIPART_ENVELOPE_BYTES) {
+        return NextResponse.json(
+            { error: "Resume must be 5 MiB or smaller" },
+            { status: 413 },
+        );
+    }
 
     const form = await req.formData();
     const file = form.get("resume");

@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { DELETE, POST } from "./route";
 import { ResumeError } from "@/modules/portfolio/resume";
-import { MAX_RESUME_BYTES } from "@/modules/portfolio/types";
+import { MAX_RESUME_BYTES, MULTIPART_ENVELOPE_BYTES } from "@/modules/portfolio/types";
 
 const mockAuth = vi.fn();
 const mockUpload = vi.fn();
@@ -20,10 +20,13 @@ vi.mock("@/modules/portfolio/resume", async (importOriginal) => {
 // The route only reads formData(); building a real multipart body would mean
 // crossing jsdom's FormData with undici's Request, which rejects each other's
 // File instances.
-const multipart = (file: File) => {
+const multipart = (file: File, headers?: Record<string, string>) => {
     const body = new FormData();
     body.append("resume", file);
-    return { formData: async () => body } as unknown as Request;
+    return {
+        formData: async () => body,
+        headers: new Headers(headers ?? {}),
+    } as unknown as Request;
 };
 
 describe("POST /api/portfolio/resume", () => {
@@ -70,6 +73,16 @@ describe("POST /api/portfolio/resume", () => {
         const res = await POST(multipart(new File(["%PDF-1.4"], "r.pdf")));
         expect(res.status).toBe(201);
         expect(mockUpload).toHaveBeenCalledTimes(1);
+    });
+
+    it("refuses an oversized request before reading the body", async () => {
+        const res = await POST(
+            multipart(new File(["%PDF-1.4"], "r.pdf"), {
+                "content-length": String(MAX_RESUME_BYTES + MULTIPART_ENVELOPE_BYTES + 1),
+            }),
+        );
+        expect(res.status).toBe(413);
+        expect(mockUpload).not.toHaveBeenCalled();
     });
 
     it("refuses an oversized file before reading it", async () => {

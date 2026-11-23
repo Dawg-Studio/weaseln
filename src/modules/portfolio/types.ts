@@ -7,6 +7,13 @@ export type ExperienceKind = (typeof EXPERIENCE_KINDS)[number];
 export const MAX_GALLERY_IMAGES = 12;
 export const MAX_RESUME_BYTES = 5 * 1024 * 1024;
 
+/**
+ * The multipart envelope around one file - boundaries, part headers - adds a
+ * few hundred bytes on top of the file itself. The allowance covers it so a
+ * file exactly at the cap is not refused because of its envelope.
+ */
+export const MULTIPART_ENVELOPE_BYTES = 1024;
+
 export type ShowcaseInput = {
     title: string;
     description: string | null;
