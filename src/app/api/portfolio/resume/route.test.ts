@@ -75,6 +75,17 @@ describe("POST /api/portfolio/resume", () => {
         expect(mockUpload).toHaveBeenCalledTimes(1);
     });
 
+    it("answers 400 when the body is not a multipart upload", async () => {
+        const res = await POST({
+            formData: async () => {
+                throw new TypeError("Content-Type was not multipart/form-data");
+            },
+            headers: new Headers(),
+        } as unknown as Request);
+        expect(res.status).toBe(400);
+        expect(mockUpload).not.toHaveBeenCalled();
+    });
+
     it("refuses an oversized request before reading the body", async () => {
         const res = await POST(
             multipart(new File(["%PDF-1.4"], "r.pdf"), {

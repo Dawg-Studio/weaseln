@@ -15,7 +15,7 @@ import {
 // an allowlist: a quote or a parenthesis in a "Cloudinary" URL is an injection.
 const CLOUDINARY_URL = /^https:\/\/res\.cloudinary\.com\/[A-Za-z0-9\-_./]+$/;
 const LOCAL_COVER = "/covers/";
-const DATE_PATTERN = /^\d{4}(-\d{2})?$/;
+export const DATE_PATTERN = /^\d{4}(-\d{2})?$/;
 const HTTP_URL = /^https?:\/\/\S+$/;
 
 function fail(message: string): never {

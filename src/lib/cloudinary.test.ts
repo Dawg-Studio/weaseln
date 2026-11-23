@@ -1,6 +1,29 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { cloudinarySignature } from "@/utils/cloudinarySignature";
-import { getPrivateDownloadUrl } from "./cloudinary";
+import { getPrivateDownloadUrl, uploadCloudinary } from "./cloudinary";
+
+describe("upload transport", () => {
+    beforeEach(() => {
+        vi.stubEnv("NEXT_CLOUDINARY_NAME", "leindfraust");
+        vi.stubEnv("NEXT_CLOUDINARY_API", "123456789");
+        vi.stubEnv("NEXT_CLOUDINARY_SECRET", "secret");
+    });
+
+    it("uploads over https, so a private file is never sent in cleartext", async () => {
+        const fetchMock = vi.fn().mockResolvedValue({ ok: true });
+        vi.stubGlobal("fetch", fetchMock);
+
+        await uploadCloudinary({
+            file: new File(["x"], "resume.pdf"),
+            folder: "portfolio",
+            public_id: "alice",
+            resourceType: "raw",
+            type: "private",
+        });
+
+        expect(fetchMock.mock.calls[0][0]).toMatch(/^https:\/\/api\.cloudinary\.com\//);
+    });
+});
 
 describe("cloudinary helpers", () => {
     beforeEach(() => {

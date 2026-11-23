@@ -91,6 +91,69 @@ describe("parseResumePdf", () => {
         expect(proposal.skills).toEqual(["TypeScript"]);
     });
 
+    it("normalises a current role that came with an end date", async () => {
+        const proposal = await parseResumePdf(pdf(), {
+            generate: async () =>
+                JSON.stringify({
+                    ...validProposal,
+                    experience: [
+                        {
+                            kind: "work",
+                            org: "Acme",
+                            role: "Dev",
+                            location: null,
+                            startDate: "2021-01",
+                            endDate: "Present",
+                            isCurrent: true,
+                            description: null,
+                        },
+                    ],
+                }),
+        });
+        expect(proposal.experience[0].endDate).toBeNull();
+        expect(proposal.experience[0].isCurrent).toBe(true);
+    });
+
+    it("drops a link the parser got wrong instead of the whole proposal", async () => {
+        const proposal = await parseResumePdf(pdf(), {
+            generate: async () =>
+                JSON.stringify({
+                    ...validProposal,
+                    links: [
+                        { label: "Site", url: "alice.dev" },
+                        { label: "GitHub", url: "https://github.com/alice" },
+                    ],
+                }),
+        });
+        expect(proposal.links).toEqual([
+            { label: "GitHub", url: "https://github.com/alice" },
+        ]);
+    });
+
+    it("drops a role the parser left empty", async () => {
+        const proposal = await parseResumePdf(pdf(), {
+            generate: async () =>
+                JSON.stringify({
+                    ...validProposal,
+                    experience: [
+                        { kind: "work", org: "", role: "Dev" },
+                        {
+                            kind: "work",
+                            org: "Acme",
+                            role: "Engineer",
+                            location: null,
+                            startDate: "2021-01",
+                            endDate: null,
+                            isCurrent: true,
+                            description: null,
+                        },
+                    ],
+                }),
+        });
+        expect(proposal.experience).toHaveLength(1);
+        expect(proposal.experience[0].org).toBe("Acme");
+    });
+
     it("throws rather than partially mapping a malformed response", async () => {
         await expect(
             parseResumePdf(pdf(), { generate: async () => JSON.stringify({ ...validProposal, experience: "nope" }) }),

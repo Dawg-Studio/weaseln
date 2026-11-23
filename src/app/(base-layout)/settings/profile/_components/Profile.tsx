@@ -34,7 +34,12 @@ export default function ProfileSettingsComponent({
     const router = useRouter();
     // ponytail: seed users persist `socials` as null jsonb[], not []. Default
     // to [] so the spread below doesn't throw "socials is not iterable".
-    const socialData = [...(socials ?? [])] as FormSocials[];
+    // A row written before the request was validated can hold a null in this
+    // column, and the lookups below would throw on it.
+    const socialData = (socials ?? []).filter(
+        (entry): entry is FormSocials =>
+            Boolean(entry) && typeof entry === "object",
+    );
     const uploadImgProps = {
         id,
         image,

@@ -39,7 +39,7 @@ export async function uploadCloudinary(options: {
     formData.append("signature", cloudinarySignature(params, API_SECRET()));
 
     const upload = await fetch(
-        `http://api.cloudinary.com/v1_1/${CLOUD_NAME()}/${resourceType}/upload`,
+        `https://api.cloudinary.com/v1_1/${CLOUD_NAME()}/${resourceType}/upload`,
         {
             method: "POST",
             body: formData,

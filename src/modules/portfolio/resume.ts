@@ -11,6 +11,7 @@ import type { PortfolioActor } from "@/modules/portfolio/service";
 import { serializable } from "@/utils/serializable";
 import { MAX_RESUME_BYTES, type ResumeLink, type ResumeProposal } from "./types";
 import {
+    DATE_PATTERN,
     validateExperienceInput,
     validateResumeFacts,
     validateResumeProposal,
@@ -121,6 +122,83 @@ async function generateWithGemini(bytes: Uint8Array): Promise<string> {
     return response.text ?? "";
 }
 
+const HTTP_URL = /^https?:\/\/\S+$/;
+const PRESENT_WORDS = new Set(["present", "current", "now", "ongoing"]);
+
+/**
+ * The model's answer is a draft, not a submission. A field it got wrong is
+ * normalised or dropped so one bad row does not cost the owner the whole
+ * proposal - the checklist they review would be empty otherwise.
+ */
+function normaliseProposal(input: unknown): unknown {
+    if (input === null || typeof input !== "object") return input;
+    const proposal = { ...(input as Record<string, unknown>) };
+
+    if (Array.isArray(proposal.links)) {
+        proposal.links = proposal.links.filter((link) => {
+            if (!link || typeof link !== "object") return false;
+            const entry = link as { label?: unknown; url?: unknown };
+            return (
+                typeof entry.label === "string" &&
+                typeof entry.url === "string" &&
+                HTTP_URL.test(entry.url)
+            );
+        });
+    }
+
+    if (Array.isArray(proposal.skills)) {
+        proposal.skills = proposal.skills
+            .filter(
+                (skill) => typeof skill === "string" && skill.trim().length > 0,
+            )
+            .map((skill) => (skill as string).trim());
+    }
+
+    if (Array.isArray(proposal.experience)) {
+        proposal.experience = proposal.experience
+            .filter((entry) => Boolean(entry) && typeof entry === "object")
+            .map((entry) => {
+                const row = { ...(entry as Record<string, unknown>) };
+                if (row.isCurrent === "true") row.isCurrent = true;
+                // A current role has no end date, and the model often answers
+                // "Present" for one.
+                if (row.isCurrent === true) {
+                    row.endDate = null;
+                } else if (
+                    typeof row.endDate === "string" &&
+                    PRESENT_WORDS.has(row.endDate.toLowerCase())
+                ) {
+                    row.endDate = null;
+                }
+                if (row.kind !== "education") row.kind = "work";
+                for (const field of ["startDate", "endDate"] as const) {
+                    if (
+                        typeof row[field] !== "string" ||
+                        !DATE_PATTERN.test(row[field] as string)
+                    ) {
+                        row[field] = null;
+                    }
+                }
+                for (const field of ["location", "description"] as const) {
+                    if (typeof row[field] !== "string") row[field] = null;
+                }
+                return row;
+            })
+            .filter((row) => {
+                const org = (row as { org?: unknown }).org;
+                const role = (row as { role?: unknown }).role;
+                return (
+                    typeof org === "string" &&
+                    org.trim().length > 0 &&
+                    typeof role === "string" &&
+                    role.trim().length > 0
+                );
+            });
+    }
+
+    return proposal;
+}
+
 /**
  * A model response is untrusted text: a shape we do not recognize is an error,
  * never a partially mapped proposal.
@@ -140,7 +218,7 @@ export async function parseResumePdf(
     }
 
     try {
-        return validateResumeProposal(parsed);
+        return validateResumeProposal(normaliseProposal(parsed));
     } catch (err) {
         const detail = err instanceof Error ? err.message : "unknown shape";
         throw new ResumeError(`Could not read this resume: ${detail}`, 422);

@@ -65,6 +65,17 @@ describe("profile settings", () => {
         );
     });
 
+    it("opens the form when the socials column holds an entry it cannot read", () => {
+        const broken = {
+            ...user,
+            socials: [null, { name: "Facebook", url: "https://fb" }],
+        } as unknown as typeof user;
+
+        render(<ProfileSettingsComponent {...broken} />);
+
+        expect(screen.getByLabelText("Facebook")).toHaveValue("https://fb");
+    });
+
     it("sends only the social fields the owner changed", async () => {
         render(<ProfileSettingsComponent {...user} />);
 

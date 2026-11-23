@@ -23,7 +23,13 @@ export async function POST(req: Request) {
         );
     }
 
-    const form = await req.formData();
+    let form: FormData;
+    try {
+        form = await req.formData();
+    } catch {
+        return badRequest("Expected a multipart upload");
+    }
+
     const file = form.get("image");
     if (!(file instanceof File)) return badRequest("No image file found");
 
