@@ -31,6 +31,8 @@ export type CreatePostInput = {
      * value that arrives from a request or a model is never typed.
      */
     customization?: unknown;
+    /** An allowlisted cover image URL. */
+    coverImage?: string | null;
 };
 
 export type UpdatePostInput = CreatePostInput & { postId: string };
@@ -89,6 +91,7 @@ function postData(input: CreatePostInput) {
         tags: input.tags,
         readPerMinute: input.readPerMinute,
         published: input.published,
+        ...(input.coverImage && { coverImage: input.coverImage }),
         ...customization,
     };
 }
@@ -225,4 +228,74 @@ export async function deletePost(
         if (isNotFound(error)) throw new Error("Not authorized");
         throw error;
     }
+}
+
+/**
+ * A post is readable when the caller wrote it, when it belongs to an
+ * organization the caller belongs to, or when it is published, which the
+ * public site already serves to anyone.
+ */
+export async function getPost(
+    actor: PostActor,
+    input: { postId: string },
+): Promise<{
+    id: string;
+    title: string;
+    description: string;
+    tags: string[];
+    content: unknown;
+    published: boolean;
+    organizationId: string | null;
+    authorUsername: string | null;
+    createdAt: Date;
+}> {
+    const post = await prisma.post.findUnique({
+        where: { id: input.postId },
+        select: {
+            id: true,
+            title: true,
+            description: true,
+            tags: true,
+            content: true,
+            published: true,
+            organizationId: true,
+            authorUsername: true,
+            createdAt: true,
+            userId: true,
+            organization: {
+                select: {
+                    ownerId: true,
+                    admins: { select: { id: true } },
+                    members: { select: { id: true } },
+                },
+            },
+        },
+    });
+    if (!post) throw new Error("Post not found");
+
+    const authored = post.userId === actor.userId;
+    const inOrganization = post.organization
+        ? post.organization.ownerId === actor.userId ||
+          post.organization.admins.some(
+              (admin) => admin.id === actor.userId,
+          ) ||
+          post.organization.members.some(
+              (member) => member.id === actor.userId,
+          )
+        : false;
+    if (!authored && !inOrganization && !post.published) {
+        throw new Error("Post not found");
+    }
+
+    return {
+        id: post.id,
+        title: post.title,
+        description: post.description,
+        tags: post.tags,
+        content: post.content,
+        published: post.published,
+        organizationId: post.organizationId,
+        authorUsername: post.authorUsername,
+        createdAt: post.createdAt,
+    };
 }
