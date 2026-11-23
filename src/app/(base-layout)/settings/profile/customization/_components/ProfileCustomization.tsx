@@ -8,7 +8,9 @@ import {
     faBlog,
     faBriefcase,
     faCircleUser,
+    faFileLines,
     faHeart,
+    faImages,
     faPeopleGroup,
     faStar,
     faThumbtack,
@@ -44,10 +46,13 @@ const SECTION_LABELS: Record<ProfileSection, string> = {
     hero: "Hero",
     stats: "Stats",
     about: "About",
+    experience: "Experience",
+    showcases: "Showcases",
     socials: "Social Links",
     featuredPost: "Featured Post",
     interests: "Interests",
     organizations: "Organizations",
+    resume: "Resume",
     posts: "Posts",
 };
 
@@ -55,10 +60,13 @@ const SECTION_ICONS: Record<ProfileSection, typeof faCircleUser> = {
     hero: faCircleUser,
     stats: faBlog,
     about: faAddressCard,
+    experience: faBriefcase,
+    showcases: faImages,
     socials: faPeopleGroup,
     featuredPost: faStar,
     interests: faHeart,
     organizations: faBriefcase,
+    resume: faFileLines,
     posts: faThumbtack,
 };
 
