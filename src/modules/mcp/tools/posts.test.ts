@@ -80,6 +80,22 @@ describe("post tools", () => {
         expect(challenge?.scopes).toEqual(["posts:read", "org:read"]);
     });
 
+    it("refuses to file a post under an organization the caller does not belong to", async () => {
+        vi.mocked(listOrganizations).mockResolvedValue([]);
+
+        const result = await handleCreatePost(
+            {
+                title: "A post",
+                contentMarkdown: "hello",
+                orgId: "org-1",
+            },
+            context,
+        );
+
+        expect(result.isError).toBe(true);
+        expect(createPost).not.toHaveBeenCalled();
+    });
+
     it("creates a post with the body converted from markdown", async () => {
         vi.mocked(createPost).mockResolvedValue({
             id: "post-1",

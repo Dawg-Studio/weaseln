@@ -87,6 +87,25 @@ function readPerMinute(markdown: string): number {
     return Math.round(words / WORDS_PER_MINUTE);
 }
 
+/**
+ * A post can only be filed under an organization the caller belongs to.
+ * Without this check a caller could file a post under anyone's
+ * organization.
+ */
+async function assertOrganizationMember(
+    userId: string,
+    organizationId: string | undefined,
+): Promise<void> {
+    if (!organizationId) return;
+    const organizations = await listOrganizations({ userId });
+    const member = organizations.some(
+        (organization) => organization.id === organizationId,
+    );
+    if (!member) {
+        throw new Error("You do not belong to that organization.");
+    }
+}
+
 export const listPostsScopeChallenge: ScopeChallengeHandler = ({
     request,
     authInfo,
@@ -161,6 +180,7 @@ export async function handleCreatePost(
         const caller = callerOf(ctx);
         if (args.coverImageUrl) assertAllowedImageUrl(args.coverImageUrl, "coverImage");
         if (args.design) validatePostCustomizationInput(args.design);
+        await assertOrganizationMember(caller.userId, args.orgId);
         const post = await createPost(
             { userId: caller.userId },
             {
@@ -189,6 +209,7 @@ export async function handleUpdatePost(
         const caller = callerOf(ctx);
         if (args.coverImageUrl) assertAllowedImageUrl(args.coverImageUrl, "coverImage");
         if (args.design) validatePostCustomizationInput(args.design);
+        await assertOrganizationMember(caller.userId, args.orgId);
         const stored = await getPost(
             { userId: caller.userId },
             { postId: args.id },
