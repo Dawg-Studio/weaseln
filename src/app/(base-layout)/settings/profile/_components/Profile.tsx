@@ -223,12 +223,21 @@ export default function ProfileSettingsComponent({
     };
 
     const updateDetails = form.handleSubmit(async (data) => {
-        // Only the socials this form owns are sent. The server keeps the ones
-        // it was not told about, so a link a resume added survives this save.
-        const socials: FormSocials[] = socialForms.map((social) => ({
-            name: social.name,
-            url: data[social.name],
-        }));
+        // Only the socials the owner actually changed are sent. The server
+        // keeps the ones it was not told about, so an untouched field - a
+        // Personal Website a resume added while this tab was open - survives
+        // the save.
+        const socials: FormSocials[] = socialForms
+            .filter(
+                (social) =>
+                    (data[social.name] ?? "") !==
+                    (socialData.find((entry) => entry.name === social.name)
+                        ?.url ?? ""),
+            )
+            .map((social) => ({
+                name: social.name,
+                url: data[social.name] ?? "",
+            }));
         const update = await fetch("/api/user", {
             method: "PATCH",
             body: JSON.stringify({

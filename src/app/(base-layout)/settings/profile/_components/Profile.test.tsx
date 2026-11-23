@@ -44,9 +44,12 @@ const user = {
 } as unknown as User;
 
 describe("profile settings", () => {
-    it("sends only the social fields the form owns", async () => {
+    it("sends only the social fields the owner changed", async () => {
         render(<ProfileSettingsComponent {...user} />);
 
+        const facebook = screen.getByLabelText("Facebook");
+        await userEvent.clear(facebook);
+        await userEvent.type(facebook, "https://new");
         await userEvent.click(
             screen.getByRole("button", { name: /update profile information/i }),
         );
@@ -54,13 +57,11 @@ describe("profile settings", () => {
         await waitFor(() => expect(fetchMock).toHaveBeenCalled());
         const body = JSON.parse(
             (fetchMock.mock.calls[0][1] as RequestInit).body as string,
-        ) as { socials: { name: string }[] };
-        // The server keeps the socials the caller did not send, so the form
-        // must not send a stale copy of them.
-        expect(body.socials.map((entry) => entry.name)).toEqual([
-            "Facebook",
-            "Twitter",
-            "Personal Website",
+        ) as { socials: { name: string; url: string }[] };
+        // The server keeps the socials it was not told about, so the form
+        // sends only what the owner actually changed.
+        expect(body.socials).toEqual([
+            { name: "Facebook", url: "https://new" },
         ]);
     });
 });

@@ -43,6 +43,12 @@ describe("PATCH /api/user", () => {
         expect(call?.data).toEqual({ name: "Alice", bio: "hi" });
     });
 
+    it("refuses a malformed socials entry with 400", async () => {
+        const res = await patch({ name: "Alice", socials: [null] });
+        expect(res.status).toBe(400);
+        expect(mockUpdate).not.toHaveBeenCalled();
+    });
+
     it("keeps a social the caller did not send", async () => {
         mockFindUnique.mockResolvedValue({
             socials: [
