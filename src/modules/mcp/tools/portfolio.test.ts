@@ -1,15 +1,19 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
+    createExperience,
     createItem,
     createShowcase,
+    deleteExperience,
     deleteItem,
     deleteShowcase,
     listExperience,
     listPortfolio,
     listShowcases,
+    moveExperience,
     moveItem,
     moveShowcase,
+    updateExperience,
     updateItem,
     updateShowcase,
 } from "@/modules/portfolio/service";
@@ -23,16 +27,20 @@ import {
 
 import {
     handleApplyResume,
+    handleCreateExperience,
     handleCreateItem,
     handleCreateShowcase,
+    handleDeleteExperience,
     handleDeleteItem,
     handleDeleteResume,
     handleDeleteShowcase,
     handleGetResume,
     handleListPortfolio,
+    handleMoveExperience,
     handleMoveItem,
     handleMoveShowcase,
     handleSetResumeVisibility,
+    handleUpdateExperience,
     handleUpdateItem,
     handleUpdateShowcase,
     handleUploadResume,
@@ -54,6 +62,10 @@ vi.mock("@/modules/portfolio/service", () => ({
     deleteShowcase: vi.fn(),
     moveShowcase: vi.fn(),
     listExperience: vi.fn(),
+    createExperience: vi.fn(),
+    updateExperience: vi.fn(),
+    deleteExperience: vi.fn(),
+    moveExperience: vi.fn(),
     createItem: vi.fn(),
     updateItem: vi.fn(),
     deleteItem: vi.fn(),
@@ -419,5 +431,92 @@ describe("portfolio tools", () => {
 
         expect(result.content[0].text).toContain("Invalid portfolio input");
         expect(result.isError).toBe(true);
+    });
+});
+
+describe("experience tools", () => {
+    beforeEach(() => {
+        vi.clearAllMocks();
+        vi.mocked(listExperience).mockResolvedValue([experienceRow]);
+        vi.mocked(createExperience).mockResolvedValue({ id: "experience-2" });
+    });
+
+    it("creates an experience entry", async () => {
+        await handleCreateExperience(
+            {
+                kind: "work",
+                org: "Acme",
+                role: "Engineer",
+                location: null,
+                startDate: "2021-01",
+                endDate: null,
+                isCurrent: true,
+                description: null,
+            },
+            context,
+        );
+
+        expect(createExperience).toHaveBeenCalledWith(
+            { userId: "alice" },
+            {
+                kind: "work",
+                org: "Acme",
+                role: "Engineer",
+                location: null,
+                startDate: "2021-01",
+                endDate: null,
+                isCurrent: true,
+                description: null,
+            },
+        );
+    });
+
+    it("merges a partial experience entry over the stored one", async () => {
+        await handleUpdateExperience(
+            { experienceId: "experience-1", role: "Staff Engineer" },
+            context,
+        );
+
+        expect(updateExperience).toHaveBeenCalledWith(
+            { userId: "alice" },
+            expect.objectContaining({
+                experienceId: "experience-1",
+                role: "Staff Engineer",
+                org: "Acme",
+                isCurrent: true,
+            }),
+        );
+    });
+
+    it("refuses an experience entry that is not the caller's", async () => {
+        vi.mocked(listExperience).mockResolvedValue([]);
+
+        const result = await handleUpdateExperience(
+            { experienceId: "other", role: "Staff Engineer" },
+            context,
+        );
+
+        expect(result.content[0].text).toBe("Experience not found");
+    });
+
+    it("moves an experience entry up", async () => {
+        await handleMoveExperience(
+            { experienceId: "experience-1", direction: "up" },
+            context,
+        );
+
+        expect(moveExperience).toHaveBeenCalledWith(
+            { userId: "alice" },
+            { experienceId: "experience-1", direction: -1 },
+        );
+    });
+
+    it("deletes an experience entry", async () => {
+        await handleDeleteExperience({ experienceId: "experience-1" }, context);
+
+        expect(deleteExperience).toHaveBeenCalledWith(
+            { userId: "alice" },
+            { experienceId: "experience-1" },
+        );
     });
 });

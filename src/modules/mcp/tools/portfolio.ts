@@ -9,19 +9,23 @@ import {
     uploadResume,
 } from "@/modules/portfolio/resume";
 import {
+    createExperience,
     createItem,
     createShowcase,
+    deleteExperience,
     deleteItem,
     deleteShowcase,
     listExperience,
     listPortfolio,
     listShowcases,
+    moveExperience,
     moveItem,
     moveShowcase,
+    updateExperience,
     updateItem,
     updateShowcase,
 } from "@/modules/portfolio/service";
-import { SHOWCASE_LAYOUTS } from "@/modules/portfolio/types";
+import { EXPERIENCE_KINDS, SHOWCASE_LAYOUTS } from "@/modules/portfolio/types";
 
 import { callerOf, text, toolError, type ToolContext } from "./shared";
 
@@ -88,6 +92,25 @@ const showcaseUpdateSchema = z.object({
     description: z.string().nullable().optional(),
     layout: layoutSchema.optional(),
 });
+
+const experienceSchema = z.object({
+    kind: z.enum(EXPERIENCE_KINDS),
+    org: z.string(),
+    role: z.string(),
+    location: z.string().nullable().optional(),
+    startDate: z.string().nullable().optional(),
+    endDate: z.string().nullable().optional(),
+    isCurrent: z.boolean().optional(),
+    description: z.string().nullable().optional(),
+});
+
+const experienceUpdateSchema = experienceSchema
+    .partial()
+    .extend({ experienceId: z.string() });
+
+type ExperienceCreateArgs = z.infer<typeof experienceSchema>;
+
+type ExperienceUpdateArgs = z.infer<typeof experienceUpdateSchema>;
 
 type ItemCreateArgs = z.infer<typeof itemSchema> & { showcaseId: string };
 
@@ -353,8 +376,86 @@ export async function handleMoveItem(
     }
 }
 
-export function registerPortfolioTools(server: McpServer) {
-    server.registerTool(
+export async function handleCreateExperience(
+    args: ExperienceCreateArgs,
+    ctx: ToolContext,
+) {
+    try {
+        const caller = callerOf(ctx);
+        const entry = await createExperience({ userId: caller.userId }, {
+            kind: args.kind,
+            org: args.org,
+            role: args.role,
+            location: args.location ?? null,
+            startDate: args.startDate ?? null,
+            endDate: args.endDate ?? null,
+            isCurrent: args.isCurrent ?? false,
+            description: args.description ?? null,
+        });
+        return text({ data: entry });
+    } catch (error) {
+        return toolError(error);
+    }
+}
+
+export async function handleUpdateExperience(
+    args: ExperienceUpdateArgs,
+    ctx: ToolContext,
+) {
+    try {
+        const caller = callerOf(ctx);
+        const rows = await listExperience({ userId: caller.userId });
+        const stored = rows.find((row) => row.id === args.experienceId);
+        if (!stored) throw new Error("Experience not found");
+        await updateExperience({ userId: caller.userId }, {
+            experienceId: args.experienceId,
+            kind: pick(args.kind, stored.kind),
+            org: pick(args.org, stored.org),
+            role: pick(args.role, stored.role),
+            location: pick(args.location, stored.location),
+            startDate: pick(args.startDate, stored.startDate),
+            endDate: pick(args.endDate, stored.endDate),
+            isCurrent: pick(args.isCurrent, stored.isCurrent),
+            description: pick(args.description, stored.description),
+        });
+        return text({ data: { updated: args.experienceId } });
+    } catch (error) {
+        return toolError(error);
+    }
+}
+
+export async function handleDeleteExperience(
+    args: { experienceId: string },
+    ctx: ToolContext,
+) {
+    try {
+        const caller = callerOf(ctx);
+        await deleteExperience({ userId: caller.userId }, {
+            experienceId: args.experienceId,
+        });
+        return text({ data: { deleted: args.experienceId } });
+    } catch (error) {
+        return toolError(error);
+    }
+}
+
+export async function handleMoveExperience(
+    args: { experienceId: string } & MoveArgs,
+    ctx: ToolContext,
+) {
+    try {
+        const caller = callerOf(ctx);
+        await moveExperience({ userId: caller.userId }, {
+            experienceId: args.experienceId,
+            direction: toDirection(args.direction),
+        });
+        return text({ data: { moved: args.experienceId } });
+    } catch (error) {
+        return toolError(error);
+    }
+}
+
+export function registerPortfolioTools(server: McpServer) {    server.registerTool(
         "get_resume",
         {
             description:
@@ -515,5 +616,51 @@ export function registerPortfolioTools(server: McpServer) {
             scopeChallenge: requireScopes("portfolio:write"),
         },
         handleMoveItem,
+    );
+
+    server.registerTool(
+        "create_experience",
+        {
+            description:
+                "Add a work or education entry to this account's experience list.",
+            inputSchema: experienceSchema,
+            scopeChallenge: requireScopes("portfolio:write"),
+        },
+        handleCreateExperience,
+    );
+
+    server.registerTool(
+        "update_experience",
+        {
+            description:
+                "Change one of this account's experience entries. Leave a field out to keep it; send null to clear it.",
+            inputSchema: experienceUpdateSchema,
+            scopeChallenge: requireScopes("portfolio:write"),
+        },
+        handleUpdateExperience,
+    );
+
+    server.registerTool(
+        "delete_experience",
+        {
+            description: "Delete one of this account's experience entries.",
+            inputSchema: z.object({ experienceId: z.string() }),
+            scopeChallenge: requireScopes("portfolio:write"),
+        },
+        handleDeleteExperience,
+    );
+
+    server.registerTool(
+        "move_experience",
+        {
+            description:
+                "Move one of this account's experience entries up or down.",
+            inputSchema: z.object({
+                experienceId: z.string(),
+                direction: directionSchema,
+            }),
+            scopeChallenge: requireScopes("portfolio:write"),
+        },
+        handleMoveExperience,
     );
 }
