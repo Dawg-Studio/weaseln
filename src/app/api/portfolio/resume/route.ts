@@ -83,6 +83,6 @@ export async function DELETE() {
         await removeResume({ userId: session.user.id });
         return NextResponse.json({ status: 200 });
     } catch (err) {
-        return errorResponse("portfolio resume DELETE", err);
+        return resumeErrorResponse(err);
     }
 }

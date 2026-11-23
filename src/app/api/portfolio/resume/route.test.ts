@@ -1,13 +1,19 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { POST } from "./route";
+import { DELETE, POST } from "./route";
+import { ResumeError } from "@/modules/portfolio/resume";
 
 const mockAuth = vi.fn();
 const mockUpload = vi.fn();
+const mockRemove = vi.fn();
 
 vi.mock("@/auth", () => ({ auth: () => mockAuth() }));
 vi.mock("@/modules/portfolio/resume", async (importOriginal) => {
     const actual = await importOriginal<typeof import("@/modules/portfolio/resume")>();
-    return { ...actual, uploadResume: (...args: unknown[]) => mockUpload(...args) };
+    return {
+        ...actual,
+        uploadResume: (...args: unknown[]) => mockUpload(...args),
+        removeResume: (...args: unknown[]) => mockRemove(...args),
+    };
 });
 
 // The route only reads formData(); building a real multipart body would mean
@@ -63,5 +69,16 @@ describe("POST /api/portfolio/resume", () => {
         const res = await POST(multipart(new File(["%PDF-1.4"], "r.pdf")));
         expect(res.status).toBe(201);
         expect(mockUpload).toHaveBeenCalledTimes(1);
+    });
+
+    it("answers a refused removal with the status the service used", async () => {
+        mockRemove.mockRejectedValueOnce(
+            new ResumeError("Could not delete the stored file", 502),
+        );
+        const res = await DELETE();
+        expect(res.status).toBe(502);
+        expect(await res.json()).toMatchObject({
+            error: "Could not delete the stored file",
+        });
     });
 });
