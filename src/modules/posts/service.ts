@@ -231,6 +231,26 @@ export async function deletePost(
 }
 
 /**
+ * The four design columns on their own, so a design change does not have to
+ * carry the whole post.
+ */
+export async function setPostCustomization(
+    actor: PostActor,
+    input: { postId: string; customization: unknown },
+): Promise<void> {
+    const customization = validatePostCustomizationInput(input.customization);
+    try {
+        await prisma.post.update({
+            where: { id: input.postId, userId: actor.userId },
+            data: { ...customization },
+        });
+    } catch (error) {
+        if (isNotFound(error)) throw new Error("Not authorized");
+        throw error;
+    }
+}
+
+/**
  * A post is readable when the caller wrote it, when it belongs to an
  * organization the caller belongs to, or when it is published, which the
  * public site already serves to anyone.
