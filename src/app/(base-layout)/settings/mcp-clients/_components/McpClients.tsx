@@ -176,6 +176,7 @@ export default function McpClients({ initialClients }: { initialClients: Client[
                             <th>Name</th>
                             <th>Client id</th>
                             <th>Redirect URI</th>
+                            <th>Permissions</th>
                             <th>State</th>
                             <th></th>
                         </tr>
@@ -189,6 +190,9 @@ export default function McpClients({ initialClients }: { initialClients: Client[
                                 </td>
                                 <td className="text-xs">
                                     {client.redirectUris.join(", ")}
+                                </td>
+                                <td className="text-xs">
+                                    {client.scopes.join(", ")}
                                 </td>
                                 <td>
                                     {client.revokedAt

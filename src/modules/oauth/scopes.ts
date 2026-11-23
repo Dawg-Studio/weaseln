@@ -5,6 +5,10 @@ export const OAUTH_SCOPES = [
     "org:write",
     "design:read",
     "design:write",
+    "profile:read",
+    "profile:write",
+    "portfolio:read",
+    "portfolio:write",
 ] as const;
 
 export type OAuthScope = (typeof OAUTH_SCOPES)[number];
