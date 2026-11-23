@@ -156,7 +156,12 @@ export default function ResumePanel({
         if (!window.confirm("Remove your resume? The stored file is deleted.")) {
             return;
         }
-        await fetch("/api/portfolio/resume", { method: "DELETE" });
+        const response = await fetch("/api/portfolio/resume", { method: "DELETE" });
+        if (!response.ok) {
+            // The server refused, so the file and the row are still there.
+            toast.error("Could not remove the resume. Try again.");
+            return;
+        }
         setStored(false);
         setIsPublic(false);
         setRows([]);

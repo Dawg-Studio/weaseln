@@ -90,6 +90,24 @@ describe("ResumePanel", () => {
         expect(payload.links).toHaveLength(0);
     });
 
+    it("keeps the resume on screen when the server refuses the removal", async () => {
+        const { toast } = await import("react-hot-toast");
+        fetchMock.mockResolvedValueOnce({
+            ok: false,
+            status: 500,
+            json: async () => ({ error: "Could not delete the stored file" }),
+        });
+        vi.spyOn(window, "confirm").mockReturnValue(true);
+        render(<ResumePanel initialPublic={false} hasResume />);
+
+        await userEvent.click(screen.getByRole("button", { name: /remove resume/i }));
+
+        expect(toast.error).toHaveBeenCalled();
+        expect(
+            screen.getByRole("button", { name: /remove resume/i }),
+        ).toBeInTheDocument();
+    });
+
     it("sends the public toggle as a boolean", async () => {        render(<ResumePanel initialPublic={false} hasResume />);
         await userEvent.click(
             screen.getByRole("checkbox", { name: /show a download link/i }),
