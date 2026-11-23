@@ -63,6 +63,9 @@ const CALLER_ERROR_MESSAGES = new Set([
     "Post not found",
     "Organization not found",
     "Username already taken",
+    "Showcase not found",
+    "Item not found",
+    "Experience not found",
 ]);
 
 /**
@@ -73,12 +76,36 @@ const CALLER_ERROR_MESSAGES = new Set([
 const CALLER_ERROR_PREFIXES = [
     "Invalid post customization",
     "Invalid profile customization",
+    "Invalid portfolio input",
     "No user named ",
     "You do not belong",
     "This post contains ",
 ];
 
-function isCallerError(message: string): boolean {
+function messageOf(error: unknown): string {
+    return error instanceof Error ? error.message : "";
+}
+
+/**
+ * A status between 400 and 499 is a mistake the caller made: a bad field, a
+ * taken username, a wrong file type. A 500 is ours and stays internal.
+ */
+function hasCallerStatus(error: unknown): error is Error & { status: unknown } {
+    if (!(error instanceof Error) || !("status" in error)) {
+        return false;
+    }
+    return (
+        typeof error.status === "number" &&
+        error.status >= 400 &&
+        error.status <= 499
+    );
+}
+
+function isCallerError(error: unknown): boolean {
+    if (hasCallerStatus(error)) {
+        return true;
+    }
+    const message = messageOf(error);
     return (
         CALLER_ERROR_MESSAGES.has(message) ||
         CALLER_ERROR_PREFIXES.some((prefix) => message.startsWith(prefix))
@@ -90,8 +117,8 @@ function isCallerError(message: string): boolean {
  * stays in the server log.
  */
 export function toolError(error: unknown): ToolResult {
-    const message = error instanceof Error ? error.message : "";
-    if (!isCallerError(message)) {
+    const message = messageOf(error);
+    if (!isCallerError(error)) {
         console.error("MCP tool failed", error);
         return {
             content: [{ type: "text", text: "Internal server error" }],
