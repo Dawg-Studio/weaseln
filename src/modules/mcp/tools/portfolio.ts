@@ -8,6 +8,20 @@ import {
     setResumeVisibility,
     uploadResume,
 } from "@/modules/portfolio/resume";
+import {
+    createItem,
+    createShowcase,
+    deleteItem,
+    deleteShowcase,
+    listExperience,
+    listPortfolio,
+    listShowcases,
+    moveItem,
+    moveShowcase,
+    updateItem,
+    updateShowcase,
+} from "@/modules/portfolio/service";
+import { SHOWCASE_LAYOUTS } from "@/modules/portfolio/types";
 
 import { callerOf, text, toolError, type ToolContext } from "./shared";
 
@@ -44,6 +58,55 @@ type ResumeProposalArgs = z.infer<typeof resumeProposalSchema>;
 type UploadResumeArgs = { data: string };
 
 type SetResumeVisibilityArgs = { isPublic: boolean };
+
+const layoutSchema = z.enum(SHOWCASE_LAYOUTS);
+
+const directionSchema = z.enum(["up", "down"]);
+
+const itemSchema = z.object({
+    title: z.string(),
+    summary: z.string().nullable().optional(),
+    description: z.string().nullable().optional(),
+    coverImage: z.string().nullable().optional(),
+    gallery: z.array(z.string()).optional(),
+    link: z.string().nullable().optional(),
+    tags: z.array(z.string()).optional(),
+    date: z.string().nullable().optional(),
+});
+
+const itemUpdateSchema = itemSchema.partial();
+
+const showcaseCreateSchema = z.object({
+    title: z.string(),
+    description: z.string().nullable().optional(),
+    layout: layoutSchema,
+});
+
+const showcaseUpdateSchema = z.object({
+    showcaseId: z.string(),
+    title: z.string().optional(),
+    description: z.string().nullable().optional(),
+    layout: layoutSchema.optional(),
+});
+
+type ItemCreateArgs = z.infer<typeof itemSchema> & { showcaseId: string };
+
+type ItemUpdateArgs = z.infer<typeof itemUpdateSchema> & { itemId: string };
+
+type ShowcaseCreateArgs = z.infer<typeof showcaseCreateSchema>;
+
+type ShowcaseUpdateArgs = z.infer<typeof showcaseUpdateSchema>;
+
+type MoveArgs = { direction: "up" | "down" };
+
+/** An absent key keeps the stored value; an explicit null clears the field. */
+function pick<T>(value: T | undefined, stored: T): T {
+    return value !== undefined ? value : stored;
+}
+
+function toDirection(direction: "up" | "down"): -1 | 1 {
+    return direction === "up" ? -1 : 1;
+}
 
 export async function handleGetResume(
     _args: Record<string, never>,
@@ -125,6 +188,171 @@ export async function handleDeleteResume(
     }
 }
 
+export async function handleListPortfolio(
+    _args: Record<string, never>,
+    ctx: ToolContext,
+) {
+    try {
+        const caller = callerOf(ctx);
+        const [showcases, experience] = await Promise.all([
+            listPortfolio({ userId: caller.userId }),
+            listExperience({ userId: caller.userId }),
+        ]);
+        return text({ data: { showcases, experience } });
+    } catch (error) {
+        return toolError(error);
+    }
+}
+
+export async function handleCreateShowcase(
+    args: ShowcaseCreateArgs,
+    ctx: ToolContext,
+) {
+    try {
+        const caller = callerOf(ctx);
+        const showcase = await createShowcase({ userId: caller.userId }, {
+            title: args.title,
+            description: args.description ?? null,
+            layout: args.layout,
+        });
+        return text({ data: showcase });
+    } catch (error) {
+        return toolError(error);
+    }
+}
+
+export async function handleUpdateShowcase(
+    args: ShowcaseUpdateArgs,
+    ctx: ToolContext,
+) {
+    try {
+        const caller = callerOf(ctx);
+        const showcases = await listShowcases({ userId: caller.userId });
+        const stored = showcases.find((row) => row.id === args.showcaseId);
+        if (!stored) throw new Error("Showcase not found");
+        await updateShowcase({ userId: caller.userId }, {
+            showcaseId: args.showcaseId,
+            title: pick(args.title, stored.title),
+            description: pick(args.description, stored.description),
+            layout: pick(args.layout, stored.layout),
+        });
+        return text({ data: { updated: args.showcaseId } });
+    } catch (error) {
+        return toolError(error);
+    }
+}
+
+export async function handleDeleteShowcase(
+    args: { showcaseId: string },
+    ctx: ToolContext,
+) {
+    try {
+        const caller = callerOf(ctx);
+        await deleteShowcase({ userId: caller.userId }, {
+            showcaseId: args.showcaseId,
+        });
+        return text({ data: { deleted: args.showcaseId } });
+    } catch (error) {
+        return toolError(error);
+    }
+}
+
+export async function handleMoveShowcase(
+    args: { showcaseId: string } & MoveArgs,
+    ctx: ToolContext,
+) {
+    try {
+        const caller = callerOf(ctx);
+        await moveShowcase({ userId: caller.userId }, {
+            showcaseId: args.showcaseId,
+            direction: toDirection(args.direction),
+        });
+        return text({ data: { moved: args.showcaseId } });
+    } catch (error) {
+        return toolError(error);
+    }
+}
+
+export async function handleCreateItem(
+    args: ItemCreateArgs,
+    ctx: ToolContext,
+) {
+    try {
+        const caller = callerOf(ctx);
+        const item = await createItem({ userId: caller.userId }, {
+            showcaseId: args.showcaseId,
+            title: args.title,
+            summary: args.summary ?? null,
+            description: args.description ?? null,
+            coverImage: args.coverImage ?? null,
+            gallery: args.gallery ?? [],
+            link: args.link ?? null,
+            tags: args.tags ?? [],
+            date: args.date ?? null,
+        });
+        return text({ data: item });
+    } catch (error) {
+        return toolError(error);
+    }
+}
+
+export async function handleUpdateItem(
+    args: ItemUpdateArgs,
+    ctx: ToolContext,
+) {
+    try {
+        const caller = callerOf(ctx);
+        const showcases = await listPortfolio({ userId: caller.userId });
+        const stored = showcases
+            .flatMap((showcase) => showcase.items)
+            .find((item) => item.id === args.itemId);
+        if (!stored) throw new Error("Item not found");
+        await updateItem({ userId: caller.userId }, {
+            itemId: args.itemId,
+            title: pick(args.title, stored.title),
+            summary: pick(args.summary, stored.summary),
+            description: pick(args.description, stored.description),
+            coverImage: pick(args.coverImage, stored.coverImage),
+            gallery: pick(args.gallery, stored.gallery),
+            link: pick(args.link, stored.link),
+            tags: pick(args.tags, stored.tags),
+            date: pick(args.date, stored.date),
+        });
+        return text({ data: { updated: args.itemId } });
+    } catch (error) {
+        return toolError(error);
+    }
+}
+
+export async function handleDeleteItem(
+    args: { itemId: string },
+    ctx: ToolContext,
+) {
+    try {
+        const caller = callerOf(ctx);
+        await deleteItem({ userId: caller.userId }, { itemId: args.itemId });
+        return text({ data: { deleted: args.itemId } });
+    } catch (error) {
+        return toolError(error);
+    }
+}
+
+export async function handleMoveItem(
+    args: { itemId: string } & MoveArgs,
+    ctx: ToolContext,
+) {
+    try {
+        const caller = callerOf(ctx);
+        await moveItem({ userId: caller.userId }, {
+            itemId: args.itemId,
+            direction: toDirection(args.direction),
+        });
+        return text({ data: { moved: args.itemId } });
+    } catch (error) {
+        return toolError(error);
+    }
+}
+
 export function registerPortfolioTools(server: McpServer) {
     server.registerTool(
         "get_resume",
@@ -186,5 +414,106 @@ export function registerPortfolioTools(server: McpServer) {
             scopeChallenge: requireScopes("portfolio:write"),
         },
         handleDeleteResume,
+    );
+
+    server.registerTool(
+        "list_portfolio",
+        {
+            description:
+                "List the project showcases of this account, with the projects in each one, and the experience list.",
+            inputSchema: z.object({}),
+            scopeChallenge: requireScopes("portfolio:read"),
+        },
+        handleListPortfolio,
+    );
+
+    server.registerTool(
+        "create_showcase",
+        {
+            description: "Create a project showcase on this account.",
+            inputSchema: showcaseCreateSchema,
+            scopeChallenge: requireScopes("portfolio:write"),
+        },
+        handleCreateShowcase,
+    );
+
+    server.registerTool(
+        "update_showcase",
+        {
+            description:
+                "Change one of this account's project showcases. Leave a field out to keep it; send null to clear it.",
+            inputSchema: showcaseUpdateSchema,
+            scopeChallenge: requireScopes("portfolio:write"),
+        },
+        handleUpdateShowcase,
+    );
+
+    server.registerTool(
+        "delete_showcase",
+        {
+            description:
+                "Delete one of this account's project showcases and the projects in it.",
+            inputSchema: z.object({ showcaseId: z.string() }),
+            scopeChallenge: requireScopes("portfolio:write"),
+        },
+        handleDeleteShowcase,
+    );
+
+    server.registerTool(
+        "move_showcase",
+        {
+            description:
+                "Move one of this account's project showcases up or down.",
+            inputSchema: z.object({
+                showcaseId: z.string(),
+                direction: directionSchema,
+            }),
+            scopeChallenge: requireScopes("portfolio:write"),
+        },
+        handleMoveShowcase,
+    );
+
+    server.registerTool(
+        "create_item",
+        {
+            description: "Add a project to one of this account's showcases.",
+            inputSchema: itemSchema.extend({ showcaseId: z.string() }),
+            scopeChallenge: requireScopes("portfolio:write"),
+        },
+        handleCreateItem,
+    );
+
+    server.registerTool(
+        "update_item",
+        {
+            description:
+                "Change one of this account's projects. Leave a field out to keep it; send null to clear it.",
+            inputSchema: itemUpdateSchema.extend({ itemId: z.string() }),
+            scopeChallenge: requireScopes("portfolio:write"),
+        },
+        handleUpdateItem,
+    );
+
+    server.registerTool(
+        "delete_item",
+        {
+            description: "Delete one of this account's projects.",
+            inputSchema: z.object({ itemId: z.string() }),
+            scopeChallenge: requireScopes("portfolio:write"),
+        },
+        handleDeleteItem,
+    );
+
+    server.registerTool(
+        "move_item",
+        {
+            description: "Move one of this account's projects up or down.",
+            inputSchema: z.object({
+                itemId: z.string(),
+                direction: directionSchema,
+            }),
+            scopeChallenge: requireScopes("portfolio:write"),
+        },
+        handleMoveItem,
     );
 }
