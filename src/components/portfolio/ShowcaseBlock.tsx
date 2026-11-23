@@ -3,6 +3,7 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 
 import type { ItemInput, ShowcaseLayout } from "@/modules/portfolio/types";
+import { normalizeShowcaseLayout } from "@/modules/portfolio/validation";
 
 type ShowcaseItem = ItemInput & { id: string; slug: string };
 
@@ -10,7 +11,8 @@ type ShowcaseBlockProps = {
     showcase: {
         title: string;
         description: string | null;
-        layout: ShowcaseLayout;
+        /** a stored column: normalize before it reaches the layout table */
+        layout: string;
         slug: string;
     };
     items: ShowcaseItem[];
@@ -199,7 +201,7 @@ const LAYOUTS: Record<ShowcaseLayout, (_props: LayoutProps) => ReactNode> = {
 export default function ShowcaseBlock({ showcase, items, userId }: ShowcaseBlockProps) {
     if (items.length === 0) return null;
 
-    const Layout = LAYOUTS[showcase.layout];
+    const Layout = LAYOUTS[normalizeShowcaseLayout(showcase.layout)];
 
     return (
         <section className="mb-6 space-y-3" data-testid={`showcase-${showcase.slug}`}>

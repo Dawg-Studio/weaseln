@@ -8,6 +8,7 @@ import {
     type ResumeLink,
     type ResumeProposal,
     type ShowcaseInput,
+    type ShowcaseLayout,
 } from "./types";
 
 // The stored value is interpolated into `src` and into CSS, so the charset is
@@ -81,8 +82,7 @@ function assertStringList(value: unknown, field: string): string[] {
     });
 }
 
-export function validateShowcaseInput(input: unknown): ShowcaseInput {
-    if (!isPlainObject(input)) fail("showcase must be an object");
+export function validateShowcaseInput(input: unknown): ShowcaseInput {    if (!isPlainObject(input)) fail("showcase must be an object");
     assertOneOf(input.layout, SHOWCASE_LAYOUTS, "layout");
     return {
         title: assertRequiredText(input.title, "title"),
@@ -172,4 +172,15 @@ export function validateResumeProposal(input: unknown): ResumeProposal {
         ...facts,
         experience: input.experience.map(validateExperienceInput),
     };
+}
+
+/**
+ * Reads a stored layout the forgiving way: a row written by an older deploy or
+ * edited by hand degrades to `grid` instead of rendering nothing.
+ */
+export function normalizeShowcaseLayout(value: unknown): ShowcaseLayout {
+    return typeof value === "string" &&
+        (SHOWCASE_LAYOUTS as readonly string[]).includes(value)
+        ? (value as ShowcaseLayout)
+        : "grid";
 }
