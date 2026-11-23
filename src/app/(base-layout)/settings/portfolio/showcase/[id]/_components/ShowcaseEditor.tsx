@@ -64,18 +64,27 @@ export default function ShowcaseEditor({
 
     async function deleteShowcase() {
         if (!window.confirm("Delete this showcase and its items?")) return;
-        await fetch("/api/portfolio/showcase", {
+        const response = await fetch("/api/portfolio/showcase", {
             method: "DELETE",
             body: JSON.stringify({ showcaseId: showcase.id }),
         });
+        if (!response.ok) {
+            toast.error("Could not delete this showcase.");
+            return;
+        }
         router.push("/settings/portfolio/showcases");
     }
 
     async function deleteItem(itemId: string) {
-        await fetch("/api/portfolio/item", {
+        const response = await fetch("/api/portfolio/item", {
             method: "DELETE",
             body: JSON.stringify({ itemId }),
         });
+        if (!response.ok) {
+            // The item is still on the server, so it stays in the list.
+            toast.error("Could not delete that item.");
+            return;
+        }
         router.refresh();
     }
 

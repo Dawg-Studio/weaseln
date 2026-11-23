@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import ExperienceList, { type ExperienceRow } from "./ExperienceList";
 
@@ -45,8 +45,22 @@ describe("ExperienceList", () => {
         expect(await screen.findByText("Dev · Acme")).toBeInTheDocument();
     });
 
-    it("shows the edited role in place", async () => {
+    it("keeps the row when the server refuses the delete", async () => {
+        const { toast } = await import("react-hot-toast");
+        fetchMock.mockResolvedValueOnce({
+            ok: false,
+            status: 404,
+            json: async () => ({ error: "Experience not found" }),
+        });
         render(<ExperienceList initial={[row]} />);
+
+        await userEvent.click(screen.getByRole("button", { name: /delete acme/i }));
+
+        await waitFor(() => expect(toast.error).toHaveBeenCalled());
+        expect(screen.getByText("Dev · Acme")).toBeInTheDocument();
+    });
+
+    it("shows the edited role in place", async () => {        render(<ExperienceList initial={[row]} />);
 
         await userEvent.click(screen.getByRole("button", { name: /edit acme/i }));
         const roleInput = screen.getByLabelText(/^role$/i);
