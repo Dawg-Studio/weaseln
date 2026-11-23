@@ -68,31 +68,80 @@ export async function GET(req: Request) {
     }
 }
 
+/**
+ * The fields a caller may set on their own account. Spreading the request body
+ * into Prisma lets a caller write any column, and the profile renders
+ * `resumeUrl` as an href — `javascript:` would be a link on a public page.
+ * Resume fields and `skills` are written only by the portfolio service.
+ */
+const USER_PATCH_FIELDS = [
+    "username",
+    "name",
+    "bio",
+    "address",
+    "occupation",
+    "email",
+    "socials",
+    "image",
+] as const;
+
 export async function PATCH(req: Request) {
-    const body = await req.json();
     const session = await auth();
+    if (!session?.user) {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    let body: Record<string, unknown>;
     try {
-        const user = await prisma.user.update({
-            where: { id: session?.user.id },
-            data: {
-                ...body,
-                ...(body.username && {
-                    username: body.username.replace(/\s/g, ""),
-                }),
-            },
-        });
-        const updatePosts = await prisma.post.updateMany({
-            where: { userId: session?.user.id },
-            data: {
-                author: body.name,
-                authorUsername: body.username
-                    ? body.username.replace(/\s/g, "")
-                    : session?.user.id,
-            },
-        });
-        if (user && updatePosts) {
-            return NextResponse.json({ status: 200 });
+        const parsed: unknown = await req.json();
+        if (parsed === null || typeof parsed !== "object" || Array.isArray(parsed)) {
+            return NextResponse.json(
+                { error: "Expected an object body" },
+                { status: 400 },
+            );
         }
+        body = parsed as Record<string, unknown>;
+    } catch {
+        return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
+    }
+
+    const unsupported = Object.keys(body).filter(
+        (key) => !(USER_PATCH_FIELDS as readonly string[]).includes(key),
+    );
+    if (unsupported.length > 0) {
+        return NextResponse.json(
+            { error: `Unsupported field: ${unsupported[0]}` },
+            { status: 400 },
+        );
+    }
+
+    const data = Object.fromEntries(
+        USER_PATCH_FIELDS.filter((field) => field in body).map((field) => [
+            field,
+            body[field],
+        ]),
+    ) as Prisma.UserUpdateInput;
+
+    if (typeof body.username === "string") {
+        data.username = body.username.replace(/\s/g, "");
+    }
+
+    try {
+        await prisma.user.update({
+            where: { id: session.user.id },
+            data,
+        });
+        await prisma.post.updateMany({
+            where: { userId: session.user.id },
+            data: {
+                author: typeof body.name === "string" ? body.name : undefined,
+                authorUsername:
+                    typeof body.username === "string"
+                        ? body.username.replace(/\s/g, "")
+                        : session.user.id,
+            },
+        });
+        return NextResponse.json({ status: 200 });
     } catch (err) {
         console.log(err);
         return NextResponse.json({ error: err }, { status: 500 });
