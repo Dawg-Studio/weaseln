@@ -6,7 +6,8 @@ export type ImagePurpose =
     | "cover"
     | "post_background"
     | "profile"
-    | "organization";
+    | "organization"
+    | "portfolio";
 
 /**
  * The status travels with the error so the route that serves the file keeps
@@ -41,6 +42,7 @@ const FOLDERS: Record<ImagePurpose, string> = {
     post_background: "background",
     profile: "user",
     organization: "organization",
+    portfolio: "portfolio",
 };
 
 /**
