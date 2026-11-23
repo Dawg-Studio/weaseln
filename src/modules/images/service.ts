@@ -22,7 +22,7 @@ export class ImageUploadError extends Error {
     }
 }
 
-const MAX_UPLOAD_BYTES = 3 * 1024 * 1024; // 3 MiB
+export const MAX_UPLOAD_BYTES = 3 * 1024 * 1024; // 3 MiB
 
 const ALLOWED_MIME_TYPES = ["image/png", "image/jpeg", "image/webp"];
 

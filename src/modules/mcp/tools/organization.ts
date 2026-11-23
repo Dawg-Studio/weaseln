@@ -1,11 +1,11 @@
 import { requireScopes, type McpServer } from "@modelcontextprotocol/server";
 import { z } from "zod";
 
-import prisma from "@/db";
 import {
     addOrganizationMember,
     createOrganization,
     demoteOrganizationMember,
+    findUserByUsername,
     getOrganization,
     listOrganizations,
     promoteOrganizationMember,
@@ -126,10 +126,7 @@ export async function handleUpdateOrgMember(
 ) {
     try {
         const caller = callerOf(ctx);
-        const member = await prisma.user.findUnique({
-            where: { username: args.username },
-            select: { id: true, username: true },
-        });
+        const member = await findUserByUsername(args.username);
         if (!member) {
             throw new Error(`No user named ${args.username}`);
         }

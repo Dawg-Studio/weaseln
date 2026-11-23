@@ -1,7 +1,11 @@
 import { NextResponse } from "next/server";
 
 import { auth } from "@/auth";
-import { ImageUploadError, uploadImage } from "@/modules/images/service";
+import {
+    ImageUploadError,
+    MAX_UPLOAD_BYTES,
+    uploadImage,
+} from "@/modules/images/service";
 
 export async function POST(req: Request) {
     const session = await auth();
@@ -15,6 +19,14 @@ export async function POST(req: Request) {
         return NextResponse.json(
             { error: "No image file found" },
             { status: 400 },
+        );
+    }
+    // The size is known before the file is read, so an oversized upload is
+    // refused without buffering it.
+    if (img.size > MAX_UPLOAD_BYTES) {
+        return NextResponse.json(
+            { error: "Image must be 3 MiB or smaller" },
+            { status: 413 },
         );
     }
 

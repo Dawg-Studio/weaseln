@@ -16,9 +16,6 @@ import {
 
 const { findUserMock } = vi.hoisted(() => ({ findUserMock: vi.fn() }));
 
-vi.mock("@/db", () => ({
-    default: { user: { findUnique: findUserMock } },
-}));
 vi.mock("@/modules/organization/service", () => ({
     listOrganizations: vi.fn(),
     getOrganization: vi.fn(),
@@ -28,6 +25,7 @@ vi.mock("@/modules/organization/service", () => ({
     removeOrganizationMember: vi.fn(),
     promoteOrganizationMember: vi.fn(),
     demoteOrganizationMember: vi.fn(),
+    findUserByUsername: findUserMock,
 }));
 
 const context = {
@@ -62,10 +60,7 @@ describe("organization tools", () => {
             context,
         );
 
-        expect(findUserMock).toHaveBeenCalledWith({
-            where: { username: "bob" },
-            select: { id: true, username: true },
-        });
+        expect(findUserMock).toHaveBeenCalledWith("bob");
         expect(addOrganizationMember).toHaveBeenCalledWith(
             { userId: "alice" },
             { organizationId: "org-1", memberId: "user-2" },

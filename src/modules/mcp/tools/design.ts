@@ -24,13 +24,6 @@ import {
     type ToolContext,
 } from "./shared";
 
-/**
- * A base64 image is a third larger than the image, and the MCP body cap is
- * 4 MiB, so an image above this size cannot be uploaded through the tool even
- * though the web route accepts more.
- */
-const MAX_TOOL_IMAGE_BYTES = 2.5 * 1024 * 1024;
-
 const profileDesignSchema = z.object({
     preset: z.string().optional(),
     layout: z.record(z.string(), z.unknown()).optional(),
@@ -171,10 +164,8 @@ export async function handleUploadImage(
 ) {
     try {
         const caller = callerOf(ctx);
-        const bytes = Buffer.from(args.data, "base64");
-        if (bytes.length > MAX_TOOL_IMAGE_BYTES) {
-            throw new Error("Image must be 2.5 MiB or smaller");
-        }
+        // The image service owns the size cap, and the base64 it carries
+        // fits inside the MCP body cap.
         const { url } = await uploadImage(
             { userId: caller.userId },
             {

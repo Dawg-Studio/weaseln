@@ -4,6 +4,7 @@ import { getCloudinaryImage, uploadCloudinary } from "@/lib/cloudinary";
 import { auth } from "@/auth";
 import { NextRequest, NextResponse } from "next/server";
 import {
+    assertOrganizationOwner,
     createOrganization,
     updateOrganization,
 } from "@/modules/organization/service";
@@ -62,6 +63,13 @@ export async function PATCH(req: NextRequest) {
     const json = JSON.parse(body.get("json") as string);
     const { id, name, username, summary, socials } = json;
     try {
+        // The ownership is checked before the image is uploaded, so an
+        // account with no claim to this organization cannot make the route
+        // store assets for it.
+        await assertOrganizationOwner(
+            { userId: session.user.id },
+            id,
+        );
         let imageUrl: string | undefined;
         if (img) {
             const cloudinary = await uploadCloudinary({

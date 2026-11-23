@@ -69,6 +69,30 @@ async function assertOwner(
     }
 }
 
+/**
+ * The owner check on its own, so a caller can refuse before it spends
+ * anything on the caller's behalf, such as uploading an image.
+ */
+export async function assertOrganizationOwner(
+    actor: OrgActor,
+    organizationId: string,
+): Promise<void> {
+    await assertOwner(actor, organizationId);
+}
+
+/**
+ * The user behind a username. It is here because the only use is resolving
+ * the member a membership action is about.
+ */
+export async function findUserByUsername(
+    username: string,
+): Promise<{ id: string; username: string } | null> {
+    return prisma.user.findUnique({
+        where: { username },
+        select: { id: true, username: true },
+    });
+}
+
 export async function createOrganization(actor: OrgActor, input: CreateOrganizationInput) {
     const taken = await prisma.organization.findUnique({
         where: { username: input.username },
