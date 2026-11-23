@@ -87,25 +87,29 @@ function messageOf(error: unknown): string {
 }
 
 /**
- * A status between 400 and 499 is a mistake the caller made: a bad field, a
- * taken username, a wrong file type. A 500 is ours and stays internal.
+ * The status of an error says who owns it: a 4xx is the caller's mistake and
+ * a 5xx is ours.
  */
-function hasCallerStatus(error: unknown): error is Error & { status: unknown } {
+function hasCallerStatus(error: unknown): error is Error & { status: number } {
+    // Only an Error is read: only an Error carries a message we can report.
     if (!(error instanceof Error) || !("status" in error)) {
         return false;
     }
-    return (
-        typeof error.status === "number" &&
-        error.status >= 400 &&
-        error.status <= 499
-    );
+    return typeof error.status === "number";
 }
 
 function isCallerError(error: unknown): boolean {
-    if (hasCallerStatus(error)) {
-        return true;
-    }
     const message = messageOf(error);
+    if (hasCallerStatus(error)) {
+        // A server failure stays internal whatever its message says, and a
+        // caller error with no message has nothing worth reporting.
+        if (error.status >= 500) {
+            return false;
+        }
+        if (error.status >= 400) {
+            return message !== "";
+        }
+    }
     return (
         CALLER_ERROR_MESSAGES.has(message) ||
         CALLER_ERROR_PREFIXES.some((prefix) => message.startsWith(prefix))

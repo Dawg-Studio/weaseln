@@ -61,4 +61,39 @@ describe("tool errors", () => {
 
         expect(result.content[0].text).toBe("Showcase not found");
     });
+
+    it("reports the lowest caller status as it is", () => {
+        const error = Object.assign(new Error("Bad request"), { status: 400 });
+
+        const result = toolError(error);
+
+        expect(result.content[0].text).toBe("Bad request");
+        expect(result.isError).toBe(true);
+    });
+
+    it("keeps the lowest server status internal", () => {
+        const error = Object.assign(new Error("Server failed"), { status: 500 });
+
+        const result = toolError(error);
+
+        expect(result.content[0].text).toBe("Internal server error");
+    });
+
+    it("keeps a server status internal even on a caller message", () => {
+        const error = Object.assign(new Error("Showcase not found"), {
+            status: 500,
+        });
+
+        const result = toolError(error);
+
+        expect(result.content[0].text).toBe("Internal server error");
+    });
+
+    it("keeps a caller status with no message internal", () => {
+        const error = Object.assign(new Error(""), { status: 400 });
+
+        const result = toolError(error);
+
+        expect(result.content[0].text).toBe("Internal server error");
+    });
 });
