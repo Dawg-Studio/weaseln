@@ -52,6 +52,7 @@ describe("design tools", () => {
             tags: [],
             content: { type: "doc", content: [] },
             published: true,
+            readPerMinute: 3,
             organizationId: null,
             authorUsername: "alice",
             createdAt: new Date(),

@@ -16,6 +16,7 @@ export type PostSummary = {
     createdAt: Date;
     authorUsername: string | null;
     organizationId: string | null;
+    userId: string;
 };
 
 export type CreatePostInput = {
@@ -154,24 +155,45 @@ export async function listPosts(
     actor: PostActor,
     filters: ListPostsFilters,
 ): Promise<PostSummary[]> {
-    const where: Prisma.PostWhereInput = {
-        userId: actor.userId,
-        ...(filters.published !== undefined && { published: filters.published }),
-        ...(filters.organizationId && {
-            organizationId: filters.organizationId,
-        }),
-        ...(filters.q && {
-            OR: [
-                { title: { contains: filters.q, mode: "insensitive" } },
-                {
-                    description: {
-                        contains: filters.q,
-                        mode: "insensitive",
-                    },
+    const where: Prisma.PostWhereInput = {};
+
+    if (filters.organizationId) {
+        // An organization's posts are readable by the people in it. The
+        // membership check lives here, not in the caller, so every path to
+        // this function is covered by it.
+        const organization = await prisma.organization.findUnique({
+            where: { id: filters.organizationId },
+            select: {
+                ownerId: true,
+                admins: { select: { id: true } },
+                members: { select: { id: true } },
+            },
+        });
+        const belongs = organization
+            ? organization.ownerId === actor.userId ||
+              organization.admins.some((admin) => admin.id === actor.userId) ||
+              organization.members.some(
+                  (member) => member.id === actor.userId,
+              )
+            : false;
+        if (!belongs) return [];
+        where.organizationId = filters.organizationId;
+    } else {
+        where.userId = actor.userId;
+    }
+
+    if (filters.published !== undefined) where.published = filters.published;
+    if (filters.q) {
+        where.OR = [
+            { title: { contains: filters.q, mode: "insensitive" } },
+            {
+                description: {
+                    contains: filters.q,
+                    mode: "insensitive",
                 },
-            ],
-        }),
-    };
+            },
+        ];
+    }
 
     let orderBy: Prisma.PostOrderByWithRelationInput = { createdAt: "desc" };
     if (filters.sort === "unpublished") {
@@ -197,6 +219,9 @@ export async function listPosts(
             createdAt: true,
             authorUsername: true,
             organizationId: true,
+            // The manage table links to the post by author, and falls back to
+            // this id when the author has no username.
+            userId: true,
         },
     });
 }
@@ -265,6 +290,7 @@ export async function getPost(
     tags: string[];
     content: unknown;
     published: boolean;
+    readPerMinute: number;
     organizationId: string | null;
     authorUsername: string | null;
     createdAt: Date;
@@ -278,6 +304,7 @@ export async function getPost(
             tags: true,
             content: true,
             published: true,
+            readPerMinute: true,
             organizationId: true,
             authorUsername: true,
             createdAt: true,
@@ -314,6 +341,7 @@ export async function getPost(
         tags: post.tags,
         content: post.content,
         published: post.published,
+        readPerMinute: post.readPerMinute,
         organizationId: post.organizationId,
         authorUsername: post.authorUsername,
         createdAt: post.createdAt,
