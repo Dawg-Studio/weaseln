@@ -60,10 +60,16 @@ export default function ExperienceList({ initial }: { initial: ExperienceRow[] }
     async function save() {
         setBusy(true);
         try {
+            // A current role carries no end date. The draft keeps the old one
+            // so unticking "Current role" brings it back.
+            const payload = {
+                ...draft,
+                endDate: draft.isCurrent ? null : draft.endDate,
+            };
             const response = await fetch("/api/portfolio/experience", {
                 method: editingId ? "PATCH" : "POST",
                 body: JSON.stringify(
-                    editingId ? { experienceId: editingId, ...draft } : draft,
+                    editingId ? { experienceId: editingId, ...payload } : payload,
                 ),
             });
             if (!response.ok) {
@@ -76,14 +82,14 @@ export default function ExperienceList({ initial }: { initial: ExperienceRow[] }
             if (editingId) {
                 setRows((current) =>
                     current.map((row) =>
-                        row.id === editingId ? { ...row, ...draft } : row,
+                        row.id === editingId ? { ...row, ...payload } : row,
                     ),
                 );
             } else {
                 const created = (await response.json()) as { id: string };
                 setRows((current) => [
                     ...current,
-                    { ...draft, id: created.id, order: current.length },
+                    { ...payload, id: created.id, order: current.length },
                 ]);
             }
             toast.success(editingId ? "Entry updated." : "Entry added.");
@@ -255,7 +261,6 @@ export default function ExperienceList({ initial }: { initial: ExperienceRow[] }
                             setDraft({
                                 ...draft,
                                 isCurrent: event.target.checked,
-                                endDate: event.target.checked ? null : draft.endDate,
                             })
                         }
                     />

@@ -82,6 +82,21 @@ describe("ExperienceList", () => {
         expect(screen.getByText("Dev · Acme")).toBeInTheDocument();
     });
 
+    it("keeps the end date when a current role is unticked", async () => {
+        render(<ExperienceList initial={[{ ...row, endDate: "2021-05" }]} />);
+
+        await userEvent.click(screen.getByRole("button", { name: /edit acme/i }));
+        await userEvent.click(screen.getByLabelText(/current role/i));
+        await userEvent.click(screen.getByLabelText(/current role/i));
+        await userEvent.click(screen.getByRole("button", { name: /save entry/i }));
+
+        await waitFor(() => expect(fetchMock).toHaveBeenCalled());
+        const body = JSON.parse(
+            (fetchMock.mock.calls.at(-1)![1] as RequestInit).body as string,
+        ) as { endDate: string | null };
+        expect(body.endDate).toBe("2021-05");
+    });
+
     it("shows the edited role in place", async () => {        render(<ExperienceList initial={[row]} />);
 
         await userEvent.click(screen.getByRole("button", { name: /edit acme/i }));
