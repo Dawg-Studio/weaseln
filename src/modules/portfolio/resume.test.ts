@@ -211,3 +211,33 @@ describe("resume storage", () => {
         ).rejects.toThrow(/kind/);
     });
 });
+
+describe("resume removal and skills", () => {
+    beforeEach(() => {
+        vi.stubEnv("NEXT_CLOUDINARY_NAME", "leindfraust");
+        mockFindUnique.mockReset();
+        mockUpdate.mockReset();
+        mockDestroy.mockReset();
+        mockFindUnique.mockResolvedValue({ resumePublicId: "old", resumePublic: true, socials: [] });
+        mockUpdate.mockResolvedValue({ id: "alice" });
+        mockDestroy.mockResolvedValue(true);
+    });
+
+    it("does not claim a removal that the storage refused", async () => {
+        mockDestroy.mockResolvedValue(false);
+        await expect(removeResume(actor)).rejects.toThrow(/could not delete/i);
+        expect(mockUpdate).not.toHaveBeenCalled();
+    });
+
+    it("leaves curated skills alone when the resume found none", async () => {
+        await applyResumeProposal(actor, {
+            headline: null,
+            summary: null,
+            location: null,
+            links: [],
+            skills: [],
+            experience: [],
+        });
+        expect(mockUpdate.mock.calls[0][0].data).not.toHaveProperty("skills");
+    });
+});

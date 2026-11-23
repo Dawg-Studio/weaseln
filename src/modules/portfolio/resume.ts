@@ -243,10 +243,16 @@ export async function removeResume(actor: PortfolioActor): Promise<void> {
     });
 
     if (row?.resumePublicId) {
-        await destroyCloudinaryAsset({
+        const destroyed = await destroyCloudinaryAsset({
             public_id: row.resumePublicId,
             folder: RESUME_FOLDER,
         });
+        // Clearing the columns anyway would throw away the only handle that
+        // could retry the delete, and the caller would report a removal that
+        // did not happen.
+        if (!destroyed) {
+            throw new ResumeError("Could not delete the stored file", 502);
+        }
     }
 
     await prisma.user.update({
@@ -320,8 +326,10 @@ export async function applyResumeProposal(
 
     const data: Prisma.UserUpdateInput = {
         socials: mergeSocials(current?.socials, facts.links) as Prisma.InputJsonValue[],
-        skills: facts.skills,
     };
+    // An empty array from the parser means "the resume did not list skills",
+    // not "delete the ones you typed" — same rule as a null field.
+    if (facts.skills.length > 0) data.skills = facts.skills;
     if (facts.headline !== null) data.occupation = facts.headline;
     if (facts.summary !== null) data.bio = facts.summary;
     if (facts.location !== null) data.address = facts.location;

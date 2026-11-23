@@ -60,6 +60,22 @@ export default function ExperienceList({ initial }: { initial: ExperienceRow[] }
                 toast.error("Could not save that entry");
                 return;
             }
+            // router.refresh() re-renders the page but keeps this component's
+            // state, so the list has to be updated here or the owner sees the
+            // old rows and adds the entry twice.
+            if (editingId) {
+                setRows((current) =>
+                    current.map((row) =>
+                        row.id === editingId ? { ...row, ...draft } : row,
+                    ),
+                );
+            } else {
+                const created = (await response.json()) as { id: string };
+                setRows((current) => [
+                    ...current,
+                    { ...draft, id: created.id, order: current.length },
+                ]);
+            }
             toast.success(editingId ? "Entry updated." : "Entry added.");
             setDraft(EMPTY_DRAFT);
             setEditingId(null);
@@ -79,9 +95,21 @@ export default function ExperienceList({ initial }: { initial: ExperienceRow[] }
     }
 
     async function move(id: string, direction: -1 | 1) {
-        await fetch("/api/portfolio/experience", {
+        const response = await fetch("/api/portfolio/experience", {
             method: "PATCH",
             body: JSON.stringify({ experienceId: id, direction }),
+        });
+        if (!response.ok) return;
+
+        setRows((current) => {
+            const index = current.findIndex((row) => row.id === id);
+            const neighbour = index + direction;
+            if (index === -1 || neighbour < 0 || neighbour >= current.length) {
+                return current;
+            }
+            const next = [...current];
+            [next[index], next[neighbour]] = [next[neighbour], next[index]];
+            return next;
         });
         router.refresh();
     }
@@ -98,7 +126,7 @@ export default function ExperienceList({ initial }: { initial: ExperienceRow[] }
                     >
                         <div className="flex-1">
                             <p className="font-semibold">
-                                {row.role} · {row.org}
+                                {`${row.role} · ${row.org}`}
                             </p>
                             <p className="text-xs opacity-70">
                                 {dateRange(row)}

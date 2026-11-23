@@ -44,7 +44,7 @@ export default function ResumePanel({
     const [stored, setStored] = useState(hasResume);
     const [rows, setRows] = useState<ProposalRow[]>([]);
     const [facts, setFacts] = useState<Facts | null>(null);
-    const [links, setLinks] = useState<ResumeLink[]>([]);
+    const [linkRows, setLinkRows] = useState<(ResumeLink & { checked: boolean })[]>([]);
 
     async function uploadResume() {
         if (!file) return;
@@ -71,7 +71,7 @@ export default function ResumePanel({
                     location: body.proposal.location ?? "",
                     skills: body.proposal.skills.join(", "),
                 });
-                setLinks(body.proposal.links);
+                setLinkRows(body.proposal.links.map((link) => ({ ...link, checked: true })));
                 toast.success("Resume stored. Review what was found.");
             } else {
                 toast.error(body.error ?? "Could not read this resume");
@@ -92,8 +92,15 @@ export default function ResumePanel({
         );
     }
 
-    function editRow(index: number, patch: Partial<ExperienceInput>) {
-        setRows((current) =>
+    function toggleLink(index: number) {
+        setLinkRows((current) =>
+            current.map((link, position) =>
+                position === index ? { ...link, checked: !link.checked } : link,
+            ),
+        );
+    }
+
+    function editRow(index: number, patch: Partial<ExperienceInput>) {        setRows((current) =>
             current.map((row, position) =>
                 position === index ? { ...row, ...patch } : row,
             ),
@@ -109,7 +116,9 @@ export default function ResumePanel({
             headline: facts?.headline || null,
             summary: facts?.summary || null,
             location: facts?.location || null,
-            links,
+            links: linkRows
+                .filter((link) => link.checked)
+                .map(({ checked: _checked, ...link }) => link),
             skills: splitSkills(facts?.skills ?? ""),
             experience: chosen,
         };
@@ -127,6 +136,7 @@ export default function ResumePanel({
             toast.success("Experience added to your profile.");
             setRows([]);
             setFacts(null);
+            setLinkRows([]);
             router.refresh();
         } finally {
             setBusy(false);
@@ -151,6 +161,7 @@ export default function ResumePanel({
         setIsPublic(false);
         setRows([]);
         setFacts(null);
+        setLinkRows([]);
         toast.success("Resume removed.");
         router.refresh();
     }
@@ -264,8 +275,28 @@ export default function ResumePanel({
                         ))}
                     </ul>
 
-                    <div className="grid gap-3 sm:grid-cols-2">
-                        <input
+                    {linkRows.length > 0 && (
+                        <ul className="space-y-1">
+                            {linkRows.map((link, index) => (
+                                <li key={`${link.label}-${link.url}`}>
+                                    <label className="label cursor-pointer justify-start gap-2">
+                                        <input
+                                            type="checkbox"
+                                            className="checkbox checkbox-sm"
+                                            checked={link.checked}
+                                            aria-label={`Include ${link.label}`}
+                                            onChange={() => toggleLink(index)}
+                                        />
+                                        <span className="label-text">
+                                            {link.label} — {link.url}
+                                        </span>
+                                    </label>
+                                </li>
+                            ))}
+                        </ul>
+                    )}
+
+                    <div className="grid gap-3 sm:grid-cols-2">                        <input
                             aria-label="Headline"
                             placeholder="Headline (occupation)"
                             value={facts.headline}

@@ -14,7 +14,7 @@ const proposal = {
     headline: "Engineer",
     summary: null,
     location: null,
-    links: [],
+    links: [{ label: "GitHub", url: "https://github.com/alice" }],
     skills: ["TypeScript"],
     experience: [
         { kind: "work", org: "Acme", role: "Dev", location: null, startDate: "2021-01", endDate: null, isCurrent: true, description: null },
@@ -75,8 +75,22 @@ describe("ResumePanel", () => {
         expect(writes).toHaveLength(0);
     });
 
-    it("sends the public toggle as a boolean", async () => {
-        render(<ResumePanel initialPublic={false} hasResume />);
+    it("does not publish a link the owner did not tick", async () => {
+        await uploadAndOpenProposal();
+
+        await userEvent.click(screen.getByLabelText(/include github/i));
+        await userEvent.click(screen.getByRole("button", { name: /add 2 entries/i }));
+
+        const applyCall = fetchMock.mock.calls.find(
+            ([url]) => url === "/api/portfolio/resume/apply",
+        );
+        const payload = JSON.parse(applyCall![1].body as string) as {
+            links: { label: string }[];
+        };
+        expect(payload.links).toHaveLength(0);
+    });
+
+    it("sends the public toggle as a boolean", async () => {        render(<ResumePanel initialPublic={false} hasResume />);
         await userEvent.click(
             screen.getByRole("checkbox", { name: /show a download link/i }),
         );

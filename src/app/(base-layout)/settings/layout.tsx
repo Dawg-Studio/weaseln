@@ -16,6 +16,10 @@ export default async function SettingsLayout({
             label: "Profile",
         },
         {
+            href: "/settings/portfolio",
+            label: "Portfolio",
+        },
+        {
             href: "/settings/preferences",
             label: "Preferences",
         },
