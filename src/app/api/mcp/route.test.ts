@@ -63,4 +63,30 @@ describe("POST /api/mcp", () => {
 
         expect(res.status).toBe(401);
     });
+
+    it("registers all sixteen tools", async () => {
+        const res = await POST(mcpRequest(toolsList, tokenFor()));
+
+        const body = await res.text();
+        for (const name of [
+            "whoami",
+            "list_posts",
+            "get_post",
+            "create_post",
+            "update_post",
+            "delete_post",
+            "list_orgs",
+            "get_org",
+            "create_org",
+            "update_org",
+            "update_org_member",
+            "get_profile_design",
+            "set_profile_design",
+            "reset_profile_design",
+            "set_post_design",
+            "upload_image",
+        ]) {
+            expect(body).toContain(name);
+        }
+    });
 });
