@@ -9,7 +9,7 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  schemas  = ["users", "organizations", "sessions", "posts", "tags", "apikey", "verification"]
+  schemas  = ["users", "organizations", "sessions", "posts", "tags", "apikey", "verification", "oauth"]
 }
 
 model Account {
@@ -79,6 +79,7 @@ model User {
   organizations         Organization[]
   ownedOrganizations    Organization[]            @relation("UserOwnsOrganizations")
   adminInOrganizations  Organization[]            @relation("UserAdminOfOrganizations")
+  oAuthClients           OAuthClient[]
 
   @@index([name])
   @@schema("users")
@@ -373,4 +374,52 @@ model Organization {
 
   @@index([name])
   @@schema("organizations")
+}
+
+// The OAuth 2.1 authorization server. A client is bound to the user who
+// registered it, so one credential never drives another account.
+model OAuthClient {
+  id           String    @id @default(cuid())
+  clientId     String    @unique
+  clientSecretHash String    // sha256 hash, never returned again
+  name         String
+  redirectUris Json      // string[]
+  scopes       String[]  // scopes this client may request
+  userId       String
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt    DateTime  @default(now())
+  revokedAt    DateTime?
+
+  @@schema("oauth")
+}
+
+// Single use, 60 seconds, bound to one client, one redirect URI, one user and
+// one set of scopes.
+model OAuthAuthorizationCode {
+  id            String    @id @default(cuid())
+  codeHash      String    @unique
+  clientId      String
+  userId        String
+  redirectUri   String
+  codeChallenge String
+  scopes        String[]
+  expiresAt     DateTime
+  usedAt        DateTime?
+  createdAt     DateTime  @default(now())
+
+  @@schema("oauth")
+}
+
+// Opaque and stored hashed, rotated on every refresh.
+model OAuthRefreshToken {
+  id        String    @id @default(cuid())
+  tokenHash String    @unique
+  clientId  String
+  userId    String
+  scopes    String[]
+  expiresAt DateTime
+  revokedAt DateTime?
+  createdAt DateTime  @default(now())
+
+  @@schema("oauth")
 }
