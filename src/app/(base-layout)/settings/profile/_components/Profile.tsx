@@ -1,6 +1,7 @@
 "use client";
 
 import { FormSocials } from "@/types/user";
+import { renderableSocials } from "@/utils/socials";
 import { useRouter } from "next/navigation";
 import { FormContext } from "@/types/formContext";
 import { FormProvider, RegisterOptions, useForm } from "react-hook-form";
@@ -34,12 +35,9 @@ export default function ProfileSettingsComponent({
     const router = useRouter();
     // ponytail: seed users persist `socials` as null jsonb[], not []. Default
     // to [] so the spread below doesn't throw "socials is not iterable".
-    // A row written before the request was validated can hold a null in this
-    // column, and the lookups below would throw on it.
-    const socialData = (socials ?? []).filter(
-        (entry): entry is FormSocials =>
-            Boolean(entry) && typeof entry === "object",
-    );
+    // The same helper the profile renderer uses, so a row the profile cannot
+    // show is not offered for editing either.
+    const socialData = renderableSocials(socials);
     const uploadImgProps = {
         id,
         image,

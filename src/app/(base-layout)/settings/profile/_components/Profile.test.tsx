@@ -76,6 +76,17 @@ describe("profile settings", () => {
         expect(screen.getByLabelText("Facebook")).toHaveValue("https://fb");
     });
 
+    it("does not offer a social the profile cannot render for editing", () => {
+        const broken = {
+            ...user,
+            socials: [{ name: "Facebook", url: 123 }],
+        } as unknown as typeof user;
+
+        render(<ProfileSettingsComponent {...broken} />);
+
+        expect(screen.getByLabelText("Facebook")).toHaveValue("");
+    });
+
     it("sends only the social fields the owner changed", async () => {
         render(<ProfileSettingsComponent {...user} />);
 

@@ -134,12 +134,24 @@ function normaliseProposal(input: unknown): unknown {
     if (input === null || typeof input !== "object") return input;
     const proposal = { ...(input as Record<string, unknown>) };
 
+    // The top-level fields are optional; a model that answered one with the
+    // wrong type loses it rather than the whole proposal.
+    for (const field of ["headline", "summary", "location"] as const) {
+        if (typeof proposal[field] !== "string") proposal[field] = null;
+    }
+    if (!Array.isArray(proposal.links)) proposal.links = [];
+    if (!Array.isArray(proposal.skills)) {
+        proposal.skills =
+            typeof proposal.skills === "string" ? [proposal.skills] : [];
+    }
+
     if (Array.isArray(proposal.links)) {
         proposal.links = proposal.links.filter((link) => {
             if (!link || typeof link !== "object") return false;
             const entry = link as { label?: unknown; url?: unknown };
             return (
                 typeof entry.label === "string" &&
+                entry.label.trim().length > 0 &&
                 typeof entry.url === "string" &&
                 HTTP_URL.test(entry.url)
             );
@@ -159,7 +171,9 @@ function normaliseProposal(input: unknown): unknown {
             .filter((entry) => Boolean(entry) && typeof entry === "object")
             .map((entry) => {
                 const row = { ...(entry as Record<string, unknown>) };
-                if (row.isCurrent === "true") row.isCurrent = true;
+                if (typeof row.isCurrent === "string") {
+                    row.isCurrent = row.isCurrent.toLowerCase() === "true";
+                }
                 // A current role has no end date, and the model often answers
                 // "Present" for one.
                 if (row.isCurrent === true) {
@@ -170,7 +184,14 @@ function normaliseProposal(input: unknown): unknown {
                 ) {
                     row.endDate = null;
                 }
-                if (row.kind !== "education") row.kind = "work";
+                if (
+                    typeof row.kind !== "string" ||
+                    row.kind.toLowerCase() !== "education"
+                ) {
+                    row.kind = "work";
+                } else {
+                    row.kind = "education";
+                }
                 for (const field of ["startDate", "endDate"] as const) {
                     if (
                         typeof row[field] !== "string" ||

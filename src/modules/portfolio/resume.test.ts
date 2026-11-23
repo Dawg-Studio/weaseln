@@ -91,6 +91,83 @@ describe("parseResumePdf", () => {
         expect(proposal.skills).toEqual(["TypeScript"]);
     });
 
+    it("reads a current role the parser marked in words as current", async () => {
+        const proposal = await parseResumePdf(pdf(), {
+            generate: async () =>
+                JSON.stringify({
+                    ...validProposal,
+                    experience: [
+                        {
+                            kind: "work",
+                            org: "Acme",
+                            role: "Dev",
+                            location: null,
+                            startDate: "2021-01",
+                            endDate: "Present",
+                            isCurrent: "True",
+                            description: null,
+                        },
+                    ],
+                }),
+        });
+        expect(proposal.experience[0].isCurrent).toBe(true);
+        expect(proposal.experience[0].endDate).toBeNull();
+    });
+
+    it("keeps a degree as education", async () => {
+        const proposal = await parseResumePdf(pdf(), {
+            generate: async () =>
+                JSON.stringify({
+                    ...validProposal,
+                    experience: [
+                        {
+                            kind: "Education",
+                            org: "TU Berlin",
+                            role: "BSc",
+                            location: null,
+                            startDate: "2017",
+                            endDate: "2021",
+                            isCurrent: false,
+                            description: null,
+                        },
+                    ],
+                }),
+        });
+        expect(proposal.experience[0].kind).toBe("education");
+    });
+
+    it("reads a headline that is not a string as absent", async () => {
+        const proposal = await parseResumePdf(pdf(), {
+            generate: async () =>
+                JSON.stringify({ ...validProposal, headline: 2020 }),
+        });
+        expect(proposal.headline).toBeNull();
+    });
+
+    it("reads a skills list the parser answered as one skill", async () => {
+        const proposal = await parseResumePdf(pdf(), {
+            generate: async () =>
+                JSON.stringify({ ...validProposal, skills: "TypeScript" }),
+        });
+        expect(proposal.skills).toEqual(["TypeScript"]);
+    });
+
+    it("drops a link with an empty label", async () => {
+        const proposal = await parseResumePdf(pdf(), {
+            generate: async () =>
+                JSON.stringify({
+                    ...validProposal,
+                    links: [
+                        { label: "", url: "https://alice.dev" },
+                        { label: "GitHub", url: "https://github.com/alice" },
+                    ],
+                }),
+        });
+        expect(proposal.links).toEqual([
+            { label: "GitHub", url: "https://github.com/alice" },
+        ]);
+    });
+
     it("normalises a current role that came with an end date", async () => {
         const proposal = await parseResumePdf(pdf(), {
             generate: async () =>
