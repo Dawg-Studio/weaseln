@@ -1,6 +1,19 @@
 export type StoredSocial = { name?: string; url?: string };
 
 /**
+ * The socials a profile can render. The link below calls `.includes` on the
+ * url, so an entry whose url is not a string would throw there.
+ */
+export function renderableSocials(value: unknown): StoredSocial[] {
+    return (Array.isArray(value) ? value : []).filter(
+        (entry): entry is StoredSocial =>
+            Boolean(entry) &&
+            typeof entry === "object" &&
+            typeof (entry as { url?: unknown }).url === "string",
+    );
+}
+
+/**
  * A stored entry is renderable when it is an object and its url is either
  * absent or a string. A row written before the request was validated can
  * hold a number there, and the profile calls `.includes` on it.

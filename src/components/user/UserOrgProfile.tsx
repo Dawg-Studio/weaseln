@@ -9,7 +9,6 @@ import {
     faPeopleGroup,
     faThumbtack,
 } from "@fortawesome/free-solid-svg-icons";
-import type { FormSocials } from "@/types/user";
 import { Fragment, Suspense } from "react";
 import Link from "next/link";
 import PostList from "@/components/post/PostList";
@@ -25,6 +24,7 @@ import type {
     ItemInput,
     ShowcaseInput,
 } from "@/modules/portfolio/types";
+import { renderableSocials } from "@/utils/socials";
 import {
     normalizeProfileCustomization,
 } from "@/modules/profile-customization/validation";
@@ -164,8 +164,7 @@ const UserOrgProfile = async ({
     const hasPinnedPost = Boolean(user?.pinned);
     const hasUserOrganizations =
         Array.isArray(userOrgs) && userOrgs.length > 0;
-    const socialsList = (user?.socials as FormSocials[]) ??
-        (org?.socials as FormSocials[]) ?? [];
+    const socialsList = renderableSocials(user?.socials ?? org?.socials);
     const hasSocials = socialsList.some((social) => social?.url !== "");
 
     const renderHero = () => (

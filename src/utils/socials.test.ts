@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { mergeSocialsByName } from "./socials";
+import { mergeSocialsByName, renderableSocials } from "./socials";
 
 describe("mergeSocialsByName", () => {
     it("keeps a stored social the caller did not send", () => {
@@ -40,5 +40,22 @@ describe("mergeSocialsByName", () => {
         expect(mergeSocialsByName(null, [{ name: "Facebook", url: "" }])).toEqual([
             { name: "Facebook", url: "" },
         ]);
+    });
+});
+
+describe("renderableSocials", () => {
+    it("keeps only the socials whose url is a string", () => {
+        const rendered = renderableSocials([
+            { name: "Facebook", url: "https://fb" },
+            { name: "Broken", url: 42 } as never,
+            null as never,
+            { name: "NoUrl" } as never,
+        ]);
+        expect(rendered.map((entry) => entry.name)).toEqual(["Facebook"]);
+    });
+
+    it("returns nothing for a column that is not a list", () => {
+        expect(renderableSocials(null)).toEqual([]);
+        expect(renderableSocials(undefined)).toEqual([]);
     });
 });

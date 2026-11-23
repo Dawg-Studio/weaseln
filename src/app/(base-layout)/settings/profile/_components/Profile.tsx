@@ -159,7 +159,9 @@ export default function ProfileSettingsComponent({
         placeholder: "Your unique username",
         value: username ? username : "",
         required: {
-            value: false,
+            // The server refuses an empty username: the column is unique and
+            // an empty one breaks the profile's own links.
+            value: true,
             message: "This field is not required",
         },
         onChange: (e) =>

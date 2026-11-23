@@ -125,7 +125,16 @@ export async function PATCH(req: Request) {
     ) as Prisma.UserUpdateInput;
 
     if (typeof body.username === "string") {
-        data.username = body.username.replace(/\s/g, "");
+        const username = body.username.replace(/\s/g, "");
+        // An empty username breaks the profile's own links, and the column is
+        // unique, so the second owner to do it would fail their whole save.
+        if (username.length === 0) {
+            return NextResponse.json(
+                { error: "username must not be empty" },
+                { status: 400 },
+            );
+        }
+        data.username = username;
     }
 
     // Socials are merged by name rather than replaced: a link the caller did
