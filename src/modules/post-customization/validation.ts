@@ -56,7 +56,7 @@ function assertOneOf<T extends readonly string[]>(
     }
 }
 
-function assertBackgroundUrl(
+export function assertAllowedImageUrl(
     value: unknown,
     field: string,
 ): asserts value is string | null {
@@ -117,7 +117,7 @@ export function validatePostCustomizationInput(
         customization.backgroundFit = input.backgroundFit;
     }
     if (Object.hasOwn(input, "backgroundImage")) {
-        assertBackgroundUrl(input.backgroundImage, "backgroundImage");
+        assertAllowedImageUrl(input.backgroundImage, "backgroundImage");
         customization.backgroundImage = input.backgroundImage;
     }
 
@@ -200,7 +200,7 @@ export function normalizePostCustomization(input: unknown): PostCustomization {
             input.backgroundFit as PostCustomization["backgroundFit"];
     }
     try {
-        assertBackgroundUrl(input.backgroundImage, "backgroundImage");
+        assertAllowedImageUrl(input.backgroundImage, "backgroundImage");
         result.backgroundImage =
             (input.backgroundImage as string | null) ?? null;
     } catch {

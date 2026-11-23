@@ -1,4 +1,3 @@
-import { randomBytes } from "crypto";
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { auth } from "@/auth";
@@ -11,6 +10,7 @@ import { revalidatePath } from "next/cache";
 import { postContainerInclude } from "@/utils/prismaQuery";
 import { rankContentForUser } from "@/utils/services/ranking";
 import { readCustomization } from "@/modules/post-customization/validation";
+import { createPost, updatePost } from "@/modules/posts/service";
 import { buildWhere, buildOrderBy, paginate, ListPostsParams } from "./_query";
 //Promise<any> is a temporary fix
 
@@ -118,10 +118,6 @@ export async function POST(req: NextRequest) {
         }
         return imageFiles;
     };
-    //create titleId for the Url
-    function generateRandomCode(): string {
-        return randomBytes(2).toString("base64url").slice(0, 4);
-    }
     try {
         // Resolve a caller-supplied ID from the stored row before deciding
         // whether this request updates or creates a post. The update below
@@ -148,8 +144,6 @@ export async function POST(req: NextRequest) {
             where: { id: session.user.id },
             select: {
                 draft: true,
-                name: true,
-                image: true,
             },
         });
         if (author?.draft) {
@@ -160,7 +154,7 @@ export async function POST(req: NextRequest) {
             });
         }
         const orgId = body.get("orgId") as string;
-        const postData = {
+        const fields = {
             title: (body.get("title") as string).trim(),
             description: (body.get("description") as string).trim(),
             tags: [...JSON.parse(body.get("tags") as string)],
@@ -168,44 +162,22 @@ export async function POST(req: NextRequest) {
             readPerMinute: parseInt(body.get("readPerMinute") as string),
             published:
                 (body.get("published") as string) === "true" ? true : false,
-            ...customization.data,
         };
+        // The author fields and the title slug come from the stored user and
+        // the title, never from a request field.
         const post = existing
-            ? await prisma.post.update({
-                  where: { id: postId, userId: session.user.id },
-                  data: postData,
-                  select: {
-                      id: true,
-                      content: true,
-                      titleId: true,
+            ? await updatePost(
+                  { userId: session.user.id },
+                  { postId, ...fields, customization: customization.data },
+              )
+            : await createPost(
+                  { userId: session.user.id },
+                  {
+                      ...fields,
+                      organizationId: orgId || null,
+                      customization: customization.data,
                   },
-              })
-            : await prisma.post.create({
-                  data: {
-                      author: author?.name ?? "",
-                      authorImage: author?.image ?? "",
-                      titleId: `${(body.get("title") as string)
-                          .replace(/[^a-zA-Z0-9 ]/g, "")
-                          .trim()
-                          .split(" ")
-                          .join("-")}-${generateRandomCode()}`,
-                      authorUsername: body.get("username") as string,
-                      user: {
-                          connect: { id: session.user.id },
-                      },
-                      ...postData,
-                      ...(orgId && {
-                          organization: {
-                              connect: { id: orgId },
-                          },
-                      }),
-                  },
-                  select: {
-                      id: true,
-                      content: true,
-                      titleId: true,
-                  },
-              });
+              );
         //deletes the draft if new post has been inserted completely
         if (post && image_total === 0 && body.get("coverImage") === "undefined")
             return NextResponse.json({ data: post.titleId }, { status: 200 }); //if no new images and cover images detected
