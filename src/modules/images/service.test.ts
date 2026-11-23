@@ -101,6 +101,15 @@ describe("image service", () => {
         ).rejects.toThrow("Image must be a PNG, JPEG or WebP");
     });
 
+    it("hands Cloudinary a file that says what it is", async () => {
+        const data = pngOfSize(64).toString("base64");
+
+        await uploadImage({ userId: "alice" }, { data, purpose: "cover" });
+
+        const file = uploadCloudinaryMock.mock.calls[0][0].file as File;
+        expect(file.type).toBe("image/png");
+    });
+
     it("uses the folder that matches the purpose", async () => {
         const data = pngOfSize(64).toString("base64");
 

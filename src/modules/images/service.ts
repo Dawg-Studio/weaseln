@@ -26,6 +26,12 @@ export const MAX_UPLOAD_BYTES = 3 * 1024 * 1024; // 3 MiB
 
 const ALLOWED_MIME_TYPES = ["image/png", "image/jpeg", "image/webp"];
 
+const FORMAT_MIME_TYPES = {
+    png: "image/png",
+    jpeg: "image/jpeg",
+    webp: "image/webp",
+} as const;
+
 /**
  * The folders the app already uses: a post cover is a post asset, a post
  * background is a background asset, and so on.
@@ -87,15 +93,21 @@ export async function uploadImage(
 
     // Twelve bytes is every signature we test: PNG needs 8, JPEG 3, and WebP
     // reads "WEBP" at offset 8.
-    if (!sniffImageFormat(bytes.subarray(0, 12))) {
+    const format = sniffImageFormat(bytes.subarray(0, 12));
+    if (!format) {
         throw new ImageUploadError(
             "File contents are not a PNG, JPEG or WebP image",
             415,
         );
     }
 
+    // The part Cloudinary receives has to carry the type the bytes really
+    // are: a rebuilt File with no type reaches it as octet-stream.
+    const mimeType = FORMAT_MIME_TYPES[format];
     const cloudinary = await uploadCloudinary({
-        file: new File([bytes], input.filename ?? "image"),
+        file: new File([bytes], input.filename ?? `image.${format}`, {
+            type: mimeType,
+        }),
         folder: FOLDERS[input.purpose],
         public_id: `${actor.userId}-${Date.now()}`,
     });
