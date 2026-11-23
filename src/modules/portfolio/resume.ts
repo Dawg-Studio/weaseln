@@ -447,7 +447,9 @@ function experienceKey(entry: {
     ]);
 }
 
-type StoredSocial = { name?: string; url?: string };function mergeSocials(existing: unknown, links: ResumeLink[]): StoredSocial[] {
+type StoredSocial = { name?: string; url?: string };
+
+function mergeSocials(existing: unknown, links: ResumeLink[]): StoredSocial[] {
     // A stored entry that is not renderable is dropped: a row written before
     // the request was validated can hold a non-string url, and the profile
     // calls `.includes` on it.

@@ -471,7 +471,8 @@ export async function handleMoveExperience(
     }
 }
 
-export function registerPortfolioTools(server: McpServer) {    server.registerTool(
+export function registerPortfolioTools(server: McpServer) {
+    server.registerTool(
         "get_resume",
         {
             description:
