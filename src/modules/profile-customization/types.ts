@@ -2,10 +2,13 @@ export const PROFILE_SECTIONS = [
     "hero",
     "stats",
     "about",
+    "experience",
+    "showcases",
     "socials",
     "featuredPost",
     "interests",
     "organizations",
+    "resume",
     "posts",
 ] as const;
 

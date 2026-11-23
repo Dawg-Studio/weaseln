@@ -1,7 +1,6 @@
-import { randomBytes } from "crypto";
-
 import prisma from "@/db";
 import { Prisma } from "@/generated/prisma/client";
+import { slugifyWithSuffix } from "@/utils/slug";
 import {
     validatePostCustomizationInput,
 } from "@/modules/post-customization/validation";
@@ -66,16 +65,6 @@ function isNotFound(error: unknown): boolean {
     );
 }
 
-function generateTitleId(title: string): string {
-    const slug = title
-        .replace(/[^a-zA-Z0-9 ]/g, "")
-        .trim()
-        .split(" ")
-        .join("-");
-    const suffix = randomBytes(2).toString("base64url").slice(0, 4);
-    return `${slug}-${suffix}`;
-}
-
 /**
  * The four customization columns are scalars, so a partial payload contributes
  * only the keys it names. An absent payload contributes none, which leaves an
@@ -112,7 +101,7 @@ export async function createPost(
                 author: author?.name ?? "",
                 authorImage: author?.image ?? "",
                 authorUsername: author?.username ?? null,
-                titleId: generateTitleId(input.title),
+                titleId: slugifyWithSuffix(input.title),
                 user: { connect: { id: actor.userId } },
                 ...(input.organizationId && {
                     organization: { connect: { id: input.organizationId } },

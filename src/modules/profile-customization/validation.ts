@@ -22,10 +22,13 @@ export const DEFAULT_PROFILE_LAYOUT: ProfileLayout = {
         "hero",
         "stats",
         "about",
+        "experience",
+        "showcases",
         "socials",
         "featuredPost",
         "interests",
         "organizations",
+        "resume",
         "posts",
     ],
     hiddenSections: ["organizations"],
@@ -212,6 +215,20 @@ export function validateProfileCustomizationInput(
     };
 }
 
+/**
+ * A stored layout predates any section added since it was saved, and
+ * `assertSectionList` accepts a subset, so those sections would never render.
+ * Append them, in default order, without touching `hiddenSections`: a new
+ * section is visible, which is how its owner finds it.
+ */
+function withMissingSections(layout: ProfileLayout): ProfileLayout {
+    const missing = DEFAULT_PROFILE_LAYOUT.sectionOrder.filter(
+        (section) => !layout.sectionOrder.includes(section),
+    );
+    if (missing.length === 0) return layout;
+    return { ...layout, sectionOrder: [...layout.sectionOrder, ...missing] };
+}
+
 export function normalizeProfileCustomization(
     input: unknown,
 ): ProfileCustomization {
@@ -219,9 +236,13 @@ export function normalizeProfileCustomization(
         return DEFAULT_PROFILE_CUSTOMIZATION;
     }
     try {
-        return validateProfileCustomizationInput(
+        const valid = validateProfileCustomizationInput(
             input as Partial<ProfileCustomization>,
         );
+        return {
+            ...valid,
+            layout: withMissingSections(valid.layout),
+        };
     } catch (err) {
         console.warn(
             "Invalid stored profile customization, falling back to defaults",

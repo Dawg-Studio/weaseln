@@ -51,3 +51,6 @@ next-env.d.ts
 
 # Prisma v7 generated client (built by `prisma generate`, never committed)
 src/generated/prisma/
+
+# Linked git worktrees (each holds a full checkout)
+/.worktrees/

@@ -20,6 +20,11 @@ export const getProfile = cache(async (userId: string) =>
             organizations: {
                 select: { id: true, name: true, username: true, image: true },
             },
+            showcases: {
+                orderBy: { order: "asc" },
+                include: { items: { orderBy: { order: "asc" } } },
+            },
+            experience: { orderBy: { order: "asc" } },
             _count: {
                 select: { post: true, following: true, followedBy: true },
             },

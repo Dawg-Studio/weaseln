@@ -9,7 +9,6 @@ import {
     faPeopleGroup,
     faThumbtack,
 } from "@fortawesome/free-solid-svg-icons";
-import type { FormSocials } from "@/types/user";
 import { Fragment, Suspense } from "react";
 import Link from "next/link";
 import PostList from "@/components/post/PostList";
@@ -17,7 +16,15 @@ import Image from "next/image";
 import QueryWrapper from "@/components/provider/QueryWrapper";
 import { auth } from "@/auth";
 import UserFollowButton from "@/components/user/actions/UserFollowButton";
+import ShowcaseBlock from "@/components/portfolio/ShowcaseBlock";
+import type { RenderedSection } from "@/components/user/sections";
 import { Organization, User } from "@/generated/prisma/client";
+import type {
+    ExperienceInput,
+    ItemInput,
+    ShowcaseInput,
+} from "@/modules/portfolio/types";
+import { renderableSocials } from "@/utils/socials";
 import {
     normalizeProfileCustomization,
 } from "@/modules/profile-customization/validation";
@@ -157,8 +164,7 @@ const UserOrgProfile = async ({
     const hasPinnedPost = Boolean(user?.pinned);
     const hasUserOrganizations =
         Array.isArray(userOrgs) && userOrgs.length > 0;
-    const socialsList = (user?.socials as FormSocials[]) ??
-        (org?.socials as FormSocials[]) ?? [];
+    const socialsList = renderableSocials(user?.socials ?? org?.socials);
     const hasSocials = socialsList.some((social) => social?.url !== "");
 
     const renderHero = () => (
@@ -423,6 +429,105 @@ const UserOrgProfile = async ({
         </div>
     );
 
+    // The portfolio relations arrive on `user` because getProfile is the only
+    // loader involved; read them the way this file already reads organizations.
+    const portfolio = user as
+        | (User & {
+              showcases?: (ShowcaseInput & {
+                  id: string;
+                  slug: string;
+                  items: (ItemInput & { id: string; slug: string })[];
+              })[];
+              experience?: (ExperienceInput & { id: string })[];
+          })
+        | undefined;
+
+    const renderExperience = () => {
+        const experience = portfolio?.experience ?? [];
+        const skills = user?.skills ?? [];
+        if (experience.length === 0 && skills.length === 0) return null;
+
+        return (
+            <div
+                className={`p-4 ${cardClasses} ${alignClasses}`}
+                data-testid="experience"
+            >
+                <p className="brand-rule mb-4 text-headline text-base-content">
+                    Experience
+                </p>
+                {skills.length > 0 && (
+                    <ul className="mb-4 flex flex-wrap gap-2">
+                        {skills.map((skill) => (
+                            <li
+                                key={skill}
+                                className="badge badge-soft badge-sm"
+                            >
+                                {skill}
+                            </li>
+                        ))}
+                    </ul>
+                )}
+                <ol className="space-y-4">
+                    {experience.map((entry) => (
+                        <li key={entry.id}>
+                            <p className="font-semibold">
+                                {entry.role} · {entry.org}
+                            </p>
+                            <p className="text-xs opacity-70 nums">
+                                {formatDateRange(entry)}
+                                {entry.location ? ` · ${entry.location}` : ""}
+                            </p>
+                            {entry.description && (
+                                <p className="mt-1 text-sm whitespace-pre-line">
+                                    {entry.description}
+                                </p>
+                            )}
+                        </li>
+                    ))}
+                </ol>
+            </div>
+        );
+    };
+
+    const renderShowcases = () => {
+        const showcases = portfolio?.showcases ?? [];
+        if (showcases.length === 0) return null;
+        const profilePath = userId ?? user?.username ?? "";
+
+        return (
+            <div className={`p-4 ${cardClasses} ${alignClasses}`}>
+                {showcases.map((showcase) => (
+                    <ShowcaseBlock
+                        key={showcase.id}
+                        showcase={showcase}
+                        items={showcase.items}
+                        userId={profilePath}
+                    />
+                ))}
+            </div>
+        );
+    };
+
+    const renderResume = () => {
+        if (!user?.resumePublic || !user.resumeUrl) return null;
+        return (
+            <div
+                className={`p-4 ${cardClasses} ${alignClasses}`}
+                data-testid="resume"
+            >
+                <p className="brand-rule mb-2 text-headline text-base-content">
+                    Resume
+                </p>
+                <a
+                    href={`/api/portfolio/resume/download?userId=${encodeURIComponent(user.id)}`}
+                    className="link link-primary"
+                >
+                    Download resume
+                </a>
+            </div>
+        );
+    };
+
     const renderOrgMembers = () => {
         // ponytail: org-members is rendered as a separate block (not a section
         // in sectionOrder) so hiding the "posts" section on an org profile
@@ -470,13 +575,19 @@ const UserOrgProfile = async ({
         );
     };
 
-    const renderers: Record<string, () => React.ReactNode> = {
+    const renderers: Record<RenderedSection, () => React.ReactNode> = {
         hero: renderHero,
         stats: renderStats,
+        // about and interests render inside the hero block.
+        about: () => null,
+        interests: () => null,
         socials: renderSocials,
         featuredPost: renderFeaturedPost,
         organizations: renderUserOrganizations,
         posts: renderPosts,
+        experience: renderExperience,
+        showcases: renderShowcases,
+        resume: renderResume,
     };
 
     const statsVisible = visibleSections.includes("stats");
@@ -562,3 +673,10 @@ const UserOrgProfile = async ({
 };
 
 export default UserOrgProfile;
+function formatDateRange(entry: ExperienceInput): string {
+    const start = entry.startDate ?? "";
+    if (entry.isCurrent) return [start, "Present"].filter(Boolean).join(" - ");
+    const end = entry.endDate ?? "";
+    const range = [start, end].filter(Boolean);
+    return range.length > 0 ? range.join(" - ") : "";
+}

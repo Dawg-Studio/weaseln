@@ -461,7 +461,60 @@ This step verifies the server-side guard. Optional but recommended:
 
 ---
 
-## 8. What a passing QA run looks like
+## 8. Portfolio profiles
+
+The seed gives alice two showcases (`photography` in the `gallery` layout with two items, `projects` in `grid` with one) and two experience rows. Her resume is **not** seeded — upload one by hand.
+
+### 8.1 Profile renders the new sections
+1. Anonymous context, open `/alice`.
+2. **Expected:** an **Experience** block (three skill chips, "D-Work as **Engineer · Dawg Studio**" with "Present", then the TU Berlin entry), then the **Showcases** blocks: "Photography" as an image grid and "Projects" as a card with a link.
+3. **Expected:** no **Resume** block, because `resumePublic` is off for a seeded user.
+
+### 8.2 Showcase and item pages open
+1. From `/alice`, click a Photography image.
+2. **Expected:** the item page at `/alice/portfolio/photography/<slug>` opens, showing the gallery images, the summary, the date, and the tags.
+3. Click the showcase title in the breadcrumb.
+4. **Expected:** `/alice/portfolio/photography` lists both items.
+
+### 8.3 Sections are reorderable and hideable
+1. As alice, open `/settings/profile/customization`.
+2. **Expected:** the Sections list contains **Experience**, **Showcases** and **Resume**.
+3. Hide **Showcases**, reload `/alice`.
+4. **Expected:** both showcase blocks are gone and the rest of the page is unchanged.
+
+### 8.4 Another user cannot open alice's editor
+1. As bob, open `/settings/portfolio/showcase/<alice's showcase id>`.
+2. **Expected:** HTTP 404. Never 200, and never a 403 that confirms the id exists.
+3. `PATCH /api/portfolio/showcase` with alice's `showcaseId` and bob's session.
+4. **Expected:** HTTP 404 and alice's showcase is unchanged.
+
+### 8.5 Resume upload is stored but changes nothing until applied
+1. As alice, open `/settings/portfolio`.
+2. Upload a text-based PDF resume (≤ 5 MiB).
+3. **Expected:** a success toast, then a checklist of the experience rows found, with editable fields, a skills field, and an "Add N entries" button. `/alice` has **not** changed yet.
+4. Untick one row, press **Add N entries**.
+5. **Expected:** only the ticked rows are added to `/alice`'s Experience block.
+
+### 8.6 Negative — a non-PDF is refused
+1. As alice, rename any non-PDF file to `resume.pdf` and upload it.
+2. **Expected:** HTTP 415 and an error toast; `resumeUrl` is unchanged.
+
+### 8.7 Resume privacy
+1. With a resume uploaded, leave **Show a download link on my profile** off.
+2. Open `/api/portfolio/resume/download?userId=<alice id>` in the anonymous context.
+3. **Expected:** 404.
+4. Turn the toggle on, reload `/alice`.
+5. **Expected:** a **Resume** block with a working download link; the anonymous request above now redirects to a signed Cloudinary URL that serves the PDF.
+6. Press **Remove resume**.
+7. **Expected:** the file is gone from Cloudinary (check the media library), the columns are null, and `/alice` shows no Resume block.
+
+### 8.8 Negative — the 13th gallery image
+1. As alice, open a showcase editor and add images until the gallery reads **12 of 12**.
+2. **Expected:** the gallery file input is disabled; the server also refuses a 13th URL with HTTP 400.
+
+---
+
+## 9. What a passing QA run looks like
 
 A clean run is:
 - `npm run db:seed` succeeds, `npm run dev` (with `ENABLE_DEV_LOGIN=true`) boots without errors.
@@ -476,7 +529,7 @@ A clean run is:
 
 ---
 
-## 9. Agent quick-reference
+## 10. Agent quick-reference
 
 ```js
 // Minimal helper for Playwright:

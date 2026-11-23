@@ -9,8 +9,8 @@ import {
 describe("profile customization validation", () => {
     it("uses the approved default section order", () => {
         expect(DEFAULT_PROFILE_LAYOUT.sectionOrder).toEqual([
-            "hero", "stats", "about", "socials", "featuredPost",
-            "interests", "organizations", "posts",
+            "hero", "stats", "about", "experience", "showcases", "socials",
+            "featuredPost", "interests", "organizations", "resume", "posts",
         ]);
     });
 
@@ -85,5 +85,21 @@ describe("normalizeProfileCustomization", () => {
         expect(result).toEqual(DEFAULT_PROFILE_CUSTOMIZATION);
         expect(warn).toHaveBeenCalled();
         warn.mockRestore();
+    });
+});
+describe("portfolio sections", () => {
+    it("appends sections a stored layout predates", () => {
+        const stored = {
+            layout: {
+                variant: "standard",
+                sectionOrder: ["hero", "posts"],
+                hiddenSections: ["posts"],
+            },
+        };
+        const next = normalizeProfileCustomization(stored);
+        expect(next.layout.sectionOrder.slice(0, 2)).toEqual(["hero", "posts"]);
+        expect(next.layout.sectionOrder).toContain("showcases");
+        expect(next.layout.sectionOrder).toContain("experience");
+        expect(next.layout.hiddenSections).toEqual(["posts"]);
     });
 });

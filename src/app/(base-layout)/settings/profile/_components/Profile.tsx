@@ -1,6 +1,7 @@
 "use client";
 
 import { FormSocials } from "@/types/user";
+import { renderableSocials } from "@/utils/socials";
 import { useRouter } from "next/navigation";
 import { FormContext } from "@/types/formContext";
 import { FormProvider, RegisterOptions, useForm } from "react-hook-form";
@@ -34,7 +35,9 @@ export default function ProfileSettingsComponent({
     const router = useRouter();
     // ponytail: seed users persist `socials` as null jsonb[], not []. Default
     // to [] so the spread below doesn't throw "socials is not iterable".
-    const socialData = [...(socials ?? [])] as FormSocials[];
+    // The same helper the profile renderer uses, so a row the profile cannot
+    // show is not offered for editing either.
+    const socialData = renderableSocials(socials);
     const uploadImgProps = {
         id,
         image,
@@ -159,7 +162,9 @@ export default function ProfileSettingsComponent({
         placeholder: "Your unique username",
         value: username ? username : "",
         required: {
-            value: false,
+            // The server refuses an empty username: the column is unique and
+            // an empty one breaks the profile's own links.
+            value: true,
             message: "This field is not required",
         },
         onChange: (e) =>
@@ -223,13 +228,21 @@ export default function ProfileSettingsComponent({
     };
 
     const updateDetails = form.handleSubmit(async (data) => {
-        let socials: FormSocials[] = [];
-        socialForms.forEach((social) =>
-            socials.push({
+        // Only the socials the owner actually changed are sent. The server
+        // keeps the ones it was not told about, so an untouched field - a
+        // Personal Website a resume added while this tab was open - survives
+        // the save.
+        const socials: FormSocials[] = socialForms
+            .filter(
+                (social) =>
+                    (data[social.name] ?? "") !==
+                    (socialData.find((entry) => entry.name === social.name)
+                        ?.url ?? ""),
+            )
+            .map((social) => ({
                 name: social.name,
-                url: data[social.name],
-            }),
-        );
+                url: data[social.name] ?? "",
+            }));
         const update = await fetch("/api/user", {
             method: "PATCH",
             body: JSON.stringify({
@@ -248,17 +261,32 @@ export default function ProfileSettingsComponent({
             });
             router.refresh();
         } else {
-            const error = await update.json();
-            const errorFields = (await error.error.meta.target) as string[];
-            errorFields.forEach((field: string) => {
-                const fieldError =
-                    field.charAt(0).toUpperCase() + field.slice(1);
-                form.setError(fieldError, {
-                    type: "uniqueConstraint",
-                    message: `${fieldError} already registered.`,
+            // A refusal is either a unique-constraint error, which names the
+            // fields, or a plain message. The second kind used to throw here
+            // and the owner never heard about it.
+            const body = (await update.json().catch(() => null)) as {
+                error?: unknown;
+            } | null;
+            const errorFields = (
+                body?.error as { meta?: { target?: string[] } } | undefined
+            )?.meta?.target;
+            if (Array.isArray(errorFields)) {
+                errorFields.forEach((field: string) => {
+                    const fieldError =
+                        field.charAt(0).toUpperCase() + field.slice(1);
+                    form.setError(fieldError, {
+                        type: "uniqueConstraint",
+                        message: `${fieldError} already registered.`,
+                    });
+                    form.setFocus(fieldError);
                 });
-                form.setFocus(fieldError);
-            });
+                return;
+            }
+            toast.error(
+                typeof body?.error === "string"
+                    ? body.error
+                    : "Could not save the profile.",
+            );
         }
     });
 

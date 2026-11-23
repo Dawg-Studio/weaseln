@@ -98,6 +98,85 @@ async function main() {
                 // ponytail: seed a few interests so the trending-tags sidebar
                 // and tag pages show non-zero follower counts during QA.
                 interests: ["design", "ux", "intro", "platform"],
+                // Portfolio fixtures for docs/QA.md: one showcase per layout the
+                // profile page has to prove, plus a resume-less experience list.
+                skills: ["TypeScript", "PostgreSQL", "Accessibility"],
+                showcases: {
+                    create: [
+                        {
+                            title: "Photography",
+                            slug: "photography",
+                            description: "Sets from the last two years.",
+                            layout: "gallery",
+                            order: 0,
+                            items: {
+                                create: [
+                                    {
+                                        title: "Harbour at dusk",
+                                        slug: "harbour-at-dusk-seed",
+                                        summary: "Long exposure, 35mm.",
+                                        gallery: ["/covers/cover-1.svg", "/covers/cover-2.svg"],
+                                        tags: ["photography"],
+                                        date: "2024",
+                                        order: 0,
+                                    },
+                                    {
+                                        title: "Winter market",
+                                        slug: "winter-market-seed",
+                                        summary: "Handheld, high ISO.",
+                                        gallery: ["/covers/cover-2.svg"],
+                                        tags: ["photography"],
+                                        date: "2023",
+                                        order: 1,
+                                    },
+                                ],
+                            },
+                        },
+                        {
+                            title: "Projects",
+                            slug: "projects",
+                            description: "Things that shipped.",
+                            layout: "grid",
+                            order: 1,
+                            items: {
+                                create: [
+                                    {
+                                        title: "weaseln",
+                                        slug: "weaseln-seed",
+                                        summary: "A reading-first publishing platform.",
+                                        coverImage: "/covers/cover-1.svg",
+                                        link: "https://github.com/Dawg-Studio/weaseln",
+                                        tags: ["typescript", "nextjs"],
+                                        date: "2024-03",
+                                        order: 0,
+                                    },
+                                ],
+                            },
+                        },
+                    ],
+                },
+                experience: {
+                    create: [
+                        {
+                            kind: "work",
+                            org: "Dawg Studio",
+                            role: "Engineer",
+                            location: "Berlin",
+                            startDate: "2022-04",
+                            isCurrent: true,
+                            description: "- Built the reading surface.",
+                            order: 0,
+                        },
+                        {
+                            kind: "education",
+                            org: "TU Berlin",
+                            role: "BSc Computer Science",
+                            startDate: "2017",
+                            endDate: "2021",
+                            order: 1,
+                        },
+                    ],
+                },
             },
         }),
         prisma.user.create({
