@@ -64,7 +64,7 @@ describe("POST /api/mcp", () => {
         expect(res.status).toBe(401);
     });
 
-    it("registers all sixteen tools", async () => {
+    it("registers all thirty-six tools", async () => {
         const res = await POST(mcpRequest(toolsList, tokenFor()));
 
         const body = await res.text();
@@ -85,6 +85,26 @@ describe("POST /api/mcp", () => {
             "reset_profile_design",
             "set_post_design",
             "upload_image",
+            "get_profile",
+            "update_profile",
+            "get_resume",
+            "upload_resume",
+            "apply_resume",
+            "set_resume_visibility",
+            "delete_resume",
+            "list_portfolio",
+            "create_showcase",
+            "update_showcase",
+            "delete_showcase",
+            "move_showcase",
+            "create_item",
+            "update_item",
+            "delete_item",
+            "move_item",
+            "create_experience",
+            "update_experience",
+            "delete_experience",
+            "move_experience",
         ]) {
             expect(body).toContain(name);
         }
