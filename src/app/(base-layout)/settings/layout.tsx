@@ -27,6 +27,10 @@ export default async function SettingsLayout({
             href: "/settings/account",
             label: "Account",
         },
+        {
+            href: "/settings/mcp-clients",
+            label: "MCP clients",
+        },
     ];
     return (
         <main className="mx-auto w-full max-w-[88rem] px-4 py-8 sm:px-6 lg:px-8 lg:py-12">

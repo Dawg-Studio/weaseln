@@ -561,3 +561,110 @@ function titleIdFromUrl(url) {
 
 **Seeded emails:** `alice@test.com`, `bob@test.com`, `carol@test.com`.
 **Server flag:** `ENABLE_DEV_LOGIN=true` must be set when starting `npm run dev`. Without it, `/api/dev-login` returns 404 and no login is possible.
+
+## 11. MCP server
+
+The MCP endpoint and its OAuth flow need a running server and a real
+database, so they are not covered by the unit tests. Run these after
+`npm run db:seed` and with `ENABLE_DEV_LOGIN=true npm run dev`.
+
+### Register a client
+
+1. Sign in as alice and open `/settings/mcp-clients`.
+2. Create a client named `OpenCode` with the redirect URI
+   `http://127.0.0.1:19876/callback` and every permission.
+3. The dialog shows the client id and the secret once. Copy both.
+
+The page is reachable two ways: **Settings > MCP clients** in the left nav,
+and the link in step 1 of the MCP instructions on `/settings/account`.
+
+### Authorize a client
+
+Open the authorize endpoint in the signed-in browser. Replace
+`<client id>` with the one from the settings page and use any string as the
+`code_challenge`:
+
+```
+http://localhost:3000/oauth/authorize?response_type=code&client_id=<client id>&redirect_uri=http://127.0.0.1:19876/callback&scope=posts:read&posts:write&state=xyz&code_challenge=verifier&code_challenge_method=S256
+```
+
+The consent screen names the client and the permissions. Allow it and the
+browser is redirected to the redirect URI with a `code` and the `state`.
+
+### Exchange the code
+
+```bash
+curl -X POST http://localhost:3000/oauth/token \
+  -H 'content-type: application/x-www-form-urlencoded' \
+  -d 'grant_type=authorization_code' \
+  -d 'client_id=<client id>' \
+  -d 'client_secret=<secret>' \
+  -d 'code=<code>' \
+  -d 'redirect_uri=http://127.0.0.1:19876/callback' \
+  -d 'code_verifier=verifier'
+```
+
+The response carries an `access_token` and a `refresh_token`. Sending the
+same code a second time answers `400 invalid_grant`.
+
+### Call the endpoint
+
+```bash
+curl -X POST http://localhost:3000/api/mcp \
+  -H "authorization: Bearer <access token>" \
+  -H 'content-type: application/json' \
+  -H 'accept: application/json, text/event-stream' \
+  -d '{"jsonrpc":"2.0","id":1,"method":"tools/list","params":{}}'
+```
+
+The response lists the thirty-six tools. A request without a token answers
+`401` with a `WWW-Authenticate` challenge that points at
+`/.well-known/oauth-protected-resource/api/mcp`.
+
+A body over 4.5 MB never reaches the app when it is deployed on Vercel: the
+platform refuses it first. The app's own cap is 8 MiB, so on that deployment
+a resume that reaches an agent is under about 3.4 MiB. The web form has the
+same ceiling.
+
+### Write through a tool
+
+Call `whoami` and check that it reports alice. Then call `create_post` with
+`contentMarkdown`, open the post in the browser, and check that it renders
+the markdown that was sent.
+
+### The profile and portfolio tools
+
+These need a client registered with `profile:read`, `profile:write`,
+`portfolio:read` and `portfolio:write`; a client registered before those
+existed carries only the first six and answers a scope challenge. The
+settings page lists each client's permissions.
+
+1. Call `list_portfolio` and check the shape: `{ showcases: [...], experience: [...] }`.
+2. Call `get_profile` and check that it returns the account text and no
+   download link.
+3. Call `create_showcase` with a title and `layout: "grid"`, then
+   `create_item` with the returned id, and open `/settings/portfolio` in the
+   browser: the showcase and the project are there.
+4. Upload a resume: call `upload_resume` with a small PDF as base64, check
+   that the response carries a `proposal`, then call `apply_resume` with it
+   and check that the experience list and the headline reached the profile
+   page.
+5. Call `update_profile` with a new bio and check the settings page shows it.
+6. Call `set_resume_visibility` with `isPublic: true`, then `get_resume` and
+   confirm the download link works in a signed-out browser.
+
+### The setup instructions
+
+`/settings/account` carries the MCP section. It is what a user reads before
+connecting a client, so check it as alice.
+
+1. Open `/settings/account` and scroll to the MCP section, below the API
+   keys.
+2. The endpoint reads `http://localhost:3000/api/mcp` — the host the browser
+   is on, not the configured `BASE_URL`. On a preview deployment it reads
+   the preview host.
+3. The **Copy the MCP endpoint URL** button puts that URL on the clipboard.
+4. The **Copy the MCP client configuration** button puts the OpenCode config
+   on the clipboard, with the endpoint filled in and `<client id>` and
+   `<client secret>` as the two placeholders.
+5. All ten permissions are listed with what each one grants.
