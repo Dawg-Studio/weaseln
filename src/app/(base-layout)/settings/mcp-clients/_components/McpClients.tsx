@@ -2,10 +2,12 @@
 
 import { useState } from "react";
 
+import type { AuthorizedClient } from "@/modules/oauth/clients";
 import { OAUTH_SCOPES } from "@/modules/oauth/scopes";
 import {
     createMcpClient,
     listMcpClients,
+    revokeAuthorizedClientAction,
     revokeMcpClient,
 } from "@/utils/actions/oauth";
 
@@ -19,8 +21,15 @@ type Client = {
     revokedAt: Date | null;
 };
 
-export default function McpClients({ initialClients }: { initialClients: Client[] }) {
+export default function McpClients({
+    initialClients,
+    initialAuthorized,
+}: {
+    initialClients: Client[];
+    initialAuthorized: AuthorizedClient[];
+}) {
     const [clients, setClients] = useState(initialClients);
+    const [authorized, setAuthorized] = useState(initialAuthorized);
     const [name, setName] = useState("");
     const [redirectUri, setRedirectUri] = useState(
         "http://127.0.0.1:19876/callback",
@@ -82,6 +91,25 @@ export default function McpClients({ initialClients }: { initialClients: Client[
                 caught instanceof Error
                     ? caught.message
                     : "Could not revoke the client.",
+            );
+        } finally {
+            setBusy(false);
+        }
+    }
+
+    async function revokeAccess(clientId: string) {
+        setBusy(true);
+        setError("");
+        try {
+            await revokeAuthorizedClientAction({ clientId });
+            setAuthorized(
+                authorized.filter((client) => client.clientId !== clientId),
+            );
+        } catch (caught) {
+            setError(
+                caught instanceof Error
+                    ? caught.message
+                    : "Could not revoke access.",
             );
         } finally {
             setBusy(false);
@@ -218,6 +246,72 @@ export default function McpClients({ initialClients }: { initialClients: Client[
                         ))}
                     </tbody>
                 </table>
+            </div>
+
+            <div className="space-y-3">
+                <div className="space-y-2">
+                    <h2 className="text-lg font-semibold">
+                        Apps with access to your account
+                    </h2>
+                    <p className="text-sm opacity-80">
+                        Each of these holds a live token for your account. A
+                        client that identifies itself by a metadata URL has no
+                        stored name, so its address is shown instead.
+                    </p>
+                </div>
+                <div className="overflow-x-auto">
+                    <table className="table">
+                        <thead>
+                            <tr>
+                                <th>Client</th>
+                                <th>Permissions</th>
+                                <th>Since</th>
+                                <th>Revoke</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {authorized.length === 0 ? (
+                                <tr>
+                                    <td
+                                        colSpan={4}
+                                        className="text-sm opacity-80"
+                                    >
+                                        No app has access to your account.
+                                    </td>
+                                </tr>
+                            ) : (
+                                authorized.map((client) => (
+                                    <tr key={client.clientId}>
+                                        <td className="font-mono text-xs break-all">
+                                            {client.clientId}
+                                        </td>
+                                        <td className="text-xs">
+                                            {client.scopes.join(", ")}
+                                        </td>
+                                        <td className="text-xs">
+                                            {new Date(
+                                                client.authorizedAt,
+                                            ).toLocaleDateString()}
+                                        </td>
+                                        <td>
+                                            <button
+                                                type="button"
+                                                className="btn btn-sm btn-outline"
+                                                onClick={() =>
+                                                    revokeAccess(client.clientId)
+                                                }
+                                                disabled={busy}
+                                                aria-label={`Revoke access for ${client.clientId}`}
+                                            >
+                                                Revoke
+                                            </button>
+                                        </td>
+                                    </tr>
+                                ))
+                            )}
+                        </tbody>
+                    </table>
+                </div>
             </div>
 
             {created ? (

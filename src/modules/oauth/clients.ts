@@ -203,3 +203,74 @@ export async function revokeOAuthClient(
         data: { revokedAt: new Date() },
     });
 }
+
+export type AuthorizedClient = {
+    clientId: string;
+    scopes: string[];
+    authorizedAt: Date;
+    registered: boolean;
+};
+
+/**
+ * One row per client the caller holds a live refresh token for. Grouping by
+ * client rather than reading tokens keeps the list one row per app, and the
+ * user filter is what stops a shared metadata client from showing another
+ * account's grant.
+ */
+export async function listAuthorizedClients(
+    actor: { userId: string },
+): Promise<AuthorizedClient[]> {
+    const grouped = await prisma.oAuthRefreshToken.groupBy({
+        by: ["clientId"],
+        where: { userId: actor.userId, revokedAt: null },
+        _min: { createdAt: true },
+    });
+
+    return Promise.all(
+        grouped.map(async (row) => {
+            const authorizedAt = row._min.createdAt;
+            if (!authorizedAt) {
+                throw new Error(
+                    `No authorization date for client ${row.clientId}`,
+                );
+            }
+            const [latest, registered] = await Promise.all([
+                prisma.oAuthRefreshToken.findFirst({
+                    where: {
+                        userId: actor.userId,
+                        clientId: row.clientId,
+                        revokedAt: null,
+                    },
+                    orderBy: { createdAt: "desc" },
+                    select: { scopes: true },
+                }),
+                findOAuthClient(row.clientId),
+            ]);
+            return {
+                clientId: row.clientId,
+                scopes: latest?.scopes ?? [],
+                authorizedAt,
+                registered: registered !== null,
+            };
+        }),
+    );
+}
+
+/**
+ * The caller's own grants for one client. A metadata client is shared by every
+ * account that approved it, so the user is part of the predicate: revoking
+ * here withdraws this account's tokens and leaves everyone else's alone.
+ */
+export async function revokeAuthorizedClient(
+    actor: { userId: string },
+    input: { clientId: string },
+): Promise<void> {
+    await prisma.oAuthRefreshToken.updateMany({
+        where: {
+            userId: actor.userId,
+            clientId: input.clientId,
+            revokedAt: null,
+        },
+        data: { revokedAt: new Date() },
+    });
+}

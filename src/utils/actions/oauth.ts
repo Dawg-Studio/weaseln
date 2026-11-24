@@ -20,6 +20,7 @@ import {
 import {
     listOAuthClients,
     registerOAuthClient,
+    revokeAuthorizedClient,
     revokeOAuthClient,
 } from "@/modules/oauth/clients";
 
@@ -128,6 +129,19 @@ export async function revokeMcpClient(input: {
     const session = await auth();
     if (!session?.user) throw new Error("Not authenticated");
     await revokeOAuthClient({ userId: session.user.id }, input);
+}
+
+/**
+ * Withdraws the signed-in user's own access to a client. Separate from
+ * revoking the client itself: a metadata client belongs to nobody, so only the
+ * grant this account made can be revoked here.
+ */
+export async function revokeAuthorizedClientAction(input: {
+    clientId: string;
+}): Promise<void> {
+    const session = await auth();
+    if (!session?.user) throw new Error("Not authenticated");
+    await revokeAuthorizedClient({ userId: session.user.id }, input);
 }
 
 export async function listMcpClients(): Promise<

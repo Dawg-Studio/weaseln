@@ -5,15 +5,19 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const {
     createMock,
     fetchMetadataMock,
+    findFirstMock,
     findManyMock,
     findUniqueMock,
+    groupByMock,
     updateMock,
     updateManyMock,
 } = vi.hoisted(() => ({
     createMock: vi.fn(),
     fetchMetadataMock: vi.fn(),
+    findFirstMock: vi.fn(),
     findManyMock: vi.fn(),
     findUniqueMock: vi.fn(),
+    groupByMock: vi.fn(),
     updateMock: vi.fn(),
     updateManyMock: vi.fn(),
 }));
@@ -27,6 +31,8 @@ vi.mock("@/db", () => ({
             update: updateMock,
         },
         oAuthRefreshToken: {
+            findFirst: findFirstMock,
+            groupBy: groupByMock,
             updateMany: updateManyMock,
         },
     },
@@ -40,9 +46,11 @@ vi.mock("@/modules/oauth/client-metadata", async () => {
 import {
     findOAuthClient,
     hashSecret,
+    listAuthorizedClients,
     listOAuthClients,
     registerOAuthClient,
     resolveClient,
+    revokeAuthorizedClient,
     revokeOAuthClient,
     verifyClientSecret,
 } from "./clients";
@@ -178,5 +186,60 @@ describe("resolveClient", () => {
             redirectUris: [], scopes: [], userId: "alice", revokedAt: new Date(),
         });
         expect(await resolveClient("client-1")).toBeNull();
+    });
+});
+
+describe("authorized clients", () => {
+    beforeEach(() => {
+        groupByMock.mockReset();
+        findFirstMock.mockReset();
+        findUniqueMock.mockReset().mockResolvedValue(null);
+    });
+
+    it("lists one row per client the user has a live refresh token for", async () => {
+        groupByMock.mockResolvedValueOnce([
+            { clientId: "client-1", _min: { createdAt: new Date("2026-01-01") }, _count: { _all: 2 } },
+            { clientId: "https://opencode.ai/oauth/opencode/client.json", _min: { createdAt: new Date("2026-02-01") }, _count: { _all: 1 } },
+        ]);
+        const rows = await listAuthorizedClients({ userId: "alice" });
+        expect(rows.map((r) => r.clientId)).toHaveLength(2);
+        expect(groupByMock).toHaveBeenCalledWith(expect.objectContaining({
+            by: ["clientId"],
+            where: { userId: "alice", revokedAt: null },
+        }));
+    });
+
+    it("marks a client registered only when the registry has a row for it", async () => {
+        groupByMock.mockResolvedValueOnce([
+            { clientId: "client-1", _min: { createdAt: new Date("2026-01-01") }, _count: { _all: 1 } },
+            { clientId: "https://opencode.ai/oauth/opencode/client.json", _min: { createdAt: new Date("2026-02-01") }, _count: { _all: 1 } },
+        ]);
+        findFirstMock.mockResolvedValue({ scopes: ["posts:read", "org:read"] });
+        findUniqueMock
+            .mockResolvedValueOnce({
+                id: "row-1", clientId: "client-1", clientSecretHash: "h", name: "OpenCode",
+                redirectUris: [], scopes: ["posts:read"], userId: "alice", revokedAt: null,
+            })
+            .mockResolvedValueOnce(null);
+
+        const rows = await listAuthorizedClients({ userId: "alice" });
+
+        expect(rows[0]).toEqual({
+            clientId: "client-1",
+            scopes: ["posts:read", "org:read"],
+            authorizedAt: new Date("2026-01-01"),
+            registered: true,
+        });
+        expect(rows[1].registered).toBe(false);
+    });
+
+    it("revoking an authorized client revokes only that user's refresh tokens", async () => {
+        await revokeAuthorizedClient({ userId: "alice" }, { clientId: "client-1" });
+        expect(updateManyMock).toHaveBeenCalledWith({
+            where: { userId: "alice", clientId: "client-1", revokedAt: null },
+            data: { revokedAt: expect.any(Date) },
+        });
+        // The registered client row is not the caller's to revoke here.
+        expect(updateMock).not.toHaveBeenCalled();
     });
 });
