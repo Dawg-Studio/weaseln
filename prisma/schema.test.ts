@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync, existsSync } from "node:fs";
 import { resolve } from "node:path";
 
 // ponytail: Prisma 7 stripped the static `Prisma.dmmf` namespace — `_runtimeDataModel`
@@ -76,5 +76,76 @@ describe("Prisma schema shape", () => {
         const user = extractModel(SCHEMA, "User");
         expect(getFieldLine(user, "resumePublic")).toMatch(/@default\(false\)/);
         expect(getFieldLine(user, "resumePublicId")).toMatch(/String\?/);
+    });
+});
+
+// ponytail: `prisma db push` may not run against this database (it wants to drop
+// the legacy blogs."Blog" table), so every model and column the schema declares
+// has to exist in SQL the build applies. These are the guard for the outage
+// where the portfolio models landed in the schema with no migration to apply
+// them and the profile page died on a missing users."User".skills column.
+const MIGRATIONS_DIR = resolve(process.cwd(), "prisma/migrations");
+const MIGRATION_FOLDERS = readdirSync(MIGRATIONS_DIR).filter((folder) =>
+    existsSync(resolve(MIGRATIONS_DIR, folder, "migration.sql")),
+);
+const SQL_CORPUS = MIGRATION_FOLDERS.map((folder) =>
+    readFileSync(resolve(MIGRATIONS_DIR, folder, "migration.sql"), "utf8"),
+).join("\n");
+const APPLY_SCRIPT = readFileSync(resolve(process.cwd(), "scripts/apply-perf-migration.ts"), "utf8");
+const APPLIED_FOLDERS = [
+    ...APPLY_SCRIPT.matchAll(/"prisma\/migrations\/([^"]+)\/migration\.sql"/g),
+].map((m) => m[1]);
+
+function parseModels(schema: string): Map<string, { name: string; type: string }[]> {
+    const models = new Map<string, { name: string; type: string }[]>();
+    for (const match of schema.matchAll(/^model\s+(\w+)\s*\{([\s\S]*?)^\}/gm)) {
+        const fields = match[2]
+            .split("\n")
+            .map((line) => line.trim())
+            .filter((line) => line && !line.startsWith("//") && !line.startsWith("@@"))
+            .map((line) => line.split(/\s+/))
+            .filter((parts) => parts.length > 1)
+            .map((parts) => ({ name: parts[0], type: parts[1] }));
+        models.set(match[1], fields);
+    }
+    return models;
+}
+
+const MODELS = parseModels(SCHEMA);
+
+describe("schema vs applied SQL", () => {
+    it("creates every model the schema declares in some migration", () => {
+        for (const model of MODELS.keys()) {
+            expect(
+                new RegExp(`CREATE TABLE (?:IF NOT EXISTS )?"[^"]*"\\."${model}"`).test(SQL_CORPUS),
+                `model ${model} has no CREATE TABLE in prisma/migrations — prisma db push cannot run here, so the SQL must exist`,
+            ).toBe(true);
+        }
+    });
+
+    it("names every scalar column of every model in some migration", () => {
+        for (const [model, fields] of MODELS) {
+            for (const field of fields) {
+                // a relation field has no column of its own
+                const target = field.type.replace(/\[\]$/, "").replace(/\?$/, "");
+                if (MODELS.has(target)) continue;
+                expect(
+                    SQL_CORPUS.includes(`"${field.name}"`),
+                    `column ${model}.${field.name} appears in no migration SQL — the schema would be ahead of the database`,
+                ).toBe(true);
+            }
+        }
+    });
+
+    it("applies every migration folder that is not older than the oldest applied one", () => {
+        expect(APPLIED_FOLDERS.length, "the apply script must list the SQL files it runs").toBeGreaterThan(0);
+        const oldestApplied = [...APPLIED_FOLDERS].sort()[0];
+        const skipped = MIGRATION_FOLDERS.filter(
+            (folder) => folder > oldestApplied && !APPLIED_FOLDERS.includes(folder),
+        );
+        expect(
+            skipped,
+            `these migrations are newer than the oldest applied one but the build never applies them: ${skipped.join(", ")}`,
+        ).toEqual([]);
     });
 });
