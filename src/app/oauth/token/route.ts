@@ -3,6 +3,7 @@ import { randomBytes } from "crypto";
 import { NextResponse } from "next/server";
 
 import prisma from "@/db";
+import { isClientMetadataUrl } from "@/modules/oauth/client-metadata";
 import {
     findOAuthClient,
     hashSecret,
@@ -105,15 +106,27 @@ export async function POST(req: Request) {
     }
 
     const credentials = readClientCredentials(req, body);
-    if (!credentials) return oauthError("invalid_client", 401);
 
-    const client = await findOAuthClient(credentials.clientId);
-    if (
-        !client ||
-        client.revokedAt ||
-        !verifyClientSecret(client.clientSecretHash, credentials.clientSecret)
-    ) {
-        return oauthError("invalid_client", 401);
+    // A client that authenticates with nothing is a public client only if its
+    // id names a metadata document. Anything else secretless is refused, and a
+    // URL-shaped id is never looked up as a registered client.
+    let clientId: string;
+    if (credentials) {
+        const client = await findOAuthClient(credentials.clientId);
+        if (
+            !client ||
+            client.revokedAt ||
+            !verifyClientSecret(client.clientSecretHash, credentials.clientSecret)
+        ) {
+            return oauthError("invalid_client", 401);
+        }
+        clientId = client.clientId;
+    } else {
+        const presented = body.get("client_id");
+        if (typeof presented !== "string" || !isClientMetadataUrl(presented)) {
+            return oauthError("invalid_client", 401);
+        }
+        clientId = presented;
     }
 
     const audience = new URL("/api/mcp", req.url).toString();
@@ -137,7 +150,7 @@ export async function POST(req: Request) {
             !stored ||
             stored.usedAt ||
             stored.expiresAt.getTime() < Date.now() ||
-            stored.clientId !== client.clientId ||
+            stored.clientId !== clientId ||
             stored.redirectUri !== redirectUri
         ) {
             return oauthError("invalid_grant", 400);
@@ -164,7 +177,7 @@ export async function POST(req: Request) {
         }
 
         const tokens = await issueTokens({
-            clientId: client.clientId,
+            clientId,
             userId: stored.userId,
             scopes: stored.scopes,
             audience,
@@ -183,7 +196,7 @@ export async function POST(req: Request) {
         !stored ||
         stored.revokedAt ||
         stored.expiresAt.getTime() < Date.now() ||
-        stored.clientId !== client.clientId
+        stored.clientId !== clientId
     ) {
         return oauthError("invalid_grant", 400);
     }
@@ -199,7 +212,7 @@ export async function POST(req: Request) {
     }
 
     const tokens = await issueTokens({
-        clientId: client.clientId,
+        clientId,
         userId: stored.userId,
         scopes: stored.scopes,
         audience,

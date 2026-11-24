@@ -89,6 +89,8 @@ const exchange = {
     code_verifier: "the-verifier",
 };
 
+const METADATA_CLIENT_ID = "https://opencode.ai/oauth/opencode/client.json";
+
 describe("POST /oauth/token", () => {
     beforeEach(() => {
         vi.stubEnv("NEXTAUTH_SECRET", "test-secret");
@@ -264,6 +266,67 @@ describe("POST /oauth/token", () => {
         expect(body.refresh_token).toBeTruthy();
         // The old refresh token is spent and a new one is minted.
         expect(updateManyRefreshMock).toHaveBeenCalledTimes(1);
+        expect(createRefreshMock).toHaveBeenCalledTimes(1);
+    });
+
+    it("redeems a code for a public metadata client without a secret", async () => {
+        findCodeMock.mockResolvedValue({
+            ...code,
+            clientId: METADATA_CLIENT_ID,
+            codeChallenge: s256("verifier"),
+        });
+
+        const res = await POST(
+            tokenRequest({
+                grant_type: "authorization_code",
+                client_id: METADATA_CLIENT_ID,
+                code: "the-code",
+                redirect_uri: "http://127.0.0.1:19876/callback",
+                code_verifier: "verifier",
+            }),
+        );
+
+        expect(res.status).toBe(200);
+        // A URL-shaped id is never looked up as a registered client.
+        expect(findClientMock).not.toHaveBeenCalled();
+    });
+
+    it("refuses a secretless request for a code issued to a registered client", async () => {
+        const res = await POST(
+            tokenRequest({
+                grant_type: "authorization_code",
+                client_id: "client-1",
+                code: "the-code",
+                redirect_uri: "http://127.0.0.1:19876/callback",
+                code_verifier: "verifier",
+            }),
+        );
+
+        expect(res.status).toBe(401);
+        expect(await res.json()).toMatchObject({ error: "invalid_client" });
+    });
+
+    it("rotates a public client's refresh token without a secret", async () => {
+        findRefreshMock.mockResolvedValue({
+            id: "refresh-row-1",
+            tokenHash: hashSecret("the-refresh"),
+            clientId: METADATA_CLIENT_ID,
+            userId: "alice",
+            scopes: ["posts:read"],
+            expiresAt: new Date(Date.now() + 60_000),
+            revokedAt: null,
+        });
+
+        const res = await POST(
+            tokenRequest({
+                grant_type: "refresh_token",
+                client_id: METADATA_CLIENT_ID,
+                refresh_token: "the-refresh",
+            }),
+        );
+
+        expect(res.status).toBe(200);
+        expect(findClientMock).not.toHaveBeenCalled();
         expect(createRefreshMock).toHaveBeenCalledTimes(1);
     });
 });
