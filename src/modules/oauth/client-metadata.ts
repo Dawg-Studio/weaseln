@@ -71,7 +71,7 @@ function isPublicIpv4(octets: number[]): boolean {
 }
 
 // WHATWG URL serializes an IPv6 address into its compressed form, so "0:0:0:0:0:0:0:1"
-// is seen below as the "::1" every prefix check expects.
+// is seen below as the "::1" every numeric check expects.
 function normalizeIpv6(address: string): string {
     try {
         return new URL(`http://[${address}]/`).hostname.slice(1, -1);
@@ -80,25 +80,37 @@ function normalizeIpv6(address: string): string {
     }
 }
 
-// ::ffff:127.0.0.1 and ::ffff:7f00:1 are the same address in two spellings.
-function mappedIpv4Octets(rest: string): number[] | null {
-    if (rest.includes(".")) return rest.split(".").map(Number);
-    const groups = rest.split(":");
-    if (groups.length !== 2) return null;
-    const [high, low] = groups.map((group) => Number.parseInt(group, 16));
-    if (!Number.isInteger(high) || !Number.isInteger(low)) return null;
-    return [high >> 8, high & 0xff, low >> 8, low & 0xff];
+// The eight 16-bit groups of a normalized address, so a range like fe80::/10 is
+// compared as a number instead of a list of string prefixes.
+function ipv6Groups(address: string): number[] {
+    const [head, tail] = address.split("::");
+    const headGroups = head ? head.split(":") : [];
+    const tailGroups = tail ? tail.split(":") : [];
+    const fill = Array<string>(8 - headGroups.length - tailGroups.length).fill("0");
+    return [...headGroups, ...fill, ...tailGroups].map((group) =>
+        Number.parseInt(group, 16),
+    );
 }
 
 function isPublicIpv6(address: string): boolean {
-    const normalized = normalizeIpv6(address).toLowerCase();
-    if (normalized.startsWith("::ffff:")) {
-        const octets = mappedIpv4Octets(normalized.slice("::ffff:".length));
-        return octets !== null && isPublicIpv4(octets);
+    const groups = ipv6Groups(normalizeIpv6(address).toLowerCase());
+
+    // ::a.b.c.d and ::ffff:a.b.c.d carry an IPv4 address in their last 32 bits,
+    // so the IPv4 rule decides. That covers ::, ::1, ::7f00:1 and ::a9fe:a9fe.
+    const carriesIpv4 =
+        groups.slice(0, 5).every((group) => group === 0) &&
+        (groups[5] === 0 || groups[5] === 0xffff);
+    if (carriesIpv4) {
+        const octets = groups
+            .slice(6)
+            .flatMap((group) => [group >> 8, group & 0xff]);
+        return isPublicIpv4(octets);
     }
-    if (normalized === "::" || normalized === "::1") return false;
-    if (normalized.startsWith("fe80:")) return false;
-    if (/^f[cd]/.test(normalized)) return false;
+
+    const [first] = groups;
+    if (first >= 0xfe80 && first <= 0xfebf) return false; // fe80::/10 link-local
+    if (first >= 0xfc00 && first <= 0xfdff) return false; // fc00::/7 unique local
+    if (first >= 0xff00) return false; // ff00::/8 multicast
     return true;
 }
 
@@ -217,6 +229,13 @@ export function readMetadataResponse(
         stream.on("error", () => {
             finish(new MetadataError(UNREADABLE));
         });
+        // A body cut off after its headers ends here, not at "end".
+        stream.on("aborted", () => {
+            finish(new MetadataError(UNREADABLE));
+        });
+        stream.on("close", () => {
+            finish(new MetadataError(UNREADABLE));
+        });
     });
 }
 
@@ -228,11 +247,22 @@ function httpsTransport(
     return new Promise((resolve, reject) => {
         let settled = false;
         let request: ClientRequest | undefined;
+        let deadline: ReturnType<typeof setTimeout> | undefined;
+        const clearDeadline = () => {
+            if (deadline !== undefined) clearTimeout(deadline);
+        };
         const fail = (error: Error) => {
             if (settled) return;
             settled = true;
+            clearDeadline();
             request?.destroy();
             reject(error);
+        };
+        const succeed = (body: string) => {
+            if (settled) return;
+            settled = true;
+            clearDeadline();
+            resolve(body);
         };
 
         request = httpsRequest(
@@ -244,22 +274,19 @@ function httpsTransport(
             },
             (response) => {
                 readMetadataResponse(response.statusCode, response, limits).then(
-                    (body) => {
-                        if (settled) return;
-                        settled = true;
-                        resolve(body);
-                    },
+                    succeed,
                     fail,
                 );
             },
         );
-        request.setTimeout(limits.timeoutMs, () => {
-            fail(
-                new MetadataError(
-                    `The client metadata document did not answer within ${limits.timeoutMs} ms.`,
-                ),
+        const timedOut = () =>
+            new MetadataError(
+                `The client metadata document did not answer within ${limits.timeoutMs} ms.`,
             );
-        });
+        // The idle timeout guards a silent peer. The deadline below is the real
+        // bound, because an idle timeout resets on every byte a host drips.
+        request.setTimeout(limits.timeoutMs, () => fail(timedOut()));
+        deadline = setTimeout(() => fail(timedOut()), limits.timeoutMs);
         request.on("error", () => fail(new MetadataError(UNREADABLE)));
         request.end();
     });
@@ -272,11 +299,13 @@ function validate(clientId: string, body: string): ClientMetadata {
     } catch {
         throw new Error("The client metadata document is not valid JSON.");
     }
-    if (typeof raw !== "object" || raw === null) {
+    if (typeof raw !== "object" || raw === null || Array.isArray(raw)) {
         throw new Error("The client metadata document is not a JSON object.");
     }
     const doc = raw as Record<string, unknown>;
 
+    // The raw string is deliberate: the spec requires the document's client_id
+    // to equal the URL exactly as the client sent it, not its normalized form.
     if (doc.client_id !== clientId) {
         throw new Error(
             "The client metadata document client_id does not match the URL it was fetched from.",

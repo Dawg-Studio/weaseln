@@ -1,18 +1,25 @@
 import { Readable } from "node:stream";
 
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import type { MetadataTransport } from "./client-metadata";
 
 // ponytail: the reader resolves the hostname before fetching, so the resolver
 // is mocked too. Otherwise every case would do real DNS.
-const { lookupMock } = vi.hoisted(() => ({
+const { lookupMock, httpsRequestMock } = vi.hoisted(() => ({
     lookupMock: vi.fn(async () => [{ address: "93.184.216.34", family: 4 }]),
+    httpsRequestMock: vi.fn(),
 }));
 
 vi.mock("node:dns/promises", () => ({
     lookup: lookupMock,
     default: { lookup: lookupMock },
+}));
+
+// The default transport is driven through a fake request; no socket is opened.
+vi.mock("node:https", () => ({
+    request: httpsRequestMock,
+    default: { request: httpsRequestMock },
 }));
 
 import {
@@ -69,8 +76,13 @@ describe("isPublicAddress", () => {
             "0:0:0:0:0:0:0:1",
             "fd00::1",
             "fe80::1",
+            "fe81::1",
+            "febf::1",
+            "ff02::1",
             "::ffff:127.0.0.1",
             "::ffff:7f00:1",
+            "::7f00:1",
+            "::a9fe:a9fe",
         ]) {
             expect(isPublicAddress(ip), ip).toBe(false);
         }
@@ -127,6 +139,21 @@ describe("fetchClientMetadata", () => {
         ).rejects.toThrow();
     });
 
+    it("refuses json that is not an object", async () => {
+        for (const body of ["[]", "null"]) {
+            await expect(
+                fetchClientMetadata(DOC.client_id, transportReturning(body)),
+            ).rejects.toThrow(/JSON object/);
+        }
+    });
+
+    it("refuses a document with no client_name", async () => {
+        const body = JSON.stringify({ ...DOC, client_name: "" });
+        await expect(
+            fetchClientMetadata(DOC.client_id, transportReturning(body)),
+        ).rejects.toThrow(/client_name/);
+    });
+
     it("reports a failed fetch instead of throwing a raw network error", async () => {
         const transport: MetadataTransport = vi.fn(async () => {
             throw new Error("ECONNREFUSED");
@@ -143,6 +170,22 @@ describe("fetchClientMetadata", () => {
             fetchClientMetadata(DOC.client_id, transport),
         ).rejects.toThrow(/not a public/i);
         expect(transport).not.toHaveBeenCalled();
+    });
+
+    it("refuses to fetch when the host resolves to nothing", async () => {
+        lookupMock.mockResolvedValueOnce([]);
+        const transport = transportReturning(JSON.stringify(DOC));
+        await expect(
+            fetchClientMetadata(DOC.client_id, transport),
+        ).rejects.toThrow(/not a public/i);
+        expect(transport).not.toHaveBeenCalled();
+    });
+
+    it("reports a resolver failure instead of a raw DNS error", async () => {
+        lookupMock.mockRejectedValueOnce(new Error("ENOTFOUND"));
+        await expect(
+            fetchClientMetadata(DOC.client_id, transportReturning(JSON.stringify(DOC))),
+        ).rejects.toThrow(/could not be read/i);
     });
 });
 
@@ -170,6 +213,45 @@ describe("readMetadataResponse", () => {
             readMetadataResponse(200, stream, LIMITS),
         ).rejects.toThrow(/too large/i);
         expect(stream.destroyed).toBe(true);
+    });
+
+    it("rejects when the connection closes before the body ends", async () => {
+        const stream = new Readable({ read() {} });
+        const pending = readMetadataResponse(200, stream, LIMITS);
+        stream.emit("close");
+        await expect(pending).rejects.toThrow(/could not be read/i);
+    });
+});
+
+describe("the wall-clock deadline", () => {
+    afterEach(() => {
+        vi.useRealTimers();
+        httpsRequestMock.mockReset();
+    });
+
+    it("rejects a peer that never answers and leaves no timer behind", async () => {
+        vi.useFakeTimers();
+        const fakeRequest = {
+            setTimeout: vi.fn(),
+            on: vi.fn(),
+            end: vi.fn(),
+            destroy: vi.fn(),
+        };
+        httpsRequestMock.mockReturnValue(fakeRequest);
+
+        const assertion = expect(
+            fetchClientMetadata(DOC.client_id),
+        ).rejects.toThrow(/did not answer within 5000 ms/);
+        await vi.advanceTimersByTimeAsync(0);
+        await vi.advanceTimersByTimeAsync(LIMITS.timeoutMs);
+        await assertion;
+
+        expect(fakeRequest.setTimeout).toHaveBeenCalledWith(
+            LIMITS.timeoutMs,
+            expect.any(Function),
+        );
+        expect(fakeRequest.destroy).toHaveBeenCalled();
+        expect(vi.getTimerCount()).toBe(0);
     });
 });
 
