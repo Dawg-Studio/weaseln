@@ -24,11 +24,13 @@ import {
     CARD_SHADOWS,
     FONT_FAMILIES,
     HEADING_SIZES,
+    PROFILE_SECTION_GROUPS,
     SPACING_DENSITIES,
     TEXT_ALIGNS,
     type ProfileCustomization,
     type ProfileSection,
 } from "@/modules/profile-customization/types";
+import { layoutForSave } from "@/modules/profile-customization/validation";
 import ProfileCustomizationPreview from "./ProfileCustomizationPreview";
 import PresetPicker from "./PresetPicker";
 import VariantPicker from "./VariantPicker";
@@ -54,6 +56,16 @@ const SECTION_LABELS: Record<ProfileSection, string> = {
     organizations: "Organizations",
     resume: "Resume",
     posts: "Posts",
+};
+
+/**
+ * The tab sections are the pages the profile navigation opens, so they are
+ * named after those pages rather than after the section ids.
+ */
+const TAB_SECTION_LABELS: Partial<Record<ProfileSection, string>> = {
+    showcases: "Projects",
+    experience: "Resume timeline",
+    resume: "Resume file",
 };
 
 const SECTION_ICONS: Record<ProfileSection, typeof faCircleUser> = {
@@ -123,9 +135,12 @@ export default function ProfileCustomizationComponent({
     userName: string;
     userImage: string;
 }) {
-    const [customization, setCustomization] = useState<ProfileCustomization>(
-        initialCustomization,
-    );
+    const [customization, setCustomization] = useState<ProfileCustomization>({
+        ...initialCustomization,
+        // The stored order is normalised on the way in, so the two groups
+        // below always have the shape the save expects.
+        layout: layoutForSave(initialCustomization.layout),
+    });
     const [pendingColors, setPendingColors] = useState<{
         backgroundColor: string | null;
         textColor: string | null;
@@ -156,7 +171,10 @@ export default function ProfileCustomizationComponent({
                 const res = await fetch("/api/user/profile-customization", {
                     method: "PATCH",
                     headers: { "content-type": "application/json" },
-                    body: JSON.stringify(snapshot),
+                    body: JSON.stringify({
+                        ...snapshot,
+                        layout: layoutForSave(snapshot.layout),
+                    }),
                 });
                 setSaveStatus(res.ok ? "saved" : "error");
                 if (!res.ok) toast.error("Failed to save customization");
@@ -198,14 +216,30 @@ export default function ProfileCustomizationComponent({
             return { ...c, layout: { ...c.layout, hiddenSections: next } };
         });
     }
-    function moveSection(index: number, direction: -1 | 1) {
+    /**
+     * The profile sections move among themselves. The tab sections have no
+     * position on the page any more, so they are not reorderable.
+     */
+    function moveSection(section: ProfileSection, direction: -1 | 1) {
         setCustomization((c) => {
             const order = c.layout.sectionOrder;
-            const newIndex = index + direction;
-            if (newIndex < 0 || newIndex >= order.length) return c;
-            const next = [...order];
-            [next[index], next[newIndex]] = [next[newIndex], next[index]];
-            return { ...c, layout: { ...c.layout, sectionOrder: next } };
+            const group = order.filter((s) =>
+                PROFILE_SECTION_GROUPS.profile.includes(s),
+            );
+            const position = group.indexOf(section);
+            const newIndex = position + direction;
+            if (position < 0 || newIndex < 0 || newIndex >= group.length) {
+                return c;
+            }
+            const next = [...group];
+            [next[position], next[newIndex]] = [next[newIndex], next[position]];
+            const rest = order.filter(
+                (s) => !PROFILE_SECTION_GROUPS.profile.includes(s),
+            );
+            return {
+                ...c,
+                layout: { ...c.layout, sectionOrder: [...next, ...rest] },
+            };
         });
     }
     function handleBackgroundFile(event: React.ChangeEvent<HTMLInputElement>) {
@@ -298,10 +332,19 @@ export default function ProfileCustomizationComponent({
                 <div className="rounded-box border border-hairline bg-surface p-5 elev-1 sm:p-6 space-y-5">
                     <h3 className="text-2xl font-bold">Sections</h3>
                     <ul className="space-y-2">
-                        {customization.layout.sectionOrder.map((section, index) => {
+                        {customization.layout.sectionOrder.map((section) => {
+                            if (
+                                !PROFILE_SECTION_GROUPS.profile.includes(section)
+                            ) {
+                                return null;
+                            }
                             const isHidden = customization.layout.hiddenSections.includes(section);
-                            const atTop = index === 0;
-                            const atBottom = index === customization.layout.sectionOrder.length - 1;
+                            const group = customization.layout.sectionOrder.filter((s) =>
+                                PROFILE_SECTION_GROUPS.profile.includes(s),
+                            );
+                            const position = group.indexOf(section);
+                            const atTop = position === 0;
+                            const atBottom = position === group.length - 1;
                             return (
                                 <li key={section} className="flex items-center gap-2">
                                     <label className="flex items-center gap-2 flex-1 cursor-pointer">
@@ -322,7 +365,7 @@ export default function ProfileCustomizationComponent({
                                     <button
                                         type="button"
                                         className="btn btn-sm"
-                                        onClick={() => moveSection(index, -1)}
+                                        onClick={() => moveSection(section, -1)}
                                         disabled={atTop}
                                         aria-label={`Move ${SECTION_LABELS[section]} up`}
                                         aria-disabled={atTop}
@@ -332,13 +375,49 @@ export default function ProfileCustomizationComponent({
                                     <button
                                         type="button"
                                         className="btn btn-sm"
-                                        onClick={() => moveSection(index, 1)}
+                                        onClick={() => moveSection(section, 1)}
                                         disabled={atBottom}
                                         aria-label={`Move ${SECTION_LABELS[section]} down`}
                                         aria-disabled={atBottom}
                                     >
                                         ↓
                                     </button>
+                                </li>
+                            );
+                        })}
+                    </ul>
+
+                    <h4 className="mt-6 text-lg font-bold">Tabs</h4>
+                    <p className="text-sm opacity-70">
+                        The tabs of the profile navigation. The Posts tab is
+                        always shown.
+                    </p>
+                    <ul className="space-y-2">
+                        {customization.layout.sectionOrder.map((section) => {
+                            if (!PROFILE_SECTION_GROUPS.tabs.includes(section)) {
+                                return null;
+                            }
+                            const isHidden = customization.layout.hiddenSections.includes(section);
+                            const label =
+                                TAB_SECTION_LABELS[section] ??
+                                SECTION_LABELS[section];
+                            return (
+                                <li key={section} className="flex items-center gap-2">
+                                    <label className="flex items-center gap-2 flex-1 cursor-pointer">
+                                        <input
+                                            type="checkbox"
+                                            className="checkbox"
+                                            checked={!isHidden}
+                                            onChange={() => toggleSectionHidden(section)}
+                                            aria-label={`Show ${label}`}
+                                        />
+                                        <FontAwesomeIcon
+                                            icon={SECTION_ICONS[section]}
+                                            className="w-4 h-4 opacity-60"
+                                            aria-hidden="true"
+                                        />
+                                        <span>{label}</span>
+                                    </label>
                                 </li>
                             );
                         })}
