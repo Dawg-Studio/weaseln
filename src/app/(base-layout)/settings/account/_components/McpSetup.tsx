@@ -119,8 +119,8 @@ export default function McpSetup({ endpoint }: { endpoint: string }) {
                             oauth.redirect_uri
                         </code>{" "}
                         out of it. Setting it stops OpenCode looking for the
-                        metadata document, so a stale one sends you down the
-                        registered-client path below without saying so.
+                        metadata document, so a stale one makes the connection
+                        fail instead of signing you in.
                     </p>
                 </li>
                 <li>
@@ -128,7 +128,7 @@ export default function McpSetup({ endpoint }: { endpoint: string }) {
                         Authorize
                     </span>{" "}
                     — the first request opens the consent screen in your
-                    browser. It names the document&rsquo;s origin
+                    browser. It names the document&rsquo;s host
                     (&ldquo;opencode.ai&rdquo; for OpenCode), warns that the
                     app registered itself, and lists the permissions it will
                     get. Sign in, check all of it and allow it. The client then
@@ -155,7 +155,10 @@ export default function McpSetup({ endpoint }: { endpoint: string }) {
                     , a web client uses an{" "}
                     <code className="font-mono text-xs">https://</code>{" "}
                     address. Copy the client id and secret — the secret is
-                    shown once — into this configuration instead.
+                    shown once — into this configuration instead, and trim its
+                    scope list to the permissions the client was registered
+                    with: it names all ten, and a request for one the client
+                    does not have is refused before the consent form appears.
                     <div className="mt-3 flex flex-col items-start gap-2">
                         <pre className="w-full overflow-x-auto rounded-box border border-hairline bg-sunk p-3 font-mono text-xs leading-relaxed text-base-content">
                             {registeredClientConfig}

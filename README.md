@@ -174,11 +174,10 @@ all. Point it at the endpoint and the browser sign-in is the whole setup:
 The client names itself with its own public `https://` document, and the
 authorization server metadata at `/.well-known/oauth-authorization-server`
 publishes `client_id_metadata_document_supported: true`, which is how the
-client knows it can. The consent screen shows the document's origin.
+client knows it can. The consent screen shows that document's host.
 
 In OpenCode, leave `oauth.redirect_uri` out of the config: setting it disables
-metadata-document discovery, so the client falls back to a pre-registered
-client and the zero-key config stops working.
+metadata-document discovery, so the zero-key config stops working.
 
 A registered client still takes priority. When the `client_id` is one Settings
 issued, it is used as a confidential client and the metadata document is never
@@ -220,7 +219,9 @@ permissions. Register the client again to give it the new ones.
 ### OpenCode with a registered client
 
 This is the fallback: fill the id and secret from **Settings > MCP clients**
-into the `oauth` block. Everything else stays as it is.
+into the `oauth` block. Trim its `scope` list to the permissions the client was
+registered with: the list below names all ten, and a request for one the client
+does not have is refused at the authorize step.
 
 ```jsonc
 {

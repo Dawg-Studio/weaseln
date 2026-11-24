@@ -592,7 +592,7 @@ fetches that document, so the check needs outbound HTTPS.
    document as the client id:
 
    ```
-   http://localhost:3000/oauth/authorize?response_type=code&client_id=https://opencode.ai/oauth/opencode/client.json&redirect_uri=http://127.0.0.1:19876/callback&state=xyz&code_challenge=verifier&code_challenge_method=S256
+   http://localhost:3000/oauth/authorize?response_type=code&client_id=https://opencode.ai/oauth/opencode/client.json&redirect_uri=http://127.0.0.1:19876/callback&state=xyz&code_challenge=iMnq5o6zALKXGivsnlom_0F5_WYda32GHkxlV7mq7hQ&code_challenge_method=S256
    ```
 
    The consent screen reads "Allow opencode to use your account?" and carries
@@ -619,15 +619,20 @@ fetches that document, so the check needs outbound HTTPS.
 ### Authorize a client
 
 Open the authorize endpoint in the signed-in browser. Replace
-`<client id>` with the one from the settings page and use any string as the
-`code_challenge`:
+`<client id>` with the one from the settings page and use the `code_challenge`
+below, whose `code_verifier` is `verifier`:
 
 ```
-http://localhost:3000/oauth/authorize?response_type=code&client_id=<client id>&redirect_uri=http://127.0.0.1:19876/callback&scope=posts:read&posts:write&state=xyz&code_challenge=verifier&code_challenge_method=S256
+http://localhost:3000/oauth/authorize?response_type=code&client_id=<client id>&redirect_uri=http://127.0.0.1:19876/callback&scope=posts:read&posts:write&state=xyz&code_challenge=iMnq5o6zALKXGivsnlom_0F5_WYda32GHkxlV7mq7hQ&code_challenge_method=S256
 ```
 
 The consent screen names the client and the permissions. Allow it and the
 browser is redirected to the redirect URI with a `code` and the `state`.
+
+The token endpoint recomputes `base64url(sha256(code_verifier))` and compares it
+to the stored challenge, so a challenge that was not derived from the verifier
+gets past the authorize step and then answers `400 invalid_grant`. The value
+above is `base64url(sha256("verifier"))`.
 
 ### Exchange the code
 
