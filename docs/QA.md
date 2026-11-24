@@ -498,7 +498,7 @@ The profile is three routes: `/alice` is the **Posts** tab, `/alice/projects` th
 ### 8.5 Hiding half of the resume
 1. As alice, open `/settings/profile/customization`.
 2. Untick **Resume timeline**, wait for the **Saved** indicator, reload `/alice/resume`.
-3. **Expected:** the **Resume** tab is still in the navigation, and it shows the skill chips and the download button but no **Work** or **Education** list.
+3. **Expected:** the **Resume** tab is still in the navigation, and it shows the download button but no skill chips and no **Work** or **Education** list — the skills follow the Experience section, so they go with the timeline.
 4. Untick **Resume file** as well.
 5. **Expected:** the **Resume** tab is gone from the navigation. Tick both back on.
 
