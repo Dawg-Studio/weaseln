@@ -75,6 +75,16 @@ describe("layoutForSave", () => {
             validateProfileCustomizationInput({ layout: saved }),
         ).not.toThrow();
     });
+
+    it("keeps every id even when the order it is given is short", () => {
+        const saved = layoutForSave({
+            variant: "standard",
+            sectionOrder: ["hero", "posts"],
+            hiddenSections: ["posts"],
+        });
+        expect(saved.sectionOrder).toHaveLength(11);
+        expect(new Set(saved.sectionOrder).size).toBe(11);
+    });
 });
 
 describe("normalizeProfileCustomization", () => {

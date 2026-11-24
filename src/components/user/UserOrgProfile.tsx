@@ -4,7 +4,9 @@ import {
     faBirthdayCake,
     faBlog,
     faBriefcase,
+    faFileLines,
     faHashtag,
+    faImages,
     faLocationPin,
     faPeopleGroup,
     faThumbtack,
@@ -22,7 +24,7 @@ import ProfileResume from "@/components/user/ProfileResume";
 import { resumeDownloadUrl } from "@/utils/resumeDownloadUrl";
 import {
     FACTS_SECTIONS,
-    TAB_SECTIONS,
+    sectionsForTab,
     visibleTabs,
     type ProfileTab,
     type RenderedSection,
@@ -549,50 +551,49 @@ const UserOrgProfile = async ({
               : statsVisible || socialsVisible;
 
     /**
-     * The content of the active tab. The feed and the showcase blocks are the
-     * tabs themselves, so they render whatever the owner hid; the featured
-     * post and the two halves of the resume follow their own section.
+     * The content of the active tab. The rules live in `sections.ts`; this
+     * only decides what the tab is made of.
      */
     const renderTabContent = () => {
         const activeTab = tab;
         if (!activeTab) return null;
+        const sections = sectionsForTab(activeTab, visibleSections);
+
         if (activeTab === "resume") {
+            const showExperience = sections.includes("experience");
+            const showResume = sections.includes("resume");
+            const skills = showExperience ? (user?.skills ?? []) : [];
+            const experience = showExperience
+                ? (portfolio?.experience ?? [])
+                : [];
+            const downloadUrl =
+                showResume && user ? resumeDownloadUrl(user, isOwner) : null;
+            if (skills.length === 0 && experience.length === 0 && !downloadUrl) {
+                return <EmptyTab icon={faFileLines} title="No resume yet." />;
+            }
             return (
                 <div className={`p-4 ${cardClasses} ${alignClasses}`}>
                     <ProfileResume
-                        skills={
-                            visibleSections.includes("experience")
-                                ? (user?.skills ?? [])
-                                : []
-                        }
-                        experience={
-                            visibleSections.includes("experience")
-                                ? (portfolio?.experience ?? [])
-                                : []
-                        }
-                        downloadUrl={
-                            visibleSections.includes("resume") && user
-                                ? resumeDownloadUrl(user, isOwner)
-                                : null
-                        }
+                        skills={skills}
+                        experience={experience}
+                        downloadUrl={downloadUrl}
                     />
                 </div>
             );
         }
+
+        if (
+            activeTab === "projects" &&
+            (portfolio?.showcases ?? []).length === 0
+        ) {
+            return <EmptyTab icon={faImages} title="No projects yet." />;
+        }
+
         return (
             <>
-                {TAB_SECTIONS[activeTab].map((section) => {
-                    const isTheTab =
-                        section === "posts" || section === "showcases";
-                    if (!isTheTab && !visibleSections.includes(section)) {
-                        return null;
-                    }
-                    return (
-                        <Fragment key={section}>
-                            {renderers[section]?.()}
-                        </Fragment>
-                    );
-                })}
+                {sections.map((section) => (
+                    <Fragment key={section}>{renderers[section]?.()}</Fragment>
+                ))}
             </>
         );
     };
@@ -720,3 +721,22 @@ const UserOrgProfile = async ({
 };
 
 export default UserOrgProfile;
+
+/**
+ * A tab with nothing in it says so, the way the empty feed does. A tab that
+ * is simply blank reads as a broken page.
+ */
+function EmptyTab({
+    icon,
+    title,
+}: {
+    icon: typeof faFileLines;
+    title: string;
+}) {
+    return (
+        <div className="brand-wash flex flex-col items-center justify-center gap-3 rounded-box border border-dashed border-hairline-strong px-6 py-14 text-center">
+            <FontAwesomeIcon icon={icon} className="text-3xl text-primary/55" />
+            <h3 className="text-base font-semibold text-base-content">{title}</h3>
+        </div>
+    );
+}

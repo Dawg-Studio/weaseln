@@ -40,6 +40,29 @@ export const FACTS_SECTIONS: readonly ProfileSection[] = [
 ];
 
 /**
+ * The sections a tab renders whatever the owner hid: the feed is the landing
+ * view, and the showcase blocks are public on their own page whatever the
+ * navigation shows.
+ */
+const ALWAYS_RENDERED: readonly ProfileSection[] = ["posts", "showcases"];
+
+/**
+ * The sections a tab renders. The feed and the showcase blocks are the tabs
+ * themselves, so they render whatever the owner hid; every other section
+ * follows its own flag.
+ */
+export function sectionsForTab(
+    tab: ProfileTab,
+    visibleSections: readonly ProfileSection[],
+): ProfileSection[] {
+    return TAB_SECTIONS[tab].filter(
+        (section) =>
+            ALWAYS_RENDERED.includes(section) ||
+            visibleSections.includes(section),
+    );
+}
+
+/**
  * The tabs a reader sees. The posts tab is always there - it is the landing
  * view - and every other tab lives as long as one of its sections is visible,
  * so hiding one half of the resume never strands the other half.

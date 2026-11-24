@@ -148,9 +148,17 @@ export function layoutForSave(layout: ProfileLayout): ProfileLayout {
     const owner = layout.sectionOrder.filter((section) =>
         PROFILE_SECTION_GROUPS.profile.includes(section),
     );
+    const order: ProfileSection[] = [
+        ...owner,
+        ...PROFILE_SECTION_GROUPS.tabs,
+        "posts",
+    ];
+    const missing = PROFILE_SECTIONS.filter(
+        (section) => !order.includes(section),
+    );
     return {
         variant: layout.variant,
-        sectionOrder: [...owner, ...PROFILE_SECTION_GROUPS.tabs, "posts"],
+        sectionOrder: [...order, ...missing],
         hiddenSections: layout.hiddenSections.filter(
             (section) => section !== "posts",
         ),

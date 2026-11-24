@@ -66,4 +66,20 @@ describe("UserOrgProfile", () => {
             "page",
         );
     });
+
+    it("says when the projects tab has nothing to show", async () => {
+        render(
+            await UserOrgProfile({ user, userId: "alice", tab: "projects" }),
+        );
+
+        expect(screen.getByText("No projects yet.")).toBeInTheDocument();
+    });
+
+    it("says when the resume tab has nothing to show", async () => {
+        render(
+            await UserOrgProfile({ user, userId: "alice", tab: "resume" }),
+        );
+
+        expect(screen.getByText("No resume yet.")).toBeInTheDocument();
+    });
 });

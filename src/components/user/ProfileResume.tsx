@@ -23,9 +23,9 @@ function EntryList({
             </h3>
             <ol className="space-y-4">
                 {entries.map((entry, index) => {
-                    // The rows never reorder, so the index is a stable key. A key
-                    // built from the fields the owner edits would remount the
-                    // row and lose the caret.
+                    // The rows are read-only text here, so the index is a
+                    // stable key. A key built from the fields would remount
+                    // the row on every reorder.
                     const range = formatDateRange(entry);
                     const meta = [range, entry.location]
                         .filter(Boolean)
