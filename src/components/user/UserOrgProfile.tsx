@@ -17,7 +17,16 @@ import QueryWrapper from "@/components/provider/QueryWrapper";
 import { auth } from "@/auth";
 import UserFollowButton from "@/components/user/actions/UserFollowButton";
 import ShowcaseBlock from "@/components/portfolio/ShowcaseBlock";
-import type { RenderedSection } from "@/components/user/sections";
+import ProfileNav from "@/components/user/ProfileNav";
+import ProfileResume from "@/components/user/ProfileResume";
+import { resumeDownloadUrl } from "@/utils/resumeDownloadUrl";
+import {
+    FACTS_SECTIONS,
+    TAB_SECTIONS,
+    visibleTabs,
+    type ProfileTab,
+    type RenderedSection,
+} from "@/components/user/sections";
 import { Organization, User } from "@/generated/prisma/client";
 import type {
     ExperienceInput,
@@ -104,6 +113,7 @@ const UserOrgProfile = async ({
     members,
     orgMembers,
     customization: customizationProp,
+    tab,
 }: {
     user?: User;
     org?: Organization;
@@ -121,9 +131,14 @@ const UserOrgProfile = async ({
         role: "owner" | "admin" | "member";
     }[];
     customization?: ProfileCustomization | null;
+    /** The tab this profile renders. Without it the component renders the
+     *  single scroll the organization profile uses. */
+    tab?: ProfileTab;
 }) => {
     const session = await auth();
     const customization = normalizeProfileCustomization(customizationProp);
+    const profilePath = userId ?? user?.username ?? "";
+    const isOwner = session?.user?.id === user?.id;
     const visibleSections = customization.layout.sectionOrder.filter(
         (section) => !customization.layout.hiddenSections.includes(section),
     );
@@ -442,57 +457,9 @@ const UserOrgProfile = async ({
           })
         | undefined;
 
-    const renderExperience = () => {
-        const experience = portfolio?.experience ?? [];
-        const skills = user?.skills ?? [];
-        if (experience.length === 0 && skills.length === 0) return null;
-
-        return (
-            <div
-                className={`p-4 ${cardClasses} ${alignClasses}`}
-                data-testid="experience"
-            >
-                <p className="brand-rule mb-4 text-headline text-base-content">
-                    Experience
-                </p>
-                {skills.length > 0 && (
-                    <ul className="mb-4 flex flex-wrap gap-2">
-                        {skills.map((skill) => (
-                            <li
-                                key={skill}
-                                className="badge badge-soft badge-sm"
-                            >
-                                {skill}
-                            </li>
-                        ))}
-                    </ul>
-                )}
-                <ol className="space-y-4">
-                    {experience.map((entry) => (
-                        <li key={entry.id}>
-                            <p className="font-semibold">
-                                {entry.role} · {entry.org}
-                            </p>
-                            <p className="text-xs opacity-70 nums">
-                                {formatDateRange(entry)}
-                                {entry.location ? ` · ${entry.location}` : ""}
-                            </p>
-                            {entry.description && (
-                                <p className="mt-1 text-sm whitespace-pre-line">
-                                    {entry.description}
-                                </p>
-                            )}
-                        </li>
-                    ))}
-                </ol>
-            </div>
-        );
-    };
-
     const renderShowcases = () => {
         const showcases = portfolio?.showcases ?? [];
         if (showcases.length === 0) return null;
-        const profilePath = userId ?? user?.username ?? "";
 
         return (
             <div className={`p-4 ${cardClasses} ${alignClasses}`}>
@@ -502,28 +469,9 @@ const UserOrgProfile = async ({
                         showcase={showcase}
                         items={showcase.items}
                         userId={profilePath}
+                        titleHref={`/${profilePath}/portfolio/${showcase.slug}`}
                     />
                 ))}
-            </div>
-        );
-    };
-
-    const renderResume = () => {
-        if (!user?.resumePublic || !user.resumeUrl) return null;
-        return (
-            <div
-                className={`p-4 ${cardClasses} ${alignClasses}`}
-                data-testid="resume"
-            >
-                <p className="brand-rule mb-2 text-headline text-base-content">
-                    Resume
-                </p>
-                <a
-                    href={`/api/portfolio/resume/download?userId=${encodeURIComponent(user.id)}`}
-                    className="link link-primary"
-                >
-                    Download resume
-                </a>
             </div>
         );
     };
@@ -585,9 +533,10 @@ const UserOrgProfile = async ({
         featuredPost: renderFeaturedPost,
         organizations: renderUserOrganizations,
         posts: renderPosts,
-        experience: renderExperience,
+        // The experience and the resume file render in the Resume tab.
+        experience: () => null,
         showcases: renderShowcases,
-        resume: renderResume,
+        resume: () => null,
     };
 
     const statsVisible = visibleSections.includes("stats");
@@ -598,6 +547,104 @@ const UserOrgProfile = async ({
             : customization.layout.variant === "sidebar"
               ? true
               : statsVisible || socialsVisible;
+
+    /**
+     * The content of the active tab. The feed and the showcase blocks are the
+     * tabs themselves, so they render whatever the owner hid; the featured
+     * post and the two halves of the resume follow their own section.
+     */
+    const renderTabContent = () => {
+        const activeTab = tab;
+        if (!activeTab) return null;
+        if (activeTab === "resume") {
+            return (
+                <div className={`p-4 ${cardClasses} ${alignClasses}`}>
+                    <ProfileResume
+                        skills={
+                            visibleSections.includes("experience")
+                                ? (user?.skills ?? [])
+                                : []
+                        }
+                        experience={
+                            visibleSections.includes("experience")
+                                ? (portfolio?.experience ?? [])
+                                : []
+                        }
+                        downloadUrl={
+                            visibleSections.includes("resume") && user
+                                ? resumeDownloadUrl(user, isOwner)
+                                : null
+                        }
+                    />
+                </div>
+            );
+        }
+        return (
+            <>
+                {TAB_SECTIONS[activeTab].map((section) => {
+                    const isTheTab =
+                        section === "posts" || section === "showcases";
+                    if (!isTheTab && !visibleSections.includes(section)) {
+                        return null;
+                    }
+                    return (
+                        <Fragment key={section}>
+                            {renderers[section]?.()}
+                        </Fragment>
+                    );
+                })}
+            </>
+        );
+    };
+
+    if (tab) {
+        const factsSections = visibleSections.filter((s) =>
+            FACTS_SECTIONS.includes(s),
+        );
+        const facts = factsSections.map((s) => (
+            <Fragment key={s}>{renderers[s]?.()}</Fragment>
+        ));
+
+        return (
+            <div
+                className={containerClass}
+                style={{
+                    ...containerStyle,
+                    marginLeft: "calc(50% - 50vw)",
+                    marginRight: "calc(50% - 50vw)",
+                    minWidth: "100vw",
+                }}
+            >
+                <div className="mx-auto w-full max-w-[88rem] px-4 py-8 sm:px-6 lg:px-8 lg:py-12">
+                    {visibleSections.includes("hero") && (
+                        <Fragment key="hero">{renderHero()}</Fragment>
+                    )}
+                    <ProfileNav
+                        userId={profilePath}
+                        active={tab}
+                        tabs={visibleTabs(customization.layout.hiddenSections)}
+                    />
+                    {useSidebarLayout ? (
+                        <div className="flex flex-wrap mx-auto lg:flex-nowrap md:space-x-12 md:space-y-0">
+                            <div
+                                // top-20 clears the 64px navbar by the same 16px as
+                                // every other sticky rail in the app.
+                                className={`lg:w-1/4 mx-auto h-2/4 md:sticky top-20 p-12 mb-12 lg:mb-0 ${SPACING_CLASS[customization.spacingDensity]} ${alignClasses}`}
+                            >
+                                {facts}
+                            </div>
+                            <div className="w-full">{renderTabContent()}</div>
+                        </div>
+                    ) : (
+                        <>
+                            {facts}
+                            {renderTabContent()}
+                        </>
+                    )}
+                </div>
+            </div>
+        );
+    }
 
     if (useSidebarLayout) {
         const sidebarSections = visibleSections.filter(
@@ -673,10 +720,3 @@ const UserOrgProfile = async ({
 };
 
 export default UserOrgProfile;
-function formatDateRange(entry: ExperienceInput): string {
-    const start = entry.startDate ?? "";
-    if (entry.isCurrent) return [start, "Present"].filter(Boolean).join(" - ");
-    const end = entry.endDate ?? "";
-    const range = [start, end].filter(Boolean);
-    return range.length > 0 ? range.join(" - ") : "";
-}
