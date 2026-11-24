@@ -1,5 +1,9 @@
+import type { LookupAddress } from "node:dns";
 import { lookup } from "node:dns/promises";
+import { request as httpsRequest } from "node:https";
+import type { ClientRequest } from "node:http";
 import { isIP } from "node:net";
+import type { Readable } from "node:stream";
 
 import { isAllowedRedirectUri } from "./redirect-uri";
 
@@ -8,11 +12,22 @@ import { isAllowedRedirectUri } from "./redirect-uri";
 const METADATA_FETCH_TIMEOUT_MS = 5_000;
 const METADATA_MAX_BYTES = 64 * 1024;
 
+const UNREADABLE = "The client metadata document could not be read.";
+
+/** A failure the consent page can print as-is. */
+class MetadataError extends Error {}
+
 export type ClientMetadata = {
     clientId: string;
     clientName: string;
     redirectUris: string[];
 };
+
+export type MetadataTransport = (
+    _url: URL,
+    _addresses: string[],
+    _limits: { timeoutMs: number; maxBytes: number },
+) => Promise<string>;
 
 function parseUrl(value: string): URL | null {
     try {
@@ -99,40 +114,155 @@ export function isPublicAddress(address: string): boolean {
     return false;
 }
 
-async function assertPublicHost(hostname: string): Promise<void> {
+async function resolvePublicAddresses(hostname: string): Promise<string[]> {
     const bare = hostname.replace(/^\[|\]$/g, "");
-    let addresses: { address: string }[];
+    let answers: LookupAddress[];
     try {
-        addresses = await lookup(bare, { all: true });
+        answers = await lookup(bare, { all: true });
     } catch {
-        throw new Error("The client metadata document could not be read.");
+        throw new MetadataError(UNREADABLE);
     }
-    const anyPrivate = addresses.some(
+    const anyPrivate = answers.some(
         ({ address }) => !isPublicAddress(address),
     );
-    if (addresses.length === 0 || anyPrivate) {
-        throw new Error(
+    if (answers.length === 0 || anyPrivate) {
+        throw new MetadataError(
             "The client metadata document host is not a public address.",
         );
     }
+    return answers.map(({ address }) => address);
 }
 
-async function readBody(response: Response): Promise<string> {
-    if (!response.ok) {
-        throw new Error(
-            `The client metadata document answered ${response.status}.`,
+type LookupCallback = (
+    _error: NodeJS.ErrnoException | null,
+    _address: string | LookupAddress[],
+    _family?: number,
+) => void;
+
+/**
+ * The socket's resolver, pinned to the addresses that already passed
+ * `isPublicAddress`. The hostname it is asked about is ignored, so a record
+ * that changes between the check and the connection cannot redirect the dial
+ * into private space.
+ */
+export function pinnedLookup(allowed: string[]) {
+    return (
+        _hostname: string,
+        options: { all?: boolean },
+        callback: LookupCallback,
+    ): void => {
+        const entries = allowed.map((address) => ({
+            address,
+            family: isIP(address),
+        }));
+        const [first] = entries;
+        if (!first) {
+            callback(
+                new MetadataError("No validated address to connect to."),
+                "",
+                0,
+            );
+            return;
+        }
+        if (options.all) {
+            callback(null, entries);
+            return;
+        }
+        callback(null, first.address, first.family);
+    };
+}
+
+/**
+ * The response half of the transport: a 3xx is a refusal, never a redirect,
+ * and the body is cut off as soon as it passes the byte cap.
+ */
+export function readMetadataResponse(
+    statusCode: number | undefined,
+    stream: Readable,
+    limits: { maxBytes: number },
+): Promise<string> {
+    if (statusCode !== 200) {
+        stream.destroy();
+        return Promise.reject(
+            new MetadataError(
+                `The client metadata document answered ${statusCode ?? "no status"}.`,
+            ),
         );
     }
-    let body: string;
-    try {
-        body = await response.text();
-    } catch {
-        throw new Error("The client metadata document could not be read.");
-    }
-    if (Buffer.byteLength(body) > METADATA_MAX_BYTES) {
-        throw new Error("The client metadata document is too large.");
-    }
-    return body;
+    return new Promise((resolve, reject) => {
+        const chunks: Buffer[] = [];
+        let size = 0;
+        let settled = false;
+        const finish = (error: Error | null, body = "") => {
+            if (settled) return;
+            settled = true;
+            if (error) {
+                stream.destroy();
+                reject(error);
+                return;
+            }
+            resolve(body);
+        };
+        stream.on("data", (chunk: Buffer) => {
+            size += chunk.length;
+            if (size > limits.maxBytes) {
+                finish(new MetadataError("The client metadata document is too large."));
+                return;
+            }
+            chunks.push(chunk);
+        });
+        stream.on("end", () => {
+            finish(null, Buffer.concat(chunks).toString("utf8"));
+        });
+        stream.on("error", () => {
+            finish(new MetadataError(UNREADABLE));
+        });
+    });
+}
+
+function httpsTransport(
+    url: URL,
+    addresses: string[],
+    limits: { timeoutMs: number; maxBytes: number },
+): Promise<string> {
+    return new Promise((resolve, reject) => {
+        let settled = false;
+        let request: ClientRequest | undefined;
+        const fail = (error: Error) => {
+            if (settled) return;
+            settled = true;
+            request?.destroy();
+            reject(error);
+        };
+
+        request = httpsRequest(
+            url,
+            {
+                method: "GET",
+                headers: { accept: "application/json" },
+                lookup: pinnedLookup(addresses),
+            },
+            (response) => {
+                readMetadataResponse(response.statusCode, response, limits).then(
+                    (body) => {
+                        if (settled) return;
+                        settled = true;
+                        resolve(body);
+                    },
+                    fail,
+                );
+            },
+        );
+        request.setTimeout(limits.timeoutMs, () => {
+            fail(
+                new MetadataError(
+                    `The client metadata document did not answer within ${limits.timeoutMs} ms.`,
+                ),
+            );
+        });
+        request.on("error", () => fail(new MetadataError(UNREADABLE)));
+        request.end();
+    });
 }
 
 function validate(clientId: string, body: string): ClientMetadata {
@@ -177,22 +307,24 @@ function validate(clientId: string, body: string): ClientMetadata {
 
 export async function fetchClientMetadata(
     clientId: string,
+    transport: MetadataTransport = httpsTransport,
 ): Promise<ClientMetadata> {
     const url = asMetadataUrl(clientId);
     if (!url) {
         throw new Error("The client ID is not a metadata document URL.");
     }
-    await assertPublicHost(url.hostname);
+    const addresses = await resolvePublicAddresses(url.hostname);
 
-    let response: Response;
+    let body: string;
     try {
-        response = await fetch(clientId, {
-            redirect: "error",
-            signal: AbortSignal.timeout(METADATA_FETCH_TIMEOUT_MS),
+        body = await transport(url, addresses, {
+            timeoutMs: METADATA_FETCH_TIMEOUT_MS,
+            maxBytes: METADATA_MAX_BYTES,
         });
-    } catch {
-        throw new Error("The client metadata document could not be read.");
+    } catch (error) {
+        if (error instanceof MetadataError) throw error;
+        throw new MetadataError(UNREADABLE);
     }
 
-    return validate(clientId, await readBody(response));
+    return validate(clientId, body);
 }
