@@ -41,6 +41,7 @@ vi.mock("@/db", () => ({
 
 import { hashSecret } from "@/modules/oauth/clients";
 import { s256 } from "@/modules/oauth/pkce";
+import { verifyAccessToken } from "@/modules/oauth/tokens";
 
 import { POST } from "./route";
 
@@ -289,9 +290,11 @@ describe("POST /oauth/token", () => {
         expect(res.status).toBe(200);
         // A URL-shaped id is never looked up as a registered client.
         expect(findClientMock).not.toHaveBeenCalled();
+        const body = await res.json();
+        expect(verifyAccessToken(body.access_token)?.userId).toBe(code.userId);
     });
 
-    it("refuses a secretless request for a code issued to a registered client", async () => {
+    it("refuses a secretless request whose client_id is not a metadata URL", async () => {
         const res = await POST(
             tokenRequest({
                 grant_type: "authorization_code",
@@ -304,6 +307,24 @@ describe("POST /oauth/token", () => {
 
         expect(res.status).toBe(401);
         expect(await res.json()).toMatchObject({ error: "invalid_client" });
+    });
+
+    it("refuses a metadata URL redeeming a code issued to a registered client", async () => {
+        // The stored row (the fixture) belongs to "client-1"; the presented id
+        // is the URL. The comparison on the stored row is the only refusal.
+        const res = await POST(
+            tokenRequest({
+                grant_type: "authorization_code",
+                client_id: METADATA_CLIENT_ID,
+                code: "the-code",
+                redirect_uri: "http://127.0.0.1:19876/callback",
+                code_verifier: "the-verifier",
+            }),
+        );
+
+        expect(res.status).toBe(400);
+        expect(await res.json()).toEqual({ error: "invalid_grant" });
+        expect(updateManyCodeMock).not.toHaveBeenCalled();
     });
 
     it("rotates a public client's refresh token without a secret", async () => {
@@ -327,6 +348,42 @@ describe("POST /oauth/token", () => {
 
         expect(res.status).toBe(200);
         expect(findClientMock).not.toHaveBeenCalled();
-        expect(createRefreshMock).toHaveBeenCalledTimes(1);
+        expect(updateManyRefreshMock).toHaveBeenCalledWith({
+            where: { id: "refresh-row-1", revokedAt: null },
+            data: { revokedAt: expect.any(Date) },
+        });
+        expect(createRefreshMock).toHaveBeenCalledWith(
+            expect.objectContaining({
+                data: expect.objectContaining({
+                    clientId: METADATA_CLIENT_ID,
+                    userId: "alice",
+                }),
+            }),
+        );
+    });
+
+    it("refuses a metadata URL rotating a refresh token of a registered client", async () => {
+        findRefreshMock.mockResolvedValue({
+            id: "refresh-row-1",
+            tokenHash: hashSecret("the-refresh"),
+            clientId: "client-1",
+            userId: "alice",
+            scopes: ["posts:read"],
+            expiresAt: new Date(Date.now() + 60_000),
+            revokedAt: null,
+        });
+
+        const res = await POST(
+            tokenRequest({
+                grant_type: "refresh_token",
+                client_id: METADATA_CLIENT_ID,
+                refresh_token: "the-refresh",
+            }),
+        );
+
+        expect(res.status).toBe(400);
+        expect(await res.json()).toEqual({ error: "invalid_grant" });
+        expect(updateManyRefreshMock).not.toHaveBeenCalled();
+        expect(createRefreshMock).not.toHaveBeenCalled();
     });
 });
