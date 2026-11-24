@@ -465,52 +465,76 @@ This step verifies the server-side guard. Optional but recommended:
 
 The seed gives alice two showcases (`photography` in the `gallery` layout with two items, `projects` in `grid` with one) and two experience rows. Her resume is **not** seeded — upload one by hand.
 
-### 8.1 Profile renders the new sections
-1. Anonymous context, open `/alice`.
-2. **Expected:** an **Experience** block (three skill chips, "D-Work as **Engineer · Dawg Studio**" with "Present", then the TU Berlin entry), then the **Showcases** blocks: "Photography" as an image grid and "Projects" as a card with a link.
-3. **Expected:** no **Resume** block, because `resumePublic` is off for a seeded user.
+The profile is three routes: `/alice` is the **Posts** tab, `/alice/projects` the **Projects** tab and `/alice/resume` the **Resume** tab. The navigation sits under the profile card on all three.
 
-### 8.2 Showcase and item pages open
-1. From `/alice`, click a Photography image.
+### 8.1 The profile opens on the Posts tab
+1. Anonymous context, open `/alice`.
+2. **Expected:** the profile card (avatar, name, bio), then the navigation with **Posts**, **Projects** and **Resume**, then the post feed. **Posts** is the marked current tab.
+3. **Expected:** no **Resume** download, because `resumePublic` is off for a seeded user.
+
+### 8.2 The navigation opens the other two views
+1. Click **Projects** in the navigation.
+2. **Expected:** `/alice/projects` opens, **Projects** is the marked current tab, and the two seeded showcases render — "Photography" as an image grid and "Projects" as a card with a link.
+3. Click the **Photography** heading.
+4. **Expected:** `/alice/portfolio/photography` opens.
+5. Click **Resume** in the navigation.
+6. **Expected:** `/alice/resume` opens with the three skill chips and the two seeded experience rows, split into **Work** and **Education**.
+
+### 8.3 Showcase and item pages open
+1. From `/alice/projects`, click a Photography image.
 2. **Expected:** the item page at `/alice/portfolio/photography/<slug>` opens, showing the gallery images, the summary, the date, and the tags.
 3. Click the showcase title in the breadcrumb.
 4. **Expected:** `/alice/portfolio/photography` lists both items.
 
-### 8.3 Sections are reorderable and hideable
+### 8.4 The settings page splits the sections and still saves
 1. As alice, open `/settings/profile/customization`.
-2. **Expected:** the Sections list contains **Experience**, **Showcases** and **Resume**.
-3. Hide **Showcases**, reload `/alice`.
-4. **Expected:** both showcase blocks are gone and the rest of the page is unchanged.
+2. **Expected:** the **Sections** list holds the profile sections (Hero, Stats, About, Social Links, Featured Post, Interests, Organizations) with their up/down buttons, and a **Tabs** list below it holds **Projects**, **Resume timeline** and **Resume file**, each with a checkbox. A line says the Posts tab is always shown.
+3. Move **Stats** up and wait for the **Saved** indicator.
+4. **Expected:** the order persists after a reload and no request fails.
+5. Hide **Projects** in the Tabs list, wait for the **Saved** indicator, reload `/alice`.
+6. **Expected:** the **Projects** tab is gone from the navigation. With Showcases still hidden, `/alice/projects` still lists the showcase blocks — hiding is presentational.
+7. Show **Projects** again.
 
-### 8.4 Another user cannot open alice's editor
+### 8.5 Hiding half of the resume
+1. As alice, open `/settings/profile/customization`.
+2. Untick **Resume timeline**, wait for the **Saved** indicator, reload `/alice/resume`.
+3. **Expected:** the **Resume** tab is still in the navigation, and it shows the skill chips and the download button but no **Work** or **Education** list.
+4. Untick **Resume file** as well.
+5. **Expected:** the **Resume** tab is gone from the navigation. Tick both back on.
+
+### 8.6 Another user cannot open alice's editor
 1. As bob, open `/settings/portfolio/showcase/<alice's showcase id>`.
 2. **Expected:** HTTP 404. Never 200, and never a 403 that confirms the id exists.
 3. `PATCH /api/portfolio/showcase` with alice's `showcaseId` and bob's session.
 4. **Expected:** HTTP 404 and alice's showcase is unchanged.
 
-### 8.5 Resume upload is stored but changes nothing until applied
+### 8.7 Resume upload is stored but changes nothing until applied
 1. As alice, open `/settings/portfolio`.
 2. Upload a text-based PDF resume (≤ 5 MiB).
-3. **Expected:** a success toast, then a checklist of the experience rows found, with editable fields, a skills field, and an "Add N entries" button. `/alice` has **not** changed yet.
+3. **Expected:** a success toast, then a checklist of the experience rows found, with editable fields, a skills field, and an "Add N entries" button. `/alice/resume` has **not** changed yet.
 4. Untick one row, press **Add N entries**.
-5. **Expected:** only the ticked rows are added to `/alice`'s Experience block.
+5. **Expected:** only the ticked rows are added to `/alice/resume`.
 
-### 8.6 Negative — a non-PDF is refused
+### 8.8 Negative — a non-PDF is refused
 1. As alice, rename any non-PDF file to `resume.pdf` and upload it.
 2. **Expected:** HTTP 415 and an error toast; `resumeUrl` is unchanged.
 
-### 8.7 Resume privacy
+### 8.9 Resume privacy
 1. With a resume uploaded, leave **Show a download link on my profile** off.
 2. Open `/api/portfolio/resume/download?userId=<alice id>` in the anonymous context.
 3. **Expected:** 404.
-4. Turn the toggle on, reload `/alice`.
-5. **Expected:** a **Resume** block with a working download link; the anonymous request above now redirects to a signed Cloudinary URL that serves the PDF.
+4. Turn the toggle on, reload `/alice/resume`.
+5. **Expected:** a working **Download resume** link; the anonymous request above now redirects to a signed Cloudinary URL that serves the PDF.
 6. Press **Remove resume**.
-7. **Expected:** the file is gone from Cloudinary (check the media library), the columns are null, and `/alice` shows no Resume block.
+7. **Expected:** the file is gone from Cloudinary (check the media library), the columns are null, and `/alice/resume` shows no download link.
 
-### 8.8 Negative — the 13th gallery image
+### 8.10 Negative — the 13th gallery image
 1. As alice, open a showcase editor and add images until the gallery reads **12 of 12**.
 2. **Expected:** the gallery file input is disabled; the server also refuses a 13th URL with HTTP 400.
+
+### 8.11 The organization profile is unchanged
+1. Open `/organization/weaseln-test-org`.
+2. **Expected:** the single scroll it has today — no navigation, and the members list with its role badges.
 
 ---
 
@@ -524,6 +548,7 @@ A clean run is:
 - All §5 post-creation checks pass.
 - All §6 post-customization checks pass.
 - All §7 profile-customization checks pass.
+- All §8 portfolio-profile checks pass.
 - No console errors in the browser on the visited routes (Socket.IO connection failures are expected if the standalone Socket.IO server on `ws://localhost:5000` isn't running — they don't block functional correctness).
 - No 500s in the server log.
 
