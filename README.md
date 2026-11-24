@@ -81,7 +81,7 @@ docker compose up -d
 
 #### 5. Set up the database
 
->*This is part of the `npm run dev` command but it's useful to keep Prisma up-to-date*
+>*Needed once for a fresh local database. Never run this against production.*
 ```bash
 npx prisma generate
 npx prisma db push
@@ -137,6 +137,87 @@ Seeded logins:
     Each hit logs a `[dev-login] issued token for <email>` warning on the server, so dev-login traffic is visible in logs.
 
 The endpoint is gated on `ENABLE_DEV_LOGIN=true`. It returns 404 in any environment where the flag isn't explicitly set — never enabled by default, never inherited from `NODE_ENV`.
+
+## MCP server
+
+weaseln speaks the Model Context Protocol over HTTP, so any MCP client can
+act as you: publish and manage posts, manage an organization, and change
+your profile, your design and your portfolio.
+
+The in-app instructions live at **Settings > Account**, under MCP.
+
+### The endpoint
+
+```
+https://<your-host>/api/mcp
+```
+
+### Register a client
+
+1. Sign in and open **Settings > MCP clients**.
+2. Create a client with a name and a redirect URI. A native client uses a
+   loopback address such as `http://127.0.0.1:19876/callback`; a web client
+   uses an `https://` address.
+3. Copy the client id and secret. The secret is shown once.
+
+### Permissions
+
+A client is registered with the permissions it needs, and a token can never
+carry a permission the client was not registered with.
+
+| Scope               | Grants                                          |
+| ------------------- | ----------------------------------------------- |
+| `posts:read`        | read posts                                      |
+| `posts:write`       | create, update, publish and delete posts        |
+| `org:read`          | read organizations and their members            |
+| `org:write`         | create organizations and manage their members   |
+| `design:read`       | read the profile and post design                |
+| `design:write`      | change the profile and post design              |
+| `profile:read`      | read the profile text: name, bio, links, skills |
+| `profile:write`     | change the profile text                         |
+| `portfolio:read`    | read the resume, experience and showcases       |
+| `portfolio:write`   | upload and delete the resume, manage projects   |
+
+A client registered before the profile and portfolio permissions existed keeps
+the six it was registered with, and the settings page shows each client's
+permissions. Register the client again to give it the new ones.
+
+### OpenCode
+
+```jsonc
+{
+  "$schema": "https://opencode.ai/config.json",
+  "mcp": {
+    "servers": {
+      "weaseln": {
+        "type": "remote",
+        "url": "https://<your-host>/api/mcp",
+        "oauth": {
+          "client_id": "{env:WEASELN_MCP_CLIENT_ID}",
+          "client_secret": "{env:WEASELN_MCP_CLIENT_SECRET}",
+          "scope": "posts:read posts:write org:read org:write design:read design:write profile:read profile:write portfolio:read portfolio:write",
+          "callback_port": 19876,
+          "redirect_uri": "http://127.0.0.1:19876/callback"
+        }
+      }
+    }
+  }
+}
+```
+
+The client signs in with OAuth 2.1: the browser opens the consent screen and
+the code is exchanged for a token at `/oauth/token`. The discovery documents
+are at `/.well-known/oauth-authorization-server` and
+`/.well-known/oauth-protected-resource/api/mcp`.
+
+### The database
+
+The OAuth tables live in their own Postgres schema. The schema reaches the
+database as SQL in `prisma/migrations/20261124000000_portfolio_oauth/migration.sql`,
+applied by `scripts/apply-perf-migration.ts` on every build.
+
+Never run `npx prisma db push` against production: the deployed database
+holds tables the schema does not know, so Prisma's diff answers "drop them".
 
 ## License
 
