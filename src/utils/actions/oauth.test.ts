@@ -5,13 +5,11 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const {
     authMock,
     resolveClientMock,
-    findClientMock,
     createMock,
     redirectMock,
 } = vi.hoisted(() => ({
     authMock: vi.fn(),
     resolveClientMock: vi.fn(),
-    findClientMock: vi.fn(),
     createMock: vi.fn(),
     redirectMock: vi.fn(),
 }));
@@ -22,30 +20,16 @@ vi.mock("@/db", () => ({
         oAuthAuthorizationCode: { create: createMock },
     },
 }));
-// Partial mock: the two lookups are the seam, hashSecret stays real.
+// Partial mock: the one client lookup is the seam, hashSecret stays real.
 vi.mock("@/modules/oauth/clients", async (importOriginal) => {
     const actual =
         await importOriginal<typeof import("@/modules/oauth/clients")>();
-    return {
-        ...actual,
-        resolveClient: resolveClientMock,
-        findOAuthClient: findClientMock,
-    };
+    return { ...actual, resolveClient: resolveClientMock };
 });
 vi.mock("next/navigation", () => ({ redirect: redirectMock }));
 
 import { OAUTH_SCOPES } from "@/modules/oauth/scopes";
 import { approveAuthorization, denyAuthorization } from "@/utils/actions/oauth";
-
-const registeredRow = {
-    id: "row-1",
-    clientId: "client-1",
-    clientSecretHash: "hash",
-    redirectUris: ["http://127.0.0.1:19876/callback"],
-    scopes: ["posts:read", "posts:write"],
-    userId: "alice",
-    revokedAt: null,
-};
 
 const client = {
     clientId: "client-1",
@@ -54,6 +38,7 @@ const client = {
     allowedScopes: ["posts:read", "posts:write"],
     origin: null,
     public: false,
+    userId: "alice",
 };
 
 const publicClient = {
@@ -63,6 +48,7 @@ const publicClient = {
     allowedScopes: null,
     origin: "opencode.ai",
     public: true,
+    userId: null,
 };
 
 const request = {
@@ -78,19 +64,26 @@ describe("oauth consent actions", () => {
     beforeEach(() => {
         authMock.mockReset();
         resolveClientMock.mockReset();
-        findClientMock.mockReset();
         createMock.mockReset();
         redirectMock.mockReset();
         authMock.mockResolvedValue({ user: { id: "alice" } });
         resolveClientMock.mockResolvedValue(client);
-        findClientMock.mockResolvedValue(registeredRow);
         redirectMock.mockImplementation((url: string) => {
             throw new Error(`REDIRECT ${url}`);
         });
     });
 
     it("refuses to authorize a client owned by another user", async () => {
-        findClientMock.mockResolvedValue({ ...registeredRow, userId: "bob" });
+        resolveClientMock.mockResolvedValue({ ...client, userId: "bob" });
+
+        await expect(approveAuthorization(request)).rejects.toThrow(
+            "Not authorized",
+        );
+        expect(createMock).not.toHaveBeenCalled();
+    });
+
+    it("refuses to authorize a client it cannot resolve", async () => {
+        resolveClientMock.mockResolvedValueOnce(null);
 
         await expect(approveAuthorization(request)).rejects.toThrow(
             "Not authorized",
@@ -156,6 +149,39 @@ describe("oauth consent actions", () => {
                 state: "xyz",
             }),
         ).rejects.toThrow(/error=access_denied.*state=xyz/);
+    });
+
+    it("redirects a metadata client with access_denied on refusal", async () => {
+        resolveClientMock.mockResolvedValueOnce(publicClient);
+        await expect(
+            denyAuthorization({
+                clientId: "https://opencode.ai/oauth/opencode/client.json",
+                redirectUri: "http://127.0.0.1:19876/callback",
+                state: "xyz",
+            }),
+        ).rejects.toThrow(/error=access_denied.*state=xyz/);
+    });
+
+    it("refuses to deny with a redirect URI the client did not register", async () => {
+        resolveClientMock.mockResolvedValueOnce(publicClient);
+        await expect(
+            denyAuthorization({
+                clientId: "https://opencode.ai/oauth/opencode/client.json",
+                redirectUri: "http://evil.example.com/callback",
+                state: "xyz",
+            }),
+        ).rejects.toThrow("Invalid redirect URI");
+    });
+
+    it("refuses to deny an unknown client", async () => {
+        resolveClientMock.mockResolvedValueOnce(null);
+        await expect(
+            denyAuthorization({
+                clientId: "nobody",
+                redirectUri: "http://127.0.0.1:19876/callback",
+                state: "xyz",
+            }),
+        ).rejects.toThrow("Invalid client");
     });
 
     it("authorizes a public metadata client and binds the code to the consenter", async () => {

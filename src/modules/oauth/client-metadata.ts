@@ -15,7 +15,7 @@ const METADATA_MAX_BYTES = 64 * 1024;
 const UNREADABLE = "The client metadata document could not be read.";
 
 /** A failure the consent page can print as-is. */
-class MetadataError extends Error {}
+export class MetadataError extends Error {}
 
 export type ClientMetadata = {
     clientId: string;

@@ -1,11 +1,8 @@
 import { redirect } from "next/navigation";
 
 import { auth } from "@/auth";
-import {
-    findOAuthClient,
-    resolveClient,
-    type ResolvedClient,
-} from "@/modules/oauth/clients";
+import { MetadataError } from "@/modules/oauth/client-metadata";
+import { resolveClient, type ResolvedClient } from "@/modules/oauth/clients";
 import { matchesRedirectUri } from "@/modules/oauth/redirect-uri";
 import {
     grantedScopes,
@@ -54,22 +51,17 @@ export default async function AuthorizePage({
     try {
         client = clientId ? await resolveClient(clientId) : null;
     } catch (error) {
-        // A URL-shaped client id whose document is unreachable or invalid.
-        return (
-            <Refusal
-                message={
-                    error instanceof Error
-                        ? error.message
-                        : "This client could not be verified."
-                }
-            />
-        );
+        if (error instanceof MetadataError) {
+            return <Refusal message={error.message} />;
+        }
+        console.error("resolveClient failed", error);
+        return <Refusal message="This client could not be verified." />;
     }
     if (!client) return <Refusal message="This client is not registered." />;
 
     const scopes = parseScopes(scope);
 
-    const failure = await consentFailure({
+    const failure = consentFailure({
         client,
         userId: session.user.id,
         redirectUri,
@@ -111,7 +103,7 @@ function Refusal({ message }: { message: string }) {
     );
 }
 
-async function consentFailure(input: {
+function consentFailure(input: {
     client: ResolvedClient;
     userId: string;
     redirectUri: string;
@@ -119,20 +111,14 @@ async function consentFailure(input: {
     codeChallenge: string;
     scopes: string[];
     responseType: string;
-}): Promise<string | null> {
+}): string | null {
     if (input.responseType !== "code") {
         return "This server only supports the authorization code flow.";
     }
     // A registered client may only be authorized by the account that owns it. A
     // metadata client has no owner; the consent screen binds it to the consenter.
-    if (!input.client.public) {
-        const registered = await findOAuthClient(input.client.clientId);
-        if (!registered || registered.revokedAt) {
-            return "This client is not registered.";
-        }
-        if (registered.userId !== input.userId) {
-            return "This client belongs to another account.";
-        }
+    if (!input.client.public && input.client.userId !== input.userId) {
+        return "This client belongs to another account.";
     }
     if (!matchesRedirectUri(input.client.redirectUris, input.redirectUri)) {
         return "The redirect URI is not registered for this client.";

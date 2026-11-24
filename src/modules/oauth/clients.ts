@@ -137,6 +137,7 @@ export type ResolvedClient = {
     allowedScopes: string[] | null;
     origin: string | null;
     public: boolean;
+    userId: string | null;
 };
 
 /**
@@ -156,6 +157,7 @@ export async function resolveClient(
             allowedScopes: registered.scopes,
             origin: null,
             public: false,
+            userId: registered.userId,
         };
     }
     if (!isClientMetadataUrl(clientId)) return null;
@@ -168,6 +170,7 @@ export async function resolveClient(
         allowedScopes: null,
         origin: new URL(clientId).hostname,
         public: true,
+        userId: null,
     };
 }
 

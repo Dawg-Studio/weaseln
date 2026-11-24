@@ -6,11 +6,7 @@ import { redirect } from "next/navigation";
 
 import { auth } from "@/auth";
 import prisma from "@/db";
-import {
-    findOAuthClient,
-    hashSecret,
-    resolveClient,
-} from "@/modules/oauth/clients";
+import { hashSecret, resolveClient } from "@/modules/oauth/clients";
 import {
     isAllowedRedirectUri,
     matchesRedirectUri,
@@ -55,16 +51,8 @@ export async function approveAuthorization(
     if (!client) throw new Error("Not authorized");
     // A registered client may only be authorized by the account that owns it. A
     // metadata client has no owner; the consent screen binds it to the consenter.
-    // resolveClient does not carry the owner, so the row is read once more.
-    if (!client.public) {
-        const registered = await findOAuthClient(client.clientId);
-        if (
-            !registered ||
-            registered.revokedAt ||
-            registered.userId !== session.user.id
-        ) {
-            throw new Error("Not authorized");
-        }
+    if (!client.public && client.userId !== session.user.id) {
+        throw new Error("Not authorized");
     }
     if (!matchesRedirectUri(client.redirectUris, input.redirectUri)) {
         throw new Error("Invalid redirect URI");
@@ -151,9 +139,9 @@ export async function listMcpClients(): Promise<
 }
 
 /**
- * The refusal path. The redirect URI is checked against the client's
- * registered URIs here too, so this action cannot be used as an open
- * redirect.
+ * The refusal path. The client and the redirect URI are resolved exactly as
+ * on approval, so this action cannot be used as an open redirect, and a
+ * metadata client can be refused as well as allowed.
  */
 export async function denyAuthorization(input: {
     clientId: string;
@@ -162,7 +150,7 @@ export async function denyAuthorization(input: {
 }): Promise<void> {
     const session = await auth();
     if (!session?.user) throw new Error("Not authenticated");
-    const client = await findOAuthClient(input.clientId);
+    const client = await resolveClient(input.clientId);
     if (!client) throw new Error("Invalid client");
     if (!matchesRedirectUri(client.redirectUris, input.redirectUri)) {
         throw new Error("Invalid redirect URI");

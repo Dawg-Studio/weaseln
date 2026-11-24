@@ -153,6 +153,7 @@ describe("resolveClient", () => {
         });
         const client = await resolveClient("client-1");
         expect(client).toMatchObject({ name: "OpenCode", public: false, origin: null, allowedScopes: ["posts:read"] });
+        expect(client?.userId).toBe("alice");
     });
 
     it("returns a metadata client, public, with no scope ceiling and its origin", async () => {
@@ -163,6 +164,7 @@ describe("resolveClient", () => {
         });
         const client = await resolveClient("https://opencode.ai/oauth/opencode/client.json");
         expect(client).toMatchObject({ name: "opencode", public: true, origin: "opencode.ai", allowedScopes: null });
+        expect(client?.userId).toBeNull();
     });
 
     it("returns null for an unknown opaque client id", async () => {
