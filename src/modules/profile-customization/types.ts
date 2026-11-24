@@ -14,6 +14,20 @@ export const PROFILE_SECTIONS = [
 
 export type ProfileSection = (typeof PROFILE_SECTIONS)[number];
 
+/**
+ * The sections split by where they render. The profile group stays in the
+ * profile card and the facts column and keeps its order; the tabs group has
+ * one home each, inside a tab. "posts" is in neither: it is the landing
+ * view and is never hidden.
+ */
+export const PROFILE_SECTION_GROUPS: {
+    profile: readonly ProfileSection[];
+    tabs: readonly ProfileSection[];
+} = {
+    profile: ["hero", "stats", "about", "socials", "featuredPost", "interests", "organizations"],
+    tabs: ["showcases", "experience", "resume"],
+};
+
 export const PROFILE_LAYOUT_VARIANTS = ["standard", "sidebar", "wide"] as const;
 export type ProfileLayoutVariant = (typeof PROFILE_LAYOUT_VARIANTS)[number];
 
