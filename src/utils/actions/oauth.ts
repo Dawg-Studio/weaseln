@@ -6,12 +6,17 @@ import { redirect } from "next/navigation";
 
 import { auth } from "@/auth";
 import prisma from "@/db";
-import { findOAuthClient, hashSecret } from "@/modules/oauth/clients";
+import {
+    findOAuthClient,
+    hashSecret,
+    resolveClient,
+} from "@/modules/oauth/clients";
 import {
     isAllowedRedirectUri,
     matchesRedirectUri,
 } from "@/modules/oauth/redirect-uri";
 import {
+    grantedScopes,
     isScopeSubset,
     OAUTH_SCOPES,
     parseScopes,
@@ -35,8 +40,10 @@ export type AuthorizationRequest = {
 
 /**
  * The approval path. Every check happens before a code exists, so a code is
- * only ever minted for a client the signed-in user owns, a redirect URI that
- * client registered, an S256 challenge, and scopes that client may request.
+ * only ever minted for a client weaseln can resolve, an owner the signed-in
+ * user is (for a registered client), a redirect URI that client registered, an
+ * S256 challenge, and scopes that client may request. The code itself is bound
+ * to the consenter, never to anything in the request.
  */
 export async function approveAuthorization(
     input: AuthorizationRequest,
@@ -44,9 +51,21 @@ export async function approveAuthorization(
     const session = await auth();
     if (!session?.user) throw new Error("Not authenticated");
 
-    const client = await findOAuthClient(input.clientId);
-    if (!client || client.revokedAt) throw new Error("Not authorized");
-    if (client.userId !== session.user.id) throw new Error("Not authorized");
+    const client = await resolveClient(input.clientId);
+    if (!client) throw new Error("Not authorized");
+    // A registered client may only be authorized by the account that owns it. A
+    // metadata client has no owner; the consent screen binds it to the consenter.
+    // resolveClient does not carry the owner, so the row is read once more.
+    if (!client.public) {
+        const registered = await findOAuthClient(client.clientId);
+        if (
+            !registered ||
+            registered.revokedAt ||
+            registered.userId !== session.user.id
+        ) {
+            throw new Error("Not authorized");
+        }
+    }
     if (!matchesRedirectUri(client.redirectUris, input.redirectUri)) {
         throw new Error("Invalid redirect URI");
     }
@@ -57,7 +76,12 @@ export async function approveAuthorization(
         throw new Error("Invalid code challenge");
     }
     const scopes = parseScopes(input.scope);
-    if (!isScopeSubset(scopes, client.scopes)) {
+    const scopeAllowed = client.allowedScopes
+        ? isScopeSubset(scopes, client.allowedScopes)
+        : scopes.every((scope) =>
+              (OAUTH_SCOPES as readonly string[]).includes(scope),
+          );
+    if (!scopeAllowed) {
         throw new Error("Invalid scope");
     }
 
@@ -69,7 +93,7 @@ export async function approveAuthorization(
             userId: session.user.id,
             redirectUri: input.redirectUri,
             codeChallenge: input.codeChallenge,
-            scopes,
+            scopes: grantedScopes(scopes, { public: client.public }),
             expiresAt: new Date(Date.now() + CODE_TTL_SECONDS * 1000),
         },
     });

@@ -48,3 +48,21 @@ export function isScopeSubset(
 ): boolean {
     return requested.every((scope) => allowed.includes(scope));
 }
+
+/**
+ * What an approval actually grants, so the consent screen and the action print
+ * and store the same list.
+ *
+ * shortcut: a public client that asks for nothing gets every known scope. Its
+ * default comes from the `WWW-Authenticate` challenge, which weaseln leaves
+ * empty, so a metadata client normally asks for nothing at all; the consent
+ * screen prints the granted list, so the user still sees what is approved. A
+ * registered client keeps the empty grant an empty request always produced.
+ */
+export function grantedScopes(
+    requested: string[],
+    client: { public: boolean },
+): string[] {
+    const grantsAll = client.public && requested.length === 0;
+    return grantsAll ? [...OAUTH_SCOPES] : requested;
+}
