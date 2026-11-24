@@ -576,7 +576,45 @@ database, so they are not covered by the unit tests. Run these after
 3. The dialog shows the client id and the secret once. Copy both.
 
 The page is reachable two ways: **Settings > MCP clients** in the left nav,
-and the link in step 1 of the MCP instructions on `/settings/account`.
+and the link in the last step of the MCP instructions on `/settings/account`.
+
+### A client that identifies itself with a metadata document
+
+OpenCode does this by default: `https://opencode.ai/oauth/opencode/client.json`
+is its client id, and it redeems the code with no secret at all. The server
+fetches that document, so the check needs outbound HTTPS.
+
+1. Open `http://localhost:3000/.well-known/oauth-protected-resource/api/mcp`
+   and check that `resource` and `authorization_servers` name this host.
+2. Open `http://localhost:3000/.well-known/oauth-authorization-server` and
+   check `client_id_metadata_document_supported: true`.
+3. Open the authorize endpoint in the signed-in browser, with OpenCode's
+   document as the client id:
+
+   ```
+   http://localhost:3000/oauth/authorize?response_type=code&client_id=https://opencode.ai/oauth/opencode/client.json&redirect_uri=http://127.0.0.1:19876/callback&state=xyz&code_challenge=verifier&code_challenge_method=S256
+   ```
+
+   The consent screen reads "Allow opencode to use your account?" and carries
+   "Approved by opencode.ai" with the warning that the app registered itself.
+   The request names no scope, so the grant is all ten permissions. Allow it
+   and the browser lands on the loopback address with a `code`.
+4. Exchange the code with no `client_secret`:
+
+   ```bash
+   curl -X POST http://localhost:3000/oauth/token \
+     -H 'content-type: application/x-www-form-urlencoded' \
+     -d 'grant_type=authorization_code' \
+     -d 'client_id=https://opencode.ai/oauth/opencode/client.json' \
+     -d 'code=<code>' \
+     -d 'redirect_uri=http://127.0.0.1:19876/callback' \
+     -d 'code_verifier=verifier'
+   ```
+
+   Expect `200` with an `access_token`.
+5. Negative: send the same exchange with the `client_id` of the client
+   registered above and no `client_secret`. Expect `401 invalid_client`: only
+   a `client_id` that is a metadata document may go secretless.
 
 ### Authorize a client
 
@@ -665,6 +703,10 @@ connecting a client, so check it as alice.
    the preview host.
 3. The **Copy the MCP endpoint URL** button puts that URL on the clipboard.
 4. The **Copy the MCP client configuration** button puts the OpenCode config
-   on the clipboard, with the endpoint filled in and `<client id>` and
-   `<client secret>` as the two placeholders.
-5. All ten permissions are listed with what each one grants.
+   on the clipboard, with the endpoint filled in and no `oauth` block, no
+   `client_id` and no `client_secret`: that snippet is the zero-key form.
+5. The last step offers the registered-client config under the **Copy the
+   registered-client configuration** button, which does carry `<client id>`
+   and `<client secret>` as its two placeholders, and links to
+   `/settings/mcp-clients`.
+6. All ten permissions are listed with what each one grants.

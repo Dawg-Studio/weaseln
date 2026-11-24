@@ -256,7 +256,9 @@ export default function McpClients({
                     <p className="text-sm opacity-80">
                         Each of these holds a live token for your account. A
                         client that identifies itself by a metadata URL has no
-                        stored name, so its address is shown instead.
+                        stored name, so its address is shown instead. Revoking
+                        stops it renewing, but the token it already holds keeps
+                        working until it expires, within an hour.
                     </p>
                 </div>
                 <div className="overflow-x-auto">
