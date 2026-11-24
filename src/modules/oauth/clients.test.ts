@@ -4,12 +4,14 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 // the mocks have to be hoisted with them.
 const {
     createMock,
+    fetchMetadataMock,
     findManyMock,
     findUniqueMock,
     updateMock,
     updateManyMock,
 } = vi.hoisted(() => ({
     createMock: vi.fn(),
+    fetchMetadataMock: vi.fn(),
     findManyMock: vi.fn(),
     findUniqueMock: vi.fn(),
     updateMock: vi.fn(),
@@ -30,11 +32,17 @@ vi.mock("@/db", () => ({
     },
 }));
 
+vi.mock("@/modules/oauth/client-metadata", async () => {
+    const actual = await vi.importActual<typeof import("@/modules/oauth/client-metadata")>("@/modules/oauth/client-metadata");
+    return { ...actual, fetchClientMetadata: fetchMetadataMock };
+});
+
 import {
     findOAuthClient,
     hashSecret,
     listOAuthClients,
     registerOAuthClient,
+    resolveClient,
     revokeOAuthClient,
     verifyClientSecret,
 } from "./clients";
@@ -128,5 +136,45 @@ describe("oauth client registry", () => {
         await listOAuthClients(actor);
 
         expect(findManyMock.mock.calls[0][0].where).toEqual({ userId: "alice" });
+    });
+});
+
+describe("resolveClient", () => {
+    beforeEach(() => {
+        findUniqueMock.mockReset().mockResolvedValue(null);
+        fetchMetadataMock.mockReset();
+    });
+
+    it("returns a registered client, not public, with its registered scopes", async () => {
+        findUniqueMock.mockResolvedValueOnce({
+            id: "row-1", clientId: "client-1", clientSecretHash: "h", name: "OpenCode",
+            redirectUris: ["http://127.0.0.1:19876/callback"], scopes: ["posts:read"],
+            userId: "alice", revokedAt: null,
+        });
+        const client = await resolveClient("client-1");
+        expect(client).toMatchObject({ name: "OpenCode", public: false, origin: null, allowedScopes: ["posts:read"] });
+    });
+
+    it("returns a metadata client, public, with no scope ceiling and its origin", async () => {
+        fetchMetadataMock.mockResolvedValueOnce({
+            clientId: "https://opencode.ai/oauth/opencode/client.json",
+            clientName: "opencode",
+            redirectUris: ["http://127.0.0.1/callback"],
+        });
+        const client = await resolveClient("https://opencode.ai/oauth/opencode/client.json");
+        expect(client).toMatchObject({ name: "opencode", public: true, origin: "opencode.ai", allowedScopes: null });
+    });
+
+    it("returns null for an unknown opaque client id", async () => {
+        expect(await resolveClient("nobody")).toBeNull();
+        expect(fetchMetadataMock).not.toHaveBeenCalled();
+    });
+
+    it("refuses a revoked registered client", async () => {
+        findUniqueMock.mockResolvedValueOnce({
+            id: "row-1", clientId: "client-1", clientSecretHash: "h", name: "x",
+            redirectUris: [], scopes: [], userId: "alice", revokedAt: new Date(),
+        });
+        expect(await resolveClient("client-1")).toBeNull();
     });
 });

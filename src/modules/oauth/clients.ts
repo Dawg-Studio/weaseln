@@ -4,6 +4,8 @@ import { init } from "@paralleldrive/cuid2";
 
 import prisma from "@/db";
 
+import { fetchClientMetadata, isClientMetadataUrl } from "./client-metadata";
+
 export type OAuthClientSummary = {
     id: string;
     clientId: string;
@@ -125,6 +127,47 @@ export async function findOAuthClient(
         scopes: client.scopes,
         userId: client.userId,
         revokedAt: client.revokedAt,
+    };
+}
+
+export type ResolvedClient = {
+    clientId: string;
+    name: string;
+    redirectUris: string[];
+    allowedScopes: string[] | null;
+    origin: string | null;
+    public: boolean;
+};
+
+/**
+ * A registered client wins over a metadata URL, so an id that Settings already
+ * issued can never be reinterpreted as one. `null` means no such client.
+ */
+export async function resolveClient(
+    clientId: string,
+): Promise<ResolvedClient | null> {
+    const registered = await findOAuthClient(clientId);
+    if (registered) {
+        if (registered.revokedAt) return null;
+        return {
+            clientId: registered.clientId,
+            name: registered.name,
+            redirectUris: registered.redirectUris,
+            allowedScopes: registered.scopes,
+            origin: null,
+            public: false,
+        };
+    }
+    if (!isClientMetadataUrl(clientId)) return null;
+
+    const metadata = await fetchClientMetadata(clientId);
+    return {
+        clientId: metadata.clientId,
+        name: metadata.clientName,
+        redirectUris: metadata.redirectUris,
+        allowedScopes: null,
+        origin: new URL(clientId).hostname,
+        public: true,
     };
 }
 
