@@ -287,15 +287,21 @@ describe("authorized clients", () => {
         expect(expiresAt.gt.getTime()).toBeGreaterThan(Date.now() - 1_000);
     });
 
-    it("throws when a grouped client has no live token to read scopes from", async () => {
+    it("drops a client whose live token vanished between the two reads", async () => {
+        // A concurrent revoke or rotation can take the token after groupBy has
+        // counted it. There is no grant to show, so the row is dropped rather
+        // than failing the page.
         groupByMock.mockResolvedValueOnce([
             { clientId: "client-1", _min: { createdAt: new Date("2026-01-01") }, _count: { _all: 1 } },
+            { clientId: "client-2", _min: { createdAt: new Date("2026-02-01") }, _count: { _all: 1 } },
         ]);
-        findFirstMock.mockResolvedValue(null);
+        findFirstMock
+            .mockResolvedValueOnce(null)
+            .mockResolvedValueOnce({ scopes: ["posts:read"] });
 
-        await expect(listAuthorizedClients({ userId: "alice" })).rejects.toThrow(
-            /No live refresh token for client client-1/,
-        );
+        const rows = await listAuthorizedClients({ userId: "alice" });
+
+        expect(rows.map((row) => row.clientId)).toEqual(["client-2"]);
     });
 
     it("marks a client registered only when the registry has a row for it", async () => {

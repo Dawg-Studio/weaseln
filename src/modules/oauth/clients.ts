@@ -232,7 +232,7 @@ export async function listAuthorizedClients(
     });
 
     return Promise.all(
-        grouped.map(async (row) => {
+        grouped.map(async (row): Promise<AuthorizedClient | null> => {
             const authorizedAt = row._min.createdAt;
             if (!authorizedAt) {
                 throw new Error(
@@ -251,11 +251,10 @@ export async function listAuthorizedClients(
                 }),
                 findOAuthClient(row.clientId),
             ]);
-            if (!latest) {
-                throw new Error(
-                    `No live refresh token for client ${row.clientId}`,
-                );
-            }
+            // A concurrent revoke or rotation can take the token between the
+            // two reads. "No live token" means there is no grant to list, not
+            // that the page failed.
+            if (!latest) return null;
             return {
                 clientId: row.clientId,
                 scopes: latest.scopes,
@@ -263,7 +262,7 @@ export async function listAuthorizedClients(
                 registered: registered !== null,
             };
         }),
-    );
+    ).then((rows) => rows.filter((row): row is AuthorizedClient => row !== null));
 }
 
 /**
