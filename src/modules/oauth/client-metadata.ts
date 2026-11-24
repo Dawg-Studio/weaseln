@@ -92,22 +92,51 @@ function ipv6Groups(address: string): number[] {
     );
 }
 
+// The two 16-bit groups are an IPv4 address in hex: 7f00:1 is 127.0.0.1.
+function ipv4Octets(high: number, low: number): number[] {
+    return [high >> 8, high & 0xff, low >> 8, low & 0xff];
+}
+
 function isPublicIpv6(address: string): boolean {
+    // Adding the gate here rather than at the caller means an input this
+    // function cannot parse is refused by it, not by whoever remembered to
+    // check first.
+    if (isIP(address) !== 6) return false;
     const groups = ipv6Groups(normalizeIpv6(address).toLowerCase());
+    if (groups.length !== 8 || groups.some((group) => Number.isNaN(group))) {
+        return false;
+    }
+    const [first, second, third] = groups;
+
+    // ::ffff:0:a.b.c.d is IPv4-translated, used only to reach an IPv4 host.
+    const translated =
+        groups.slice(0, 4).every((group) => group === 0) &&
+        groups[4] === 0xffff &&
+        groups[5] === 0;
+    if (translated) return false;
 
     // ::a.b.c.d and ::ffff:a.b.c.d carry an IPv4 address in their last 32 bits,
     // so the IPv4 rule decides. That covers ::, ::1, ::7f00:1 and ::a9fe:a9fe.
     const carriesIpv4 =
         groups.slice(0, 5).every((group) => group === 0) &&
         (groups[5] === 0 || groups[5] === 0xffff);
-    if (carriesIpv4) {
-        const octets = groups
-            .slice(6)
-            .flatMap((group) => [group >> 8, group & 0xff]);
-        return isPublicIpv4(octets);
+    if (carriesIpv4) return isPublicIpv4(ipv4Octets(groups[6], groups[7]));
+
+    // 2002::/16 is 6to4: bits 16-47 are the IPv4 address it routes to.
+    if (first === 0x2002) return isPublicIpv4(ipv4Octets(second, third));
+
+    // 64:ff9b::/96 is NAT64: bits 96-127 are the IPv4 address it routes to.
+    const nat64 =
+        first === 0x64 &&
+        second === 0xff9b &&
+        groups.slice(2, 6).every((group) => group === 0);
+    if (nat64) return isPublicIpv4(ipv4Octets(groups[6], groups[7]));
+
+    // 100::/64 is discard-only.
+    if (first === 0x100 && groups.slice(1, 4).every((group) => group === 0)) {
+        return false;
     }
 
-    const [first] = groups;
     if (first >= 0xfe80 && first <= 0xfebf) return false; // fe80::/10 link-local
     if (first >= 0xfc00 && first <= 0xfdff) return false; // fc00::/7 unique local
     if (first >= 0xff00) return false; // ff00::/8 multicast
@@ -120,10 +149,8 @@ function isPublicIpv6(address: string): boolean {
  * service.
  */
 export function isPublicAddress(address: string): boolean {
-    const family = isIP(address);
-    if (family === 4) return isPublicIpv4(address.split(".").map(Number));
-    if (family === 6) return isPublicIpv6(address);
-    return false;
+    if (isIP(address) === 4) return isPublicIpv4(address.split(".").map(Number));
+    return isPublicIpv6(address);
 }
 
 async function resolvePublicAddresses(hostname: string): Promise<string[]> {

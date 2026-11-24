@@ -89,6 +89,29 @@ describe("isPublicAddress", () => {
     });
     it("accepts a public address", () => {
         expect(isPublicAddress("93.184.216.34")).toBe(true);
+        expect(isPublicAddress("64:ff9b::808:808")).toBe(true);
+        expect(isPublicAddress("2002:808:808::")).toBe(true);
+    });
+
+    it("refuses a range that carries or routes an IPv4 address", () => {
+        for (const ip of [
+            "::ffff:0:127.0.0.1", // IPv4-translated
+            "2002:7f00:1::", // 6to4 around 127.0.0.1
+            "64:ff9b::127.0.0.1", // NAT64 around 127.0.0.1
+            "100::1", // discard-only
+        ]) {
+            expect(isPublicAddress(ip), ip).toBe(false);
+        }
+    });
+
+    it("refuses an address it cannot parse instead of admitting it", () => {
+        for (const value of [
+            "fe80::zz",
+            "2606:2800:220:1:248:1893:25c8",
+            "2606:2800::%eth0",
+        ]) {
+            expect(isPublicAddress(value), value).toBe(false);
+        }
     });
 });
 
