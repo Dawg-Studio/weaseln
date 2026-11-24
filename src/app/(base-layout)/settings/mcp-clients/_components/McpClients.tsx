@@ -267,7 +267,9 @@ export default function McpClients({
                             <tr>
                                 <th>Client</th>
                                 <th>Permissions</th>
-                                <th>Since</th>
+                                {/* After a rotation this is the current
+                                    token's age, not the first authorization. */}
+                                <th>Current token since</th>
                                 <th>Revoke</th>
                             </tr>
                         </thead>

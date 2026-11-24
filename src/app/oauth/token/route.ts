@@ -108,8 +108,10 @@ export async function POST(req: Request) {
     const credentials = readClientCredentials(req, body);
 
     // A client that authenticates with nothing is a public client only if its
-    // id names a metadata document. Anything else secretless is refused, and a
-    // URL-shaped id is never looked up as a registered client.
+    // id names a metadata document. Anything else secretless is refused, and an
+    // id the registry already issued is refused too: a registered client is
+    // confidential, so a URL-shaped id that resolves in the registry must not be
+    // accepted as the secretless spelling of itself.
     let clientId: string;
     if (credentials) {
         const client = await findOAuthClient(credentials.clientId);
@@ -124,6 +126,9 @@ export async function POST(req: Request) {
     } else {
         const presented = body.get("client_id");
         if (typeof presented !== "string" || !isClientMetadataUrl(presented)) {
+            return oauthError("invalid_client", 401);
+        }
+        if (await findOAuthClient(presented)) {
             return oauthError("invalid_client", 401);
         }
         clientId = presented;

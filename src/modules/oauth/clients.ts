@@ -215,14 +215,19 @@ export type AuthorizedClient = {
  * One row per client the caller holds a live refresh token for. Grouping by
  * client rather than reading tokens keeps the list one row per app, and the
  * user filter is what stops a shared metadata client from showing another
- * account's grant.
+ * account's grant. Expiry is part of "live": nothing sets `revokedAt` when a
+ * token ages out, so without it a grant would be reported forever.
  */
 export async function listAuthorizedClients(
     actor: { userId: string },
 ): Promise<AuthorizedClient[]> {
     const grouped = await prisma.oAuthRefreshToken.groupBy({
         by: ["clientId"],
-        where: { userId: actor.userId, revokedAt: null },
+        where: {
+            userId: actor.userId,
+            revokedAt: null,
+            expiresAt: { gt: new Date() },
+        },
         _min: { createdAt: true },
     });
 
@@ -246,9 +251,14 @@ export async function listAuthorizedClients(
                 }),
                 findOAuthClient(row.clientId),
             ]);
+            if (!latest) {
+                throw new Error(
+                    `No live refresh token for client ${row.clientId}`,
+                );
+            }
             return {
                 clientId: row.clientId,
-                scopes: latest?.scopes ?? [],
+                scopes: latest.scopes,
                 authorizedAt,
                 registered: registered !== null,
             };

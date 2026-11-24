@@ -324,25 +324,31 @@ function validate(clientId: string, body: string): ClientMetadata {
     try {
         raw = JSON.parse(body);
     } catch {
-        throw new Error("The client metadata document is not valid JSON.");
+        throw new MetadataError(
+            "The client metadata document is not valid JSON.",
+        );
     }
     if (typeof raw !== "object" || raw === null || Array.isArray(raw)) {
-        throw new Error("The client metadata document is not a JSON object.");
+        throw new MetadataError(
+            "The client metadata document is not a JSON object.",
+        );
     }
     const doc = raw as Record<string, unknown>;
 
     // The raw string is deliberate: the spec requires the document's client_id
     // to equal the URL exactly as the client sent it, not its normalized form.
     if (doc.client_id !== clientId) {
-        throw new Error(
+        throw new MetadataError(
             "The client metadata document client_id does not match the URL it was fetched from.",
         );
     }
     if (typeof doc.client_name !== "string" || doc.client_name.trim() === "") {
-        throw new Error("The client metadata document has no client_name.");
+        throw new MetadataError(
+            "The client metadata document has no client_name.",
+        );
     }
     if (doc.token_endpoint_auth_method !== "none") {
-        throw new Error(
+        throw new MetadataError(
             'The client metadata document must use token_endpoint_auth_method "none".',
         );
     }
@@ -353,7 +359,7 @@ function validate(clientId: string, body: string): ClientMetadata {
           )
         : [];
     if (redirectUris.length === 0) {
-        throw new Error(
+        throw new MetadataError(
             "The client metadata document has no usable redirect URI.",
         );
     }

@@ -9,6 +9,7 @@ const {
     findManyMock,
     findUniqueMock,
     groupByMock,
+    lookupMock,
     updateMock,
     updateManyMock,
 } = vi.hoisted(() => ({
@@ -18,8 +19,16 @@ const {
     findManyMock: vi.fn(),
     findUniqueMock: vi.fn(),
     groupByMock: vi.fn(),
+    lookupMock: vi.fn(async () => [{ address: "93.184.216.34", family: 4 }]),
     updateMock: vi.fn(),
     updateManyMock: vi.fn(),
+}));
+
+// The refusals are checked against the real validator, which resolves the host
+// before it fetches. Mocking the resolver keeps that off the network.
+vi.mock("node:dns/promises", () => ({
+    lookup: lookupMock,
+    default: { lookup: lookupMock },
 }));
 
 vi.mock("@/db", () => ({
@@ -56,6 +65,15 @@ import {
 } from "./clients";
 
 const actor = { userId: "alice" };
+
+const METADATA_CLIENT_ID = "https://opencode.ai/oauth/opencode/client.json";
+
+const metadataDocument = JSON.stringify({
+    client_id: METADATA_CLIENT_ID,
+    client_name: "opencode",
+    token_endpoint_auth_method: "none",
+    redirect_uris: ["http://127.0.0.1/callback"],
+});
 
 describe("oauth client registry", () => {
     beforeEach(() => {
@@ -187,6 +205,49 @@ describe("resolveClient", () => {
         });
         expect(await resolveClient("client-1")).toBeNull();
     });
+
+    it("resolves a registered client whose id is URL-shaped without fetching it", async () => {
+        findUniqueMock.mockResolvedValueOnce({
+            id: "row-1", clientId: METADATA_CLIENT_ID, clientSecretHash: "h", name: "registered",
+            redirectUris: ["http://127.0.0.1:19876/callback"], scopes: ["posts:read"],
+            userId: "alice", revokedAt: null,
+        });
+
+        const client = await resolveClient(METADATA_CLIENT_ID);
+
+        expect(client).toMatchObject({
+            name: "registered",
+            public: false,
+            origin: null,
+            allowedScopes: ["posts:read"],
+        });
+        // The registry lookup comes first, so a metadata URL that is also a
+        // registered id is never reinterpreted as a public client.
+        expect(fetchMetadataMock).not.toHaveBeenCalled();
+    });
+
+    it("surfaces a document's own refusal message through resolveClient", async () => {
+        const actual = await vi.importActual<
+            typeof import("@/modules/oauth/client-metadata")
+        >("@/modules/oauth/client-metadata");
+        fetchMetadataMock.mockImplementation((clientId: string) =>
+            actual.fetchClientMetadata(clientId, async () =>
+                JSON.stringify({
+                    ...JSON.parse(metadataDocument),
+                    client_id: "https://evil.example/client.json",
+                }),
+            ),
+        );
+
+        // The consent page prints a MetadataError's message and falls back to
+        // generic copy for anything else, so the refusal has to arrive as one.
+        await expect(resolveClient(METADATA_CLIENT_ID)).rejects.toThrow(
+            actual.MetadataError,
+        );
+        await expect(resolveClient(METADATA_CLIENT_ID)).rejects.toThrow(
+            /client_id does not match the URL/,
+        );
+    });
 });
 
 describe("authorized clients", () => {
@@ -201,12 +262,40 @@ describe("authorized clients", () => {
             { clientId: "client-1", _min: { createdAt: new Date("2026-01-01") }, _count: { _all: 2 } },
             { clientId: "https://opencode.ai/oauth/opencode/client.json", _min: { createdAt: new Date("2026-02-01") }, _count: { _all: 1 } },
         ]);
+        findFirstMock.mockResolvedValue({ scopes: ["posts:read"] });
         const rows = await listAuthorizedClients({ userId: "alice" });
         expect(rows.map((r) => r.clientId)).toHaveLength(2);
         expect(groupByMock).toHaveBeenCalledWith(expect.objectContaining({
             by: ["clientId"],
-            where: { userId: "alice", revokedAt: null },
+            where: {
+                userId: "alice",
+                revokedAt: null,
+                expiresAt: { gt: expect.any(Date) },
+            },
         }));
+    });
+
+    it("counts only unexpired tokens as live", async () => {
+        // Nothing stamps `revokedAt` on a token that ages out, so the expiry has
+        // to be part of the predicate or a dead grant lists forever.
+        groupByMock.mockResolvedValueOnce([]);
+
+        await listAuthorizedClients({ userId: "alice" });
+
+        const expiresAt = groupByMock.mock.calls[0][0].where.expiresAt;
+        expect(expiresAt.gt).toBeInstanceOf(Date);
+        expect(expiresAt.gt.getTime()).toBeGreaterThan(Date.now() - 1_000);
+    });
+
+    it("throws when a grouped client has no live token to read scopes from", async () => {
+        groupByMock.mockResolvedValueOnce([
+            { clientId: "client-1", _min: { createdAt: new Date("2026-01-01") }, _count: { _all: 1 } },
+        ]);
+        findFirstMock.mockResolvedValue(null);
+
+        await expect(listAuthorizedClients({ userId: "alice" })).rejects.toThrow(
+            /No live refresh token for client client-1/,
+        );
     });
 
     it("marks a client registered only when the registry has a row for it", async () => {
