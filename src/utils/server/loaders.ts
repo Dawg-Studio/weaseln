@@ -2,6 +2,8 @@ import { cache } from "react";
 import prisma from "@/db";
 import { auth } from "@/auth";
 import { postContainerInclude } from "@/utils/prismaQuery";
+import { normalizeProfileCustomization } from "@/modules/profile-customization/validation";
+import type { ProfileCustomization } from "@/modules/profile-customization/types";
 
 export const getSessionUser = cache(async () => {
     const session = await auth();
@@ -30,6 +32,53 @@ export const getProfile = cache(async (userId: string) =>
             },
         },
     }),
+);
+
+export type ProfileView = {
+    user: NonNullable<Awaited<ReturnType<typeof getProfile>>>;
+    customization: ProfileCustomization;
+    followers: number;
+    following: number;
+    posts: number;
+    isFollowing: boolean;
+};
+
+/**
+ * The profile page's load: the profile row, the three counts, the follow
+ * state and the normalised customisation. `null` when there is no such
+ * profile, so the caller can 404.
+ */
+export const getProfileView = cache(
+    async (userId: string): Promise<ProfileView | null> => {
+        const [session, user] = await Promise.all([
+            getSessionUser(),
+            getProfile(userId),
+        ]);
+        if (!user) return null;
+
+        const isFollowing = session
+            ? Boolean(
+                  await prisma.user.findUnique({
+                      where: {
+                          id: session.id,
+                          following: { some: { id: user.id } },
+                      },
+                      select: { id: true },
+                  }),
+              )
+            : false;
+
+        return {
+            user,
+            customization: normalizeProfileCustomization(
+                user.profileCustomization,
+            ),
+            followers: user._count.followedBy,
+            following: user._count.following,
+            posts: user._count.post,
+            isFollowing,
+        };
+    },
 );
 
 export const getPost = cache(async (slug: string) =>
