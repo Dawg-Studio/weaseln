@@ -43,6 +43,18 @@ export default function McpSetup({ endpoint }: { endpoint: string }) {
     "servers": {
       "weaseln": {
         "type": "remote",
+        "url": "${endpoint}"
+      }
+    }
+  }
+}`;
+
+    const registeredClientConfig = `{
+  "$schema": "https://opencode.ai/config.json",
+  "mcp": {
+    "servers": {
+      "weaseln": {
+        "type": "remote",
         "url": "${endpoint}",
         "oauth": {
           "client_id": "<client id>",
@@ -85,38 +97,13 @@ export default function McpSetup({ endpoint }: { endpoint: string }) {
             <ol className="measure mt-5 list-decimal space-y-4 pl-5 text-sm text-base-content/70">
                 <li>
                     <span className="font-semibold text-base-content">
-                        Register a client
-                    </span>{" "}
-                    — open{" "}
-                    <Link
-                        href="/settings/mcp-clients"
-                        className="link link-primary"
-                    >
-                        MCP clients
-                    </Link>
-                    , give it a name, a redirect URI and the permissions it
-                    needs. A native app uses a loopback address such as{" "}
-                    <code className="font-mono text-xs">
-                        http://127.0.0.1:19876/callback
-                    </code>
-                    ; a web client uses an{" "}
-                    <code className="font-mono text-xs">https://</code>{" "}
-                    address.
-                </li>
-                <li>
-                    <span className="font-semibold text-base-content">
-                        Copy the client id and secret
-                    </span>{" "}
-                    — the secret is shown once, when the client is created.
-                </li>
-                <li>
-                    <span className="font-semibold text-base-content">
                         Point your client at the endpoint
                     </span>{" "}
-                    — paste this into your client&rsquo;s configuration and
-                    replace the two placeholders with the credentials from
-                    step 2. The scope list must name only the permissions the
-                    client was registered with.
+                    — paste this into your client&rsquo;s configuration.
+                    There is no key to copy: the client names itself with a
+                    public <code className="font-mono text-xs">https://</code>{" "}
+                    document, and the browser sign-in is the only thing you
+                    do.
                     <div className="mt-3 flex flex-col items-start gap-2">
                         <pre className="w-full overflow-x-auto rounded-box border border-hairline bg-sunk p-3 font-mono text-xs leading-relaxed text-base-content">
                             {config}
@@ -126,15 +113,61 @@ export default function McpSetup({ endpoint }: { endpoint: string }) {
                             label="Copy the MCP client configuration"
                         />
                     </div>
+                    <p className="mt-3">
+                        Leave{" "}
+                        <code className="font-mono text-xs">
+                            oauth.redirect_uri
+                        </code>{" "}
+                        out of it. Setting it stops OpenCode looking for the
+                        metadata document, so a stale one makes the connection
+                        fail instead of signing you in.
+                    </p>
                 </li>
                 <li>
                     <span className="font-semibold text-base-content">
                         Authorize
                     </span>{" "}
                     — the first request opens the consent screen in your
-                    browser. Sign in, check the permissions it asks for and
-                    allow it. The client then exchanges the code for a token
-                    and refreshes it on its own.
+                    browser. It names the document&rsquo;s host
+                    (&ldquo;opencode.ai&rdquo; for OpenCode), warns that the
+                    app registered itself, and lists the permissions it will
+                    get. Sign in, check all of it and allow it. The client then
+                    exchanges the code for a token and refreshes it on its own.
+                </li>
+                <li>
+                    <span className="font-semibold text-base-content">
+                        If your client cannot do that
+                    </span>{" "}
+                    — a client without metadata-document support needs a
+                    registered one. Open{" "}
+                    <Link
+                        href="/settings/mcp-clients"
+                        className="link link-primary"
+                    >
+                        MCP clients
+                    </Link>
+                    , create a client with a name, a redirect URI and the
+                    permissions it needs; a native app uses a loopback address
+                    such as{" "}
+                    <code className="font-mono text-xs">
+                        http://127.0.0.1:19876/callback
+                    </code>
+                    , a web client uses an{" "}
+                    <code className="font-mono text-xs">https://</code>{" "}
+                    address. Copy the client id and secret — the secret is
+                    shown once — into this configuration instead, and trim its
+                    scope list to the permissions the client was registered
+                    with: it names all ten, and a request for one the client
+                    does not have is refused before the consent form appears.
+                    <div className="mt-3 flex flex-col items-start gap-2">
+                        <pre className="w-full overflow-x-auto rounded-box border border-hairline bg-sunk p-3 font-mono text-xs leading-relaxed text-base-content">
+                            {registeredClientConfig}
+                        </pre>
+                        <CopyButton
+                            value={registeredClientConfig}
+                            label="Copy the registered-client configuration"
+                        />
+                    </div>
                 </li>
             </ol>
 
@@ -143,9 +176,11 @@ export default function McpSetup({ endpoint }: { endpoint: string }) {
                     Permissions
                 </h3>
                 <p className="measure mt-2 text-sm text-base-content/70">
-                    A client is registered with the permissions it needs, and
-                    a token can never carry a permission the client was not
-                    registered with.
+                    A client registered in Settings can only be granted the
+                    permissions it was created with. A client that names itself
+                    with a metadata document asks for its permissions directly,
+                    and the consent screen lists what it will get before you
+                    allow it.
                 </p>
                 <dl className="measure mt-3 space-y-1 text-sm">
                     {OAUTH_SCOPES.map((scope) => (
@@ -174,7 +209,11 @@ export default function McpSetup({ endpoint }: { endpoint: string }) {
                 <code className="font-mono text-xs">
                     /.well-known/oauth-protected-resource/api/mcp
                 </code>
-                .
+                . The first one publishes{" "}
+                <code className="font-mono text-xs">
+                    client_id_metadata_document_supported: true
+                </code>
+                , which is how a client knows it can sign in without a key.
             </p>
         </div>
     );

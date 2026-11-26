@@ -4,10 +4,14 @@ import { approveAuthorization, denyAuthorization } from "@/utils/actions/oauth";
 
 export default function ConsentForm({
     clientName,
+    clientOrigin,
+    isPublicClient,
     scopes,
     request,
 }: {
     clientName: string;
+    clientOrigin: string | null;
+    isPublicClient: boolean;
     scopes: string[];
     request: {
         clientId: string;
@@ -31,6 +35,16 @@ export default function ConsentForm({
                         allow, and you can withdraw access at any time.
                     </p>
                 </div>
+
+                {isPublicClient && (
+                    <div className="space-y-1 text-sm">
+                        <p>Approved by {clientOrigin}</p>
+                        <p className="opacity-80">
+                            This app registered itself. Only allow it if you
+                            started this connection yourself.
+                        </p>
+                    </div>
+                )}
 
                 <div className="space-y-2">
                     <h2 className="text-sm font-semibold uppercase opacity-70">

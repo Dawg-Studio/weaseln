@@ -6,12 +6,13 @@ import { redirect } from "next/navigation";
 
 import { auth } from "@/auth";
 import prisma from "@/db";
-import { findOAuthClient, hashSecret } from "@/modules/oauth/clients";
+import { hashSecret, resolveClient } from "@/modules/oauth/clients";
 import {
     isAllowedRedirectUri,
     matchesRedirectUri,
 } from "@/modules/oauth/redirect-uri";
 import {
+    grantedScopes,
     isScopeSubset,
     OAUTH_SCOPES,
     parseScopes,
@@ -19,6 +20,7 @@ import {
 import {
     listOAuthClients,
     registerOAuthClient,
+    revokeAuthorizedClient,
     revokeOAuthClient,
 } from "@/modules/oauth/clients";
 
@@ -35,8 +37,10 @@ export type AuthorizationRequest = {
 
 /**
  * The approval path. Every check happens before a code exists, so a code is
- * only ever minted for a client the signed-in user owns, a redirect URI that
- * client registered, an S256 challenge, and scopes that client may request.
+ * only ever minted for a client weaseln can resolve, an owner the signed-in
+ * user is (for a registered client), a redirect URI that client registered, an
+ * S256 challenge, and scopes that client may request. The code itself is bound
+ * to the consenter, never to anything in the request.
  */
 export async function approveAuthorization(
     input: AuthorizationRequest,
@@ -44,9 +48,13 @@ export async function approveAuthorization(
     const session = await auth();
     if (!session?.user) throw new Error("Not authenticated");
 
-    const client = await findOAuthClient(input.clientId);
-    if (!client || client.revokedAt) throw new Error("Not authorized");
-    if (client.userId !== session.user.id) throw new Error("Not authorized");
+    const client = await resolveClient(input.clientId);
+    if (!client) throw new Error("Not authorized");
+    // A registered client may only be authorized by the account that owns it. A
+    // metadata client has no owner; the consent screen binds it to the consenter.
+    if (!client.public && client.userId !== session.user.id) {
+        throw new Error("Not authorized");
+    }
     if (!matchesRedirectUri(client.redirectUris, input.redirectUri)) {
         throw new Error("Invalid redirect URI");
     }
@@ -57,7 +65,12 @@ export async function approveAuthorization(
         throw new Error("Invalid code challenge");
     }
     const scopes = parseScopes(input.scope);
-    if (!isScopeSubset(scopes, client.scopes)) {
+    const scopeAllowed = client.allowedScopes
+        ? isScopeSubset(scopes, client.allowedScopes)
+        : scopes.every((scope) =>
+              (OAUTH_SCOPES as readonly string[]).includes(scope),
+          );
+    if (!scopeAllowed) {
         throw new Error("Invalid scope");
     }
 
@@ -69,7 +82,7 @@ export async function approveAuthorization(
             userId: session.user.id,
             redirectUri: input.redirectUri,
             codeChallenge: input.codeChallenge,
-            scopes,
+            scopes: grantedScopes(scopes, { public: client.public }),
             expiresAt: new Date(Date.now() + CODE_TTL_SECONDS * 1000),
         },
     });
@@ -118,6 +131,19 @@ export async function revokeMcpClient(input: {
     await revokeOAuthClient({ userId: session.user.id }, input);
 }
 
+/**
+ * Withdraws the signed-in user's own access to a client. Separate from
+ * revoking the client itself: a metadata client belongs to nobody, so only the
+ * grant this account made can be revoked here.
+ */
+export async function revokeAuthorizedClientAction(input: {
+    clientId: string;
+}): Promise<void> {
+    const session = await auth();
+    if (!session?.user) throw new Error("Not authenticated");
+    await revokeAuthorizedClient({ userId: session.user.id }, input);
+}
+
 export async function listMcpClients(): Promise<
     Awaited<ReturnType<typeof listOAuthClients>>
 > {
@@ -127,9 +153,9 @@ export async function listMcpClients(): Promise<
 }
 
 /**
- * The refusal path. The redirect URI is checked against the client's
- * registered URIs here too, so this action cannot be used as an open
- * redirect.
+ * The refusal path. The client and the redirect URI are resolved exactly as
+ * on approval, so this action cannot be used as an open redirect, and a
+ * metadata client can be refused as well as allowed.
  */
 export async function denyAuthorization(input: {
     clientId: string;
@@ -138,7 +164,7 @@ export async function denyAuthorization(input: {
 }): Promise<void> {
     const session = await auth();
     if (!session?.user) throw new Error("Not authenticated");
-    const client = await findOAuthClient(input.clientId);
+    const client = await resolveClient(input.clientId);
     if (!client) throw new Error("Invalid client");
     if (!matchesRedirectUri(client.redirectUris, input.redirectUri)) {
         throw new Error("Invalid redirect URI");

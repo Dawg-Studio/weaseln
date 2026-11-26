@@ -30,12 +30,28 @@ describe("McpSetup", () => {
         expect(writeText).toHaveBeenCalledWith(ENDPOINT);
     });
 
-    it("copies a configuration that points at the endpoint", async () => {
+    it("copies a configuration that points at the endpoint without a key", async () => {
         render(<McpSetup endpoint={ENDPOINT} />);
 
         await userEvent.click(
             screen.getByRole("button", {
                 name: /copy the mcp client configuration/i,
+            }),
+        );
+
+        const copied = writeText.mock.calls[0][0] as string;
+        expect(copied).toContain(`"url": "${ENDPOINT}"`);
+        expect(copied).not.toContain("client_secret");
+        expect(copied).not.toContain("client_id");
+        expect(copied).not.toContain('"oauth"');
+    });
+
+    it("copies the registered-client configuration with its placeholders", async () => {
+        render(<McpSetup endpoint={ENDPOINT} />);
+
+        await userEvent.click(
+            screen.getByRole("button", {
+                name: /copy the registered-client configuration/i,
             }),
         );
 

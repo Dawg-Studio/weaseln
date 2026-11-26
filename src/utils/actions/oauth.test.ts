@@ -2,34 +2,53 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 // ponytail: Vitest 4.x hoists vi.mock() factories above top-level consts, so
 // the mocks have to be hoisted with them.
-const { authMock, findUniqueMock, createMock, redirectMock } = vi.hoisted(
-    () => ({
-        authMock: vi.fn(),
-        findUniqueMock: vi.fn(),
-        createMock: vi.fn(),
-        redirectMock: vi.fn(),
-    }),
-);
+const {
+    authMock,
+    resolveClientMock,
+    createMock,
+    redirectMock,
+} = vi.hoisted(() => ({
+    authMock: vi.fn(),
+    resolveClientMock: vi.fn(),
+    createMock: vi.fn(),
+    redirectMock: vi.fn(),
+}));
 
 vi.mock("@/auth", () => ({ auth: authMock }));
 vi.mock("@/db", () => ({
     default: {
-        oAuthClient: { findUnique: findUniqueMock },
         oAuthAuthorizationCode: { create: createMock },
     },
 }));
+// Partial mock: the one client lookup is the seam, hashSecret stays real.
+vi.mock("@/modules/oauth/clients", async (importOriginal) => {
+    const actual =
+        await importOriginal<typeof import("@/modules/oauth/clients")>();
+    return { ...actual, resolveClient: resolveClientMock };
+});
 vi.mock("next/navigation", () => ({ redirect: redirectMock }));
 
+import { OAUTH_SCOPES } from "@/modules/oauth/scopes";
 import { approveAuthorization, denyAuthorization } from "@/utils/actions/oauth";
 
 const client = {
-    id: "row-1",
     clientId: "client-1",
-    clientSecretHash: "hash",
+    name: "Registered client",
     redirectUris: ["http://127.0.0.1:19876/callback"],
-    scopes: ["posts:read", "posts:write"],
+    allowedScopes: ["posts:read", "posts:write"],
+    origin: null,
+    public: false,
     userId: "alice",
-    revokedAt: null,
+};
+
+const publicClient = {
+    clientId: "https://opencode.ai/oauth/opencode/client.json",
+    name: "opencode",
+    redirectUris: ["http://127.0.0.1/callback"],
+    allowedScopes: null,
+    origin: "opencode.ai",
+    public: true,
+    userId: null,
 };
 
 const request = {
@@ -44,18 +63,27 @@ const request = {
 describe("oauth consent actions", () => {
     beforeEach(() => {
         authMock.mockReset();
-        findUniqueMock.mockReset();
+        resolveClientMock.mockReset();
         createMock.mockReset();
         redirectMock.mockReset();
         authMock.mockResolvedValue({ user: { id: "alice" } });
-        findUniqueMock.mockResolvedValue(client);
+        resolveClientMock.mockResolvedValue(client);
         redirectMock.mockImplementation((url: string) => {
             throw new Error(`REDIRECT ${url}`);
         });
     });
 
     it("refuses to authorize a client owned by another user", async () => {
-        findUniqueMock.mockResolvedValue({ ...client, userId: "bob" });
+        resolveClientMock.mockResolvedValue({ ...client, userId: "bob" });
+
+        await expect(approveAuthorization(request)).rejects.toThrow(
+            "Not authorized",
+        );
+        expect(createMock).not.toHaveBeenCalled();
+    });
+
+    it("refuses to authorize a client it cannot resolve", async () => {
+        resolveClientMock.mockResolvedValueOnce(null);
 
         await expect(approveAuthorization(request)).rejects.toThrow(
             "Not authorized",
@@ -121,5 +149,91 @@ describe("oauth consent actions", () => {
                 state: "xyz",
             }),
         ).rejects.toThrow(/error=access_denied.*state=xyz/);
+    });
+
+    it("redirects a metadata client with access_denied on refusal", async () => {
+        resolveClientMock.mockResolvedValueOnce(publicClient);
+        await expect(
+            denyAuthorization({
+                clientId: "https://opencode.ai/oauth/opencode/client.json",
+                redirectUri: "http://127.0.0.1:19876/callback",
+                state: "xyz",
+            }),
+        ).rejects.toThrow(/error=access_denied.*state=xyz/);
+    });
+
+    it("refuses to deny with a redirect URI the client did not register", async () => {
+        resolveClientMock.mockResolvedValueOnce(publicClient);
+        await expect(
+            denyAuthorization({
+                clientId: "https://opencode.ai/oauth/opencode/client.json",
+                redirectUri: "http://evil.example.com/callback",
+                state: "xyz",
+            }),
+        ).rejects.toThrow("Invalid redirect URI");
+    });
+
+    it("refuses to deny an unknown client", async () => {
+        resolveClientMock.mockResolvedValueOnce(null);
+        await expect(
+            denyAuthorization({
+                clientId: "nobody",
+                redirectUri: "http://127.0.0.1:19876/callback",
+                state: "xyz",
+            }),
+        ).rejects.toThrow("Invalid client");
+    });
+
+    it("authorizes a public metadata client and binds the code to the consenter", async () => {
+        resolveClientMock.mockResolvedValueOnce(publicClient);
+        await expect(
+            approveAuthorization({
+                ...request,
+                clientId: "https://opencode.ai/oauth/opencode/client.json",
+                redirectUri: "http://127.0.0.1:19876/callback",
+                scope: "posts:read posts:write",
+            }),
+        ).rejects.toThrow(/REDIRECT/);
+        const data = createMock.mock.calls[0][0].data;
+        expect(data.clientId).toBe(
+            "https://opencode.ai/oauth/opencode/client.json",
+        );
+        expect(data.userId).toBe("alice");
+        expect(data.scopes).toEqual(["posts:read", "posts:write"]);
+    });
+
+    it("refuses a scope weaseln does not know for a public client", async () => {
+        resolveClientMock.mockResolvedValueOnce(publicClient);
+        await expect(
+            approveAuthorization({
+                ...request,
+                clientId: "https://opencode.ai/oauth/opencode/client.json",
+                scope: "posts:read admin:everything",
+            }),
+        ).rejects.toThrow("Invalid scope");
+        expect(createMock).not.toHaveBeenCalled();
+    });
+
+    it("grants the full known set when a public client asks for no scope", async () => {
+        // OpenCode's scope default comes from the WWW-Authenticate challenge, which
+        // weaseln does not populate, so an empty request is the expected case.
+        resolveClientMock.mockResolvedValueOnce(publicClient);
+        await expect(
+            approveAuthorization({
+                ...request,
+                clientId: "https://opencode.ai/oauth/opencode/client.json",
+                scope: "",
+            }),
+        ).rejects.toThrow(/REDIRECT/);
+        expect(createMock.mock.calls[0][0].data.scopes).toEqual([
+            ...OAUTH_SCOPES,
+        ]);
+    });
+
+    it("grants nothing when a registered client asks for no scope", async () => {
+        await expect(
+            approveAuthorization({ ...request, scope: "" }),
+        ).rejects.toThrow(/REDIRECT/);
+        expect(createMock.mock.calls[0][0].data.scopes).toEqual([]);
     });
 });

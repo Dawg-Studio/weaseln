@@ -20,7 +20,9 @@ export async function GET(req: Request) {
             token_endpoint_auth_methods_supported: [
                 "client_secret_basic",
                 "client_secret_post",
+                "none",
             ],
+            client_id_metadata_document_supported: true,
             scopes_supported: [...OAUTH_SCOPES],
         },
         { status: 200 },

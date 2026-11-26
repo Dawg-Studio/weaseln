@@ -152,7 +152,40 @@ The in-app instructions live at **Settings > Account**, under MCP.
 https://<your-host>/api/mcp
 ```
 
-### Register a client
+### Connect without keys
+
+A client that supports Client ID Metadata Documents needs no credentials at
+all. Point it at the endpoint and the browser sign-in is the whole setup:
+
+```jsonc
+{
+  "$schema": "https://opencode.ai/config.json",
+  "mcp": {
+    "servers": {
+      "weaseln": {
+        "type": "remote",
+        "url": "https://<your-host>/api/mcp"
+      }
+    }
+  }
+}
+```
+
+The client names itself with its own public `https://` document, and the
+authorization server metadata at `/.well-known/oauth-authorization-server`
+publishes `client_id_metadata_document_supported: true`, which is how the
+client knows it can. The consent screen shows that document's host.
+
+In OpenCode, leave `oauth.redirect_uri` out of the config: setting it disables
+metadata-document discovery, so the zero-key config stops working.
+
+A registered client still takes priority. When the `client_id` is one Settings
+issued, it is used as a confidential client and the metadata document is never
+consulted.
+
+### Register a client (fallback)
+
+Use this when the client cannot identify itself with a metadata document.
 
 1. Sign in and open **Settings > MCP clients**.
 2. Create a client with a name and a redirect URI. A native client uses a
@@ -162,8 +195,9 @@ https://<your-host>/api/mcp
 
 ### Permissions
 
-A client is registered with the permissions it needs, and a token can never
-carry a permission the client was not registered with.
+A client registered in Settings can only be granted the permissions it was
+created with. A client that names itself with a metadata document asks for its
+permissions directly, and the consent screen lists what it will get.
 
 | Scope               | Grants                                          |
 | ------------------- | ----------------------------------------------- |
@@ -182,7 +216,12 @@ A client registered before the profile and portfolio permissions existed keeps
 the six it was registered with, and the settings page shows each client's
 permissions. Register the client again to give it the new ones.
 
-### OpenCode
+### OpenCode with a registered client
+
+This is the fallback: fill the id and secret from **Settings > MCP clients**
+into the `oauth` block. Trim its `scope` list to the permissions the client was
+registered with: the list below names all ten, and a request for one the client
+does not have is refused at the authorize step.
 
 ```jsonc
 {
