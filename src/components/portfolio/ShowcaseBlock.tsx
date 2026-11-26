@@ -17,6 +17,8 @@ type ShowcaseBlockProps = {
     };
     items: ShowcaseItem[];
     userId: string;
+    /** Where the heading links. Without it the heading stays plain text. */
+    titleHref?: string;
 };
 
 const IMAGE_WIDTH = 800;
@@ -198,7 +200,7 @@ const LAYOUTS: Record<ShowcaseLayout, (_props: LayoutProps) => ReactNode> = {
  * One block per showcase. An empty showcase renders nothing at all, so a
  * profile only grows when its owner put something in it.
  */
-export default function ShowcaseBlock({ showcase, items, userId }: ShowcaseBlockProps) {
+export default function ShowcaseBlock({ showcase, items, userId, titleHref }: ShowcaseBlockProps) {
     if (items.length === 0) return null;
 
     const Layout = LAYOUTS[normalizeShowcaseLayout(showcase.layout)];
@@ -206,7 +208,15 @@ export default function ShowcaseBlock({ showcase, items, userId }: ShowcaseBlock
     return (
         <section className="mb-6 space-y-3" data-testid={`showcase-${showcase.slug}`}>
             <div>
-                <h2 className="text-2xl font-bold">{showcase.title}</h2>
+                <h2 className="text-2xl font-bold">
+                    {titleHref ? (
+                        <Link href={titleHref} className="link-hover">
+                            {showcase.title}
+                        </Link>
+                    ) : (
+                        showcase.title
+                    )}
+                </h2>
                 {showcase.description && <p className="text-sm opacity-80">{showcase.description}</p>}
             </div>
             <Layout items={items} userId={userId} showcaseSlug={showcase.slug} />

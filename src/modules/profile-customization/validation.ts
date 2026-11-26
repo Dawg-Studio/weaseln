@@ -8,6 +8,7 @@ import {
     HEADING_SIZES,
     PROFILE_LAYOUT_VARIANTS,
     PROFILE_PRESETS,
+    PROFILE_SECTION_GROUPS,
     PROFILE_SECTIONS,
     SPACING_DENSITIES,
     TEXT_ALIGNS,
@@ -136,8 +137,35 @@ function assertLayout(value: unknown): ProfileLayout {
     };
 }
 
-export type ProfileCustomizationInput = Partial<ProfileCustomization>;
+/**
+ * The layout the settings page saves. The profile sections keep the owner's
+ * order, the tab sections follow in a fixed tail, and "posts" is last and
+ * never hidden. Every id stays in the order, because the validator refuses a
+ * hidden section that is not in it - a legacy row with "posts" hidden would
+ * otherwise fail its own save.
+ */
+export function layoutForSave(layout: ProfileLayout): ProfileLayout {
+    const owner = layout.sectionOrder.filter((section) =>
+        PROFILE_SECTION_GROUPS.profile.includes(section),
+    );
+    const order: ProfileSection[] = [
+        ...owner,
+        ...PROFILE_SECTION_GROUPS.tabs,
+        "posts",
+    ];
+    const missing = PROFILE_SECTIONS.filter(
+        (section) => !order.includes(section),
+    );
+    return {
+        variant: layout.variant,
+        sectionOrder: [...order, ...missing],
+        hiddenSections: layout.hiddenSections.filter(
+            (section) => section !== "posts",
+        ),
+    };
+}
 
+export type ProfileCustomizationInput = Partial<ProfileCustomization>;
 export function validateProfileCustomizationInput(
     input: unknown,
 ): ProfileCustomization {

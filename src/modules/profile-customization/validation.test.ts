@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import {
     DEFAULT_PROFILE_CUSTOMIZATION,
     DEFAULT_PROFILE_LAYOUT,
+    layoutForSave,
     normalizeProfileCustomization,
     validateProfileCustomizationInput,
 } from "./validation";
@@ -34,6 +35,55 @@ describe("profile customization validation", () => {
     it("uses the default layout when layout is omitted", () => {
         const result = validateProfileCustomizationInput({ preset: "minimal" });
         expect(result.layout).toEqual(DEFAULT_PROFILE_LAYOUT);
+    });
+});
+
+describe("layoutForSave", () => {
+    it("keeps every id in the order and never hides posts", () => {
+        const saved = layoutForSave({
+            variant: "standard",
+            sectionOrder: ["hero", "stats", "about", "socials", "featuredPost", "interests", "organizations", "showcases", "experience", "resume", "posts"],
+            hiddenSections: ["posts", "organizations"],
+        });
+        expect(saved.sectionOrder).toHaveLength(11);
+        expect(saved.hiddenSections).not.toContain("posts");
+        expect(saved.hiddenSections).toContain("organizations");
+    });
+
+    it("puts the profile sections first, in the owner's order", () => {
+        const saved = layoutForSave({
+            variant: "standard",
+            sectionOrder: ["stats", "hero", "socials", "about", "featuredPost", "interests", "organizations", "showcases", "experience", "resume", "posts"],
+            hiddenSections: [],
+        });
+        expect(saved.sectionOrder.slice(0, 2)).toEqual(["stats", "hero"]);
+        expect(saved.sectionOrder.slice(7)).toEqual([
+            "showcases",
+            "experience",
+            "resume",
+            "posts",
+        ]);
+    });
+
+    it("produces a layout the validator accepts", () => {
+        const saved = layoutForSave({
+            variant: "standard",
+            sectionOrder: ["hero", "posts"],
+            hiddenSections: ["posts"],
+        });
+        expect(() =>
+            validateProfileCustomizationInput({ layout: saved }),
+        ).not.toThrow();
+    });
+
+    it("keeps every id even when the order it is given is short", () => {
+        const saved = layoutForSave({
+            variant: "standard",
+            sectionOrder: ["hero", "posts"],
+            hiddenSections: ["posts"],
+        });
+        expect(saved.sectionOrder).toHaveLength(11);
+        expect(new Set(saved.sectionOrder).size).toBe(11);
     });
 });
 

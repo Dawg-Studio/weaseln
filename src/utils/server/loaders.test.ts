@@ -30,7 +30,7 @@ vi.mock("@/db", () => ({
 }));
 vi.mock("@/generated/prisma/client", () => ({ Prisma: {} }));
 
-import { getProfile, getSessionUser, getPost, getSeries, getAllTags } from "@/utils/server/loaders";
+import { getProfile, getProfileView, getSessionUser, getPost, getSeries, getAllTags } from "@/utils/server/loaders";
 
 beforeEach(() => {
     userFindFirstMock.mockReset();
@@ -62,6 +62,42 @@ describe("getProfile", () => {
         expect(userFindFirstMock).toHaveBeenCalledWith(
             expect.objectContaining({ where: { OR: [{ id: "alice" }, { username: "alice" }] } }),
         );
+    });
+});
+
+describe("getProfileView", () => {
+    it("returns the counts and the follow state", async () => {
+        userFindFirstMock.mockResolvedValue({
+            id: "u1",
+            profileCustomization: null,
+            _count: { post: 2, following: 3, followedBy: 4 },
+        });
+        userFindUniqueMock.mockResolvedValue({ id: "u1" });
+
+        const view = await getProfileView("alice");
+
+        expect(view?.posts).toBe(2);
+        expect(view?.following).toBe(3);
+        expect(view?.followers).toBe(4);
+        expect(view?.isFollowing).toBe(true);
+    });
+
+    it("returns null when there is no such profile", async () => {
+        userFindFirstMock.mockResolvedValue(null);
+        expect(await getProfileView("nobody")).toBeNull();
+    });
+
+    it("reports no follow when there is no session", async () => {
+        authMock.mockResolvedValue(null);
+        userFindFirstMock.mockResolvedValue({
+            id: "u1",
+            profileCustomization: null,
+            _count: { post: 0, following: 0, followedBy: 0 },
+        });
+
+        const view = await getProfileView("alice");
+
+        expect(view?.isFollowing).toBe(false);
     });
 });
 
